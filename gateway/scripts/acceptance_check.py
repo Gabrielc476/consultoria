@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import os
 import sys
 import time
 import urllib.error
@@ -15,7 +16,7 @@ except ImportError:
 SECRET = "GovFlowLocalDevJwtSecretKeyChangeMe32b!"
 TENANT = "11111111-1111-1111-1111-111111111111"
 USER = "22222222-2222-2222-2222-222222222222"
-BASE = "http://host.docker.internal:8080"
+BASE = os.environ.get("GATEWAY_BASE_URL", "http://127.0.0.1:8080")
 
 
 def req(method, path, headers=None):
@@ -99,6 +100,28 @@ def main():
             '"x_correlation_id":"' in body and body.split('"x_correlation_id":"')[1][:36],
             body,
         )
+
+    bad_sub_token = jwt.encode(
+        {
+            "sub": "not-a-valid-uuid-user",
+            "tenant_id": TENANT,
+            "exp": int(time.time()) + 3600,
+        },
+        SECRET,
+        algorithm="HS256",
+    )
+    status, headers, body = req("GET", "/api/v1/core/prefeituras", {"Authorization": f"Bearer {bad_sub_token}"})
+    check("invalid non-uuid sub rejected", status == 401 and "UUID" in body, f"status={status} body={body}")
+
+    status, headers, body = req(
+        "GET",
+        "/api/v1/core/docs",
+        {
+            "Authorization": f"Bearer {token}",
+            "X-Correlation-Id": "unsafe@chars!inject",
+        },
+    )
+    check("unsafe correlation sanitized", status == 200 and "unsafe@chars!inject" not in body, f"body={body}")
 
     if failures:
         print("FAILURES:", ", ".join(failures))

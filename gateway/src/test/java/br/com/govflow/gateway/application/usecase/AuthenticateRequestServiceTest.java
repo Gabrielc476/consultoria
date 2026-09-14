@@ -31,14 +31,22 @@ class AuthenticateRequestServiceTest {
     }
 
     @Test
-    void publicPathSkipsAuthentication() {
-        StepVerifier.create(service.execute(null, "/api/v1/auth/login"))
-                .verifyComplete();
+    void missingTokenFails() {
+        StepVerifier.create(service.execute(null))
+                .expectError(InvalidTokenException.class)
+                .verify();
     }
 
     @Test
-    void missingTokenOnProtectedPathFails() {
-        StepVerifier.create(service.execute(null, "/api/v1/core/prefeituras"))
+    void invalidPrefixFails() {
+        StepVerifier.create(service.execute("Basic abc123"))
+                .expectError(InvalidTokenException.class)
+                .verify();
+    }
+
+    @Test
+    void emptyBearerTokenFails() {
+        StepVerifier.create(service.execute("Bearer   "))
                 .expectError(InvalidTokenException.class)
                 .verify();
     }
@@ -55,7 +63,7 @@ class AuthenticateRequestServiceTest {
 
         when(tokenDecoderPort.decode(anyString())).thenReturn(Mono.just(auth));
 
-        StepVerifier.create(service.execute("Bearer valid.token.here", "/api/v1/core/x"))
+        StepVerifier.create(service.execute("Bearer valid.token.here"))
                 .expectNext(auth)
                 .verifyComplete();
     }

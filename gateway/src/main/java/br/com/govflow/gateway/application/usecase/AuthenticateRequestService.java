@@ -3,7 +3,6 @@ package br.com.govflow.gateway.application.usecase;
 import br.com.govflow.gateway.application.port.in.AuthenticateRequestUseCase;
 import br.com.govflow.gateway.application.port.out.TokenDecoderPort;
 import br.com.govflow.gateway.domain.exception.InvalidTokenException;
-import br.com.govflow.gateway.domain.model.RoutePolicy;
 import br.com.govflow.gateway.domain.model.UserAuthentication;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -18,10 +17,7 @@ public class AuthenticateRequestService implements AuthenticateRequestUseCase {
     }
 
     @Override
-    public Mono<UserAuthentication> execute(String authHeader, String path) {
-        if (RoutePolicy.isPublicPath(path)) {
-            return Mono.empty();
-        }
+    public Mono<UserAuthentication> execute(String authHeader) {
 
         if (authHeader == null || authHeader.isBlank()) {
             return Mono.error(new InvalidTokenException("Token JWT ausente. Informe o header Authorization: Bearer <token>."));

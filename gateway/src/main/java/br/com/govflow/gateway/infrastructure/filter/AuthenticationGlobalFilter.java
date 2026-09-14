@@ -11,7 +11,6 @@ import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
@@ -34,14 +33,16 @@ public class AuthenticationGlobalFilter implements GlobalFilter, Ordered {
         String path = exchange.getRequest().getURI().getPath();
 
         if (RoutePolicy.isPublicPath(path)) {
-            ServerHttpRequest sanitized = stripSecurityHeaders(exchange.getRequest());
-            return chain.filter(exchange.mutate().request(sanitized).build());
+            return chain.filter(exchange);
         }
 
         String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
 
-        return authenticateRequestUseCase.execute(authHeader, path)
-                .flatMap(userAuth -> chain.filter(exchange.mutate().request(injectHeaders(exchange, userAuth)).build()))
+        return authenticateRequestUseCase.execute(authHeader)
+                .flatMap(userAuth -> {
+                    exchange.getAttributes().put(GatewayAttributes.USER_AUTHENTICATION, userAuth);
+                    return chain.filter(exchange);
+                })
                 .onErrorResume(InvalidTokenException.class, ex ->
                         problemDetailsWriter.write(
                                 exchange,
@@ -56,31 +57,6 @@ public class AuthenticationGlobalFilter implements GlobalFilter, Ordered {
                                 "https://govflow.com.br/errors/tenant-suspended",
                                 "Consultoria Suspensa",
                                 ex.getMessage()));
-    }
-
-    private ServerHttpRequest injectHeaders(ServerWebExchange exchange, UserAuthentication userAuth) {
-        return exchange.getRequest().mutate()
-                .headers(headers -> {
-                    headers.remove(GatewayHeaders.TENANT_ID);
-                    headers.remove(GatewayHeaders.USER_ID);
-                    headers.remove(GatewayHeaders.USER_ROLES);
-                    headers.set(GatewayHeaders.TENANT_ID, userAuth.tenant().tenantId().toString());
-                    headers.set(GatewayHeaders.USER_ID, userAuth.userId().toString());
-                    if (userAuth.roles() != null && !userAuth.roles().isEmpty()) {
-                        headers.set(GatewayHeaders.USER_ROLES, String.join(",", userAuth.roles()));
-                    }
-                })
-                .build();
-    }
-
-    private ServerHttpRequest stripSecurityHeaders(ServerHttpRequest request) {
-        return request.mutate()
-                .headers(headers -> {
-                    headers.remove(GatewayHeaders.TENANT_ID);
-                    headers.remove(GatewayHeaders.USER_ID);
-                    headers.remove(GatewayHeaders.USER_ROLES);
-                })
-                .build();
     }
 
     @Override

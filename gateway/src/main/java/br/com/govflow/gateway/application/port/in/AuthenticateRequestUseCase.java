@@ -6,8 +6,8 @@ import reactor.core.publisher.Mono;
 public interface AuthenticateRequestUseCase {
 
     /**
-     * Authenticates a request. For public paths returns empty Mono (no user context).
-     * For protected paths returns authenticated user or error.
+     * Authenticates a request based on the authorization header.
+     * Returns authenticated user or error.
      */
-    Mono<UserAuthentication> execute(String authHeader, String path);
+    Mono<UserAuthentication> execute(String authHeader);
 }

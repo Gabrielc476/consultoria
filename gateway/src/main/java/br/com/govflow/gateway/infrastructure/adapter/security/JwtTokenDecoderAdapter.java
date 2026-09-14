@@ -78,7 +78,11 @@ public class JwtTokenDecoderAdapter implements TokenDecoderPort {
     private UUID resolveUserId(Claims claims) {
         String userIdClaim = claims.get("user_id", String.class);
         if (userIdClaim != null && !userIdClaim.isBlank()) {
-            return UUID.fromString(userIdClaim);
+            try {
+                return UUID.fromString(userIdClaim);
+            } catch (IllegalArgumentException ex) {
+                throw new InvalidTokenException("Claim user_id deve ser um UUID válido.", ex);
+            }
         }
         String sub = claims.getSubject();
         if (sub == null || sub.isBlank()) {
@@ -87,8 +91,7 @@ public class JwtTokenDecoderAdapter implements TokenDecoderPort {
         try {
             return UUID.fromString(sub);
         } catch (IllegalArgumentException ex) {
-            // Non-UUID subject: derive a stable UUID from the subject string
-            return UUID.nameUUIDFromBytes(sub.getBytes(StandardCharsets.UTF_8));
+            throw new InvalidTokenException("Claim sub deve ser um UUID válido.", ex);
         }
     }
 
