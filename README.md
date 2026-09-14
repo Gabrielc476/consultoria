@@ -77,6 +77,19 @@ O projeto segue as práticas de **Domain-Driven Design (DDD)** e arquitetura lim
 | `frontend` | Angular 19/20 Standalone / Signals | Feature-Sliced Design (FSD) | `4200` |
 | `extension` | TypeScript / Chrome Manifest V3 | Shadow DOM & DOM Injector Strategy | - |
 
+### Entrega atual (branch `delta`) — API Gateway
+
+A etapa do **API Gateway** já está implementada neste repositório. Para o administrador avaliar merge, leia o relatório de entrega:
+
+* 📦 **[`gateway/README.md`](./gateway/README.md)** — o que foi feito, decisões, como validar e escopo fora desta etapa  
+* ✅ Auditoria das etapas: [`docs/audits/test_results.json`](./docs/audits/test_results.json)
+
+Subir só o gateway + stubs:
+
+```powershell
+docker compose up -d stub-core stub-transferegov stub-whatsapp stub-ai api-gateway
+```
+
 ---
 
 ## 📚 Documentação Técnica Completa

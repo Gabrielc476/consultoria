@@ -1,0 +1,25 @@
+server:
+  port: ${GATEWAY_PORT:8080}
+
+spring:
+  application:
+    name: govflow-gateway
+  cloud:
+    gateway:
+      httpclient:
+        connect-timeout: 5000
+        response-timeout: 30s
+
+govflow:
+  jwt:
+    secret: ${JWT_SECRET:GovFlowLocalDevJwtSecretKeyChangeMe32b!}
+  routes:
+    core-uri: ${CORE_SERVICE_URI:http://localhost:8081}
+    transferegov-uri: ${TRANSFEREGOV_SERVICE_URI:http://localhost:8082}
+    whatsapp-uri: ${WHATSAPP_SERVICE_URI:http://localhost:8083}
+    ai-uri: ${AI_SERVICE_URI:http://localhost:8000}
+
+logging:
+  level:
+    br.com.govflow.gateway: INFO
+    org.springframework.cloud.gateway: INFO

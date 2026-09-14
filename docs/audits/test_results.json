@@ -1,0 +1,68 @@
+{
+  "runs": [
+    {
+      "auditedAt": "2026-09-14T17:45:00-03:00",
+      "scope": "Plano API Gateway GovFlow (etapa de aceite) — etapas 1–5",
+      "summary": {
+        "done": 5,
+        "partial": 0,
+        "missing": 0,
+        "blocked": 0
+      },
+      "steps": [
+        {
+          "id": "1",
+          "name": "Estrutura do módulo e bootstrap Maven",
+          "verdict": "done",
+          "evidence": [
+            "Módulo gateway/ com pom.xml (Spring Boot 3.3 / Cloud Gateway, Java 21), camadas domain/application/infrastructure",
+            "application.yml na porta 8080 com JWT_SECRET; .env.example com GATEWAY_PORT/JWT_SECRET/URIs",
+            "Sem dependências JDBC/JPA no pom.xml",
+            "Container govflow-api-gateway Up em 0.0.0.0:8080"
+          ],
+          "remains": []
+        },
+        {
+          "id": "2",
+          "name": "Domínio e casos de uso de autenticação",
+          "verdict": "done",
+          "evidence": [
+            "Artefatos: TenantContext, UserAuthentication, RoutePolicy, TokenDecoderPort, AuthenticateRequestUseCase/Service, InvalidTokenException",
+            "Testes unitários RoutePolicyTest e AuthenticateRequestServiceTest presentes (passaram no build Docker)"
+          ],
+          "remains": []
+        },
+        {
+          "id": "3",
+          "name": "Filtros reativos, RFC 7807 e injeção de headers",
+          "verdict": "done",
+          "evidence": [
+            "CorrelationIdFilter, AuthenticationGlobalFilter, JwtTokenDecoderAdapter, ProblemDetailsWriter",
+            "Aceite ao vivo: 401 application/problem+json com campos RFC 7807; JWT propaga X-Tenant-Id/X-User-Id/X-Correlation-Id; X-Tenant-Id forjado descartado"
+          ],
+          "remains": []
+        },
+        {
+          "id": "4",
+          "name": "Roteamento funcional e Compose",
+          "verdict": "done",
+          "evidence": [
+            "GatewayRoutesConfig com /api/v1/auth/**, /core/**, /whatsapp/**, /ai/**, /transferegov/**",
+            "docker-compose: api-gateway + stub-core/stub-transferegov/stub-whatsapp/stub-ai todos Up",
+            "Aceite: prefixes roteiam com HTTP 200 (stubs nginx :80 na rede Docker)"
+          ],
+          "remains": []
+        },
+        {
+          "id": "5",
+          "name": "Verificação dos critérios de aceite",
+          "verdict": "done",
+          "evidence": [
+            "gateway/scripts/acceptance_check.py reexecutado → ALL ACCEPTANCE CHECKS PASSED (público, 401 RFC 7807, 4 rotas protegidas, headers)"
+          ],
+          "remains": []
+        }
+      ]
+    }
+  ]
+}
