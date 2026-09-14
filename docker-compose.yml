@@ -1,0 +1,195 @@
+# ==============================================================================
+# GovFlow Infrastructure Stack: PostgreSQL 16, MinIO, Evolution API, Redis & Flyway
+# ==============================================================================
+
+networks:
+  govflow-network:
+    name: govflow-network
+    driver: bridge
+
+volumes:
+  postgres_data:
+    name: govflow-postgres-data
+  minio_data:
+    name: govflow-minio-data
+  redis_data:
+    name: govflow-redis-data
+  evolution_instances:
+    name: govflow-evolution-instances
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. PostgreSQL 16 (Banco Relacional para GovFlow e Evolution API)
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: govflow-postgres
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
+      POSTGRES_DB: ${POSTGRES_DB:-govflow}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/01-init-databases.sql:/docker-entrypoint-initdb.d/01-init-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-govflow}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - govflow-network
+
+  # ----------------------------------------------------------------------------
+  # 2. Flyway (Execução Automática de Migrations no PostgreSQL)
+  # ----------------------------------------------------------------------------
+  flyway:
+    image: flyway/flyway:10-alpine
+    container_name: govflow-flyway
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: -connectRetries=60 migrate
+    volumes:
+      - ./flyway/sql:/flyway/sql:ro
+      - ./flyway/conf/flyway.conf:/flyway/conf/flyway.conf:ro
+    environment:
+      FLYWAY_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-govflow}
+      FLYWAY_USER: ${POSTGRES_USER:-postgres}
+      FLYWAY_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
+      FLYWAY_SCHEMAS: whatsapp_schema,core_schema,transferegov_schema
+      FLYWAY_DEFAULT_SCHEMA: whatsapp_schema
+      FLYWAY_BASELINE_ON_MIGRATE: "true"
+    networks:
+      - govflow-network
+
+  # ----------------------------------------------------------------------------
+  # 3. MinIO (Object Storage S3-Compatible para Mídias e Documentos)
+  # ----------------------------------------------------------------------------
+  minio:
+    image: minio/minio:RELEASE.2024-03-30T09-41-56Z
+    container_name: govflow-minio
+    restart: unless-stopped
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"       # Porta da API S3
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"   # Painel Web do MinIO
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - govflow-network
+
+  # ----------------------------------------------------------------------------
+  # 3.1 MinIO Bucket Initializer (Criação automática dos Buckets de Mídia)
+  # ----------------------------------------------------------------------------
+  minio-init:
+    image: minio/mc:latest
+    container_name: govflow-minio-init
+    restart: "no"
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      echo 'Aguardando MinIO iniciar...' &&
+      until /usr/bin/mc alias set localminio http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin123}; do
+        sleep 2
+      done &&
+      echo 'Criando buckets necessários...' &&
+      /usr/bin/mc mb --ignore-existing localminio/${MINIO_EVOLUTION_BUCKET:-evolution} &&
+      /usr/bin/mc mb --ignore-existing localminio/${MINIO_DOCUMENTS_BUCKET:-govflow-documents} &&
+      echo 'Definindo políticas de leitura pública para mídias da Evolution...' &&
+      /usr/bin/mc anonymous set download localminio/${MINIO_EVOLUTION_BUCKET:-evolution} &&
+      echo 'Buckets configurados com sucesso!' &&
+      exit 0
+      "
+    networks:
+      - govflow-network
+
+  # ----------------------------------------------------------------------------
+  # 4. Redis (Cache de Sessão e Fila de Mensagens para a Evolution API)
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: govflow-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - govflow-network
+
+  # ----------------------------------------------------------------------------
+  # 5. Evolution API v2 (Gateway WhatsApp Multi-Tenant)
+  # ----------------------------------------------------------------------------
+  evolution-api:
+    image: evoai/evolution-api:${EVOLUTION_IMAGE_TAG:-v2.3.7}
+    container_name: govflow-evolution-api
+    restart: unless-stopped
+    ports:
+      - "${EVOLUTION_PORT:-8084}:8084"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      # Configurações do Servidor
+      SERVER_PORT: ${EVOLUTION_PORT:-8084}
+      SERVER_URL: ${EVOLUTION_SERVER_URL:-http://localhost:8084}
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:-GovFlowSuperSecretApiKey2026}
+      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"
+      LOG_LEVEL: ${LOG_LEVEL:-ERROR,WARN,INFO}
+      DEL_INSTANCE: ${DEL_INSTANCE:-false}
+
+      # Banco de Dados PostgreSQL (Isolado no database 'evolution')
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres123}@postgres:5432/${EVOLUTION_DB_NAME:-evolution}?schema=public
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      DATABASE_SAVE_DATA_CHATS: "true"
+      DATABASE_SAVE_DATA_MESSAGES: "true"
+      DATABASE_SAVE_DATA_CONTACTS: "true"
+      DATABASE_SAVE_DATA_HISTORIC: "true"
+      DATABASE_SAVE_IS_ON_COLLAB: "false"
+
+      # Cache e Fila com Redis
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://redis:6379/1
+      CACHE_REDIS_PREFIX_KEY: evolution
+      CACHE_REDIS_SAVE_INSTANCES: "true"
+
+      # Armazenamento de Mídias no MinIO (S3)
+      S3_ENABLED: "true"
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+      S3_BUCKET: ${MINIO_EVOLUTION_BUCKET:-evolution}
+      S3_PORT: 9000
+      S3_ENDPOINT: minio
+      S3_USE_SSL: "false"
+
+      # Webhook Global (Opcional - desativado por padrão, configurável por instância)
+      WEBHOOK_GLOBAL_ENABLED: "false"
+    volumes:
+      - evolution_instances:/evolution/instances
+    networks:
+      - govflow-network

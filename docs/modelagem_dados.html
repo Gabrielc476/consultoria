@@ -1,0 +1,4008 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GovFlow — Modelagem de Dados & Ciclo de Vida do Convênio (DDD)</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+            },
+            core: {
+              bg: '#1e1b4b',
+              border: '#6366f1',
+              badge: '#818cf8',
+              accent: '#4f46e5'
+            },
+            whatsapp: {
+              bg: '#064e3b',
+              border: '#10b981',
+              badge: '#34d399',
+              accent: '#059669'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #090d16;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #233044;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+    .table-card {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .table-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.5);
+    }
+    .phase-badge-pill {
+      transition: all 0.15s ease-in-out;
+    }
+    .phase-badge-pill:hover {
+      transform: scale(1.04);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-emerald-500 selection:text-white flex flex-col justify-between">
+
+  <div>
+    <!-- TOP HEADER -->
+    <header class="border-b border-slate-800/90 bg-slate-900/90 backdrop-blur sticky top-0 z-50 shadow-md">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-4">
+        
+        <!-- Logo & Branding -->
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-emerald-950/50 ring-1 ring-white/10">
+            <i class="fa-solid fa-layer-group text-white text-lg"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-base font-bold text-white tracking-tight flex items-center gap-1.5">
+                GovFlow <span class="text-emerald-400 font-medium text-xs">Data & Lifecycle</span>
+              </h1>
+              <span class="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">PostgreSQL 16</span>
+              <span class="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Flyway V13</span>
+            </div>
+            <p class="text-xs text-slate-400">Modelo de Domínio Tático (DDD) & Mapeamento das 10 Fases Transferegov</p>
+          </div>
+        </div>
+
+        <!-- Central Search -->
+        <div class="relative w-full max-w-xs sm:w-72">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-400"></i>
+          <input 
+            type="text" 
+            id="globalSearch" 
+            placeholder="Buscar tabela, coluna ou fase..." 
+            class="w-full bg-slate-800/90 border border-slate-700/80 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition"
+            oninput="handleGlobalSearch()"
+          >
+        </div>
+
+        <!-- 4 Main Navigation Tabs -->
+        <nav class="bg-slate-800/90 border border-slate-700/80 rounded-xl p-1 flex items-center gap-1 text-xs">
+          <button id="navBtnFases" onclick="switchMainView('fases')" class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-medium flex items-center gap-1.5 transition shadow-sm">
+            <i class="fa-solid fa-timeline text-emerald-200"></i> Ciclo de Vida & Fases
+          </button>
+          <button id="navBtnCards" onclick="switchMainView('cards')" class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white font-medium flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-table-cells text-slate-400"></i> Dicionário (17)
+          </button>
+          <button id="navBtnERD" onclick="switchMainView('erd')" class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white font-medium flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-diagram-project text-slate-400"></i> Diagrama ERD
+          </button>
+          <button id="navBtnSQL" onclick="switchMainView('sql')" class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white font-medium flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-code text-slate-400"></i> DDL Flyway (V1-V13)
+          </button>
+        </nav>
+
+      </div>
+    </header>
+
+    <!-- METRICS & SYSTEM OVERVIEW SUB-BAR -->
+    <div class="border-b border-slate-800/80 bg-slate-900/40 px-4 sm:px-6 lg:px-8 py-2.5">
+      <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs">
+        
+        <!-- Live Counters -->
+        <div class="flex flex-wrap items-center gap-4 text-slate-300">
+          <span class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <strong>17</strong> Tabelas Mapeadas
+          </span>
+          <span class="flex items-center gap-1.5 text-slate-400">
+            <i class="fa-solid fa-layer-group text-indigo-400"></i> <strong>2</strong> Schemas (<code class="text-indigo-300">core</code> & <code class="text-emerald-300">whatsapp</code>)
+          </span>
+          <span class="flex items-center gap-1.5 text-slate-400">
+            <i class="fa-solid fa-arrows-spin text-teal-400"></i> <strong>10</strong> Fases do Convênio (0 a 9)
+          </span>
+          <span class="flex items-center gap-1.5 text-slate-400">
+            <i class="fa-solid fa-file-shield text-amber-400"></i> <strong>13</strong> Migrations Flyway
+          </span>
+        </div>
+
+        <!-- DDD Pill Rule -->
+        <div class="hidden lg:flex items-center gap-2 text-slate-400">
+          <span class="px-2 py-0.5 rounded bg-indigo-950/60 border border-indigo-800/50 text-[11px] text-indigo-300">
+            <i class="fa-solid fa-circle-info mr-1"></i> Desambiguação DDD:
+          </span>
+          <span class="text-[11px]">
+            <code class="text-indigo-300">tb_convenios</code> (Federal) $
+eq$ <code class="text-emerald-300">tb_contratos_execucao</code> (Municipal/Empreiteira)
+          </span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MAIN APP CONTENT -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+      <!-- ==================================================================== -->
+      <!-- VIEW 1: CICLO DE VIDA & RELAÇÃO FASES <-> TABELAS -->
+      <!-- ==================================================================== -->
+      <section id="viewFases" class="space-y-6">
+        
+        <!-- Header & Category Quick Filter -->
+        <div class="bg-gradient-to-r from-slate-900 via-indigo-950/30 to-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <i class="fa-solid fa-map text-xs mr-1"></i> Matriz de Rastreabilidade Transferegov
+                </span>
+                <span class="text-xs text-slate-400">Portaria Conjunta MGI/MF/MP nº 33/2023 & Lei 14.133/2021</span>
+              </div>
+              <h2 class="text-lg font-bold text-white mt-1 tracking-tight">
+                Relação Completa: Tabelas do Banco de Dados por Fase do Convênio
+              </h2>
+              <p class="text-xs text-slate-300 mt-1 max-w-3xl leading-relaxed">
+                Cada fase do ciclo de vida federal possui requisitos normativos rigorosos, prazos fatais de saneamento, 
+                dossiê digital armazenado no MinIO/S3 e tabelas dedicadas que garantem integridade transacional e tolerância zero a falhas.
+              </p>
+            </div>
+
+            <!-- Group Filter Buttons -->
+            <div class="flex flex-wrap items-center gap-1.5 self-start md:self-auto bg-slate-950/80 p-1.5 rounded-xl border border-slate-800 text-xs">
+              <button onclick="filterPhaseGroup('all')" class="phase-group-btn active px-3 py-1 rounded-lg bg-emerald-600 text-white font-medium transition" data-group="all">
+                Todas (10 + WA)
+              </button>
+              <button onclick="filterPhaseGroup('pre-execucao')" class="phase-group-btn px-3 py-1 rounded-lg text-slate-400 hover:text-white transition" data-group="pre-execucao">
+                Pré-Execução (0-3)
+              </button>
+              <button onclick="filterPhaseGroup('execucao')" class="phase-group-btn px-3 py-1 rounded-lg text-slate-400 hover:text-white transition" data-group="execucao">
+                Execução & Pagamento (4-6)
+              </button>
+              <button onclick="filterPhaseGroup('encerramento')" class="phase-group-btn px-3 py-1 rounded-lg text-slate-400 hover:text-white transition" data-group="encerramento">
+                Encerramento & Passivo (7-9)
+              </button>
+              <button onclick="filterPhaseGroup('transversal')" class="phase-group-btn px-3 py-1 rounded-lg text-slate-400 hover:text-white transition" data-group="transversal">
+                WhatsApp Transversal
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Timeline of Phases -->
+        <div id="phasesTimeline" class="space-y-6">
+          <!-- Dynamically populated via JS -->
+        </div>
+
+      </section>
+
+
+      <!-- ==================================================================== -->
+      <!-- VIEW 2: DICIONÁRIO DE TABELAS (17 CARDS COM BUSCA & FILTROS) -->
+      <!-- ==================================================================== -->
+      <section id="viewCards" class="hidden space-y-6">
+        
+        <!-- Controls Bar -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 shadow-sm">
+          
+          <!-- Schema Filter Chips -->
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider mr-1">Schema:</span>
+            <button onclick="setSchemaFilter('ALL')" class="schema-btn active px-3 py-1 rounded-lg text-xs font-semibold transition border border-emerald-500/40 bg-emerald-950/40 text-emerald-300" data-schema="ALL">
+              Todos (17)
+            </button>
+            <button onclick="setSchemaFilter('core_schema')" class="schema-btn px-3 py-1 rounded-lg text-xs font-semibold transition border border-slate-700 bg-slate-800/70 text-slate-300 hover:bg-slate-800" data-schema="core_schema">
+              <span class="w-2 h-2 rounded-full bg-indigo-400 inline-block mr-1"></span> core_schema (13)
+            </button>
+            <button onclick="setSchemaFilter('whatsapp_schema')" class="schema-btn px-3 py-1 rounded-lg text-xs font-semibold transition border border-slate-700 bg-slate-800/70 text-slate-300 hover:bg-slate-800" data-schema="whatsapp_schema">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block mr-1"></span> whatsapp_schema (4)
+            </button>
+          </div>
+
+          <!-- Phase Dropdown Filter -->
+          <div class="flex items-center gap-2">
+            <label for="filterPhaseSelect" class="text-xs font-semibold text-slate-400">Filtrar por Fase:</label>
+            <select 
+              id="filterPhaseSelect" 
+              class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 transition"
+              onchange="filterByPhaseDropdown(this.value)"
+            >
+              <option value="ALL">Todas as Fases</option>
+              <option value="Fase 0">Fase 0: Origem e Cadastramento da Proposta</option>
+              <option value="Fase 1">Fase 1: Celebração e Abertura de Conta</option>
+              <option value="Fase 2">Fase 2: Cláusula Suspensiva (180 dias)</option>
+              <option value="Fase 3">Fase 3: Licitações Públicas, VRPL e AIO</option>
+              <option value="Fase 4">Fase 4: Obras, Medições e Laudo RAE Caixa</option>
+              <option value="Fase 5">Fase 5: Execução Financeira, Documentos Hábeis & OBTV</option>
+              <option value="Fase 6">Fase 6: Aditivos, Reprogramação e Tetos Lei 14.133</option>
+              <option value="Fase 7">Fase 7: Prestação de Contas Final (RCO 60 dias) & GRU</option>
+              <option value="Fase 8">Fase 8: Pareceres Conclusivos & Encerramento</option>
+              <option value="Fase 9">Fase 9: Inadimplência, SELIC e Súmula 230 TCU</option>
+              <option value="WhatsApp Transversal">WhatsApp Transversal (Mensageria)</option>
+            </select>
+          </div>
+
+        </div>
+
+        <!-- Tables Grid -->
+        <div id="tablesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <!-- Tables cards dynamically rendered -->
+        </div>
+
+      </section>
+
+
+      <!-- ==================================================================== -->
+      <!-- VIEW 3: DIAGRAMA RELACIONAL ERD (SVG INTERATIVO COM 17 TABELAS) -->
+      <!-- ==================================================================== -->
+      <section id="viewERD" class="hidden space-y-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm overflow-hidden">
+          
+          <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="text-base font-bold text-white flex items-center gap-2">
+                  <i class="fa-solid fa-diagram-project text-emerald-400"></i> Diagrama Entidade-Relacionamento do GovFlow
+                </h2>
+                <span class="px-2 py-0.5 rounded-full text-[10px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">17 Tabelas Conectadas</span>
+              </div>
+              <p class="text-xs text-slate-400 mt-0.5">Clique em qualquer nó da arquitetura para inspecionar todas as colunas, tipos e regras de domínio.</p>
+            </div>
+
+            <!-- Legend -->
+            <div class="flex items-center gap-3 text-xs text-slate-300 bg-slate-950/80 px-3 py-1.5 rounded-lg border border-slate-800">
+              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-indigo-600"></span> core_schema</span>
+              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded bg-emerald-600"></span> whatsapp_schema</span>
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-400"></span> PK</span>
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-cyan-400"></span> FK</span>
+            </div>
+          </div>
+
+          <!-- SVG Flowchart -->
+          <div class="w-full overflow-x-auto py-2 bg-slate-950/50 rounded-xl border border-slate-800/80">
+            <svg viewBox="0 0 1200 780" class="w-full min-w-[1050px] h-auto select-none text-xs font-sans">
+              <defs>
+                <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b" />
+                </marker>
+                <marker id="arrow-cyan" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#38bdf8" />
+                </marker>
+                <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#000" flood-opacity="0.5"/>
+                </filter>
+              </defs>
+
+              <!-- ZONE 1: CORE GOVERNANÇA & BASE -->
+              <rect x="20" y="20" width="850" height="740" rx="16" fill="#1e1b4b" fill-opacity="0.12" stroke="#4338ca" stroke-width="1.5" stroke-dasharray="4 4" />
+              <text x="40" y="46" fill="#818cf8" font-weight="bold" font-size="13">CORE_SCHEMA (Gestão Municipal, Contratações, Obras & Finanças)</text>
+
+              <!-- ZONE 2: WHATSAPP RECEPTION -->
+              <rect x="890" y="20" width="290" height="740" rx="16" fill="#064e3b" fill-opacity="0.12" stroke="#059669" stroke-width="1.5" stroke-dasharray="4 4" />
+              <text x="910" y="46" fill="#34d399" font-weight="bold" font-size="13">WHATSAPP_SCHEMA (Mensageria)</text>
+
+              <!-- CONNECTORS -->
+              <!-- Prefeitura -> Convenios -->
+              <path d="M 150 145 L 150 185" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+              <!-- Prefeitura -> CAUC -->
+              <path d="M 260 100 L 320 100" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+              <!-- Prefeitura -> WhatsApp Contatos (Cross Schema) -->
+              <path d="M 260 115 C 550 115, 750 115, 910 115" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4" marker-end="url(#arrow-cyan)" />
+              <text x="560" y="108" fill="#38bdf8" font-size="10">prefeitura_id (FK Cross-Schema)</text>
+
+              <!-- Convenio -> Condicionantes -->
+              <path d="M 260 215 L 320 195" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+              <!-- Convenio -> Contas Bancarias -->
+              <path d="M 260 245 L 320 270" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+              <!-- Convenio -> Metas Trabalho -->
+              <path d="M 260 265 L 320 345" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+
+              <!-- Convenio -> Licitacoes (1:N) -->
+              <path d="M 150 275 L 150 320" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+              <!-- Licitacoes -> ContratosExecucao (1:N) -->
+              <path d="M 150 410 L 150 455" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+              <!-- Contratos -> Termos Aditivos -->
+              <path d="M 150 545 L 150 595" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+
+              <!-- Contrato -> Medicao -->
+              <path d="M 260 500 L 330 500" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+              <!-- Medicao -> Documento Habil -->
+              <path d="M 520 500 L 570 500" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+              <!-- Documento Habil -> Retencoes -->
+              <path d="M 660 545 L 660 595" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+              <!-- Documento Habil -> Ordem Pagamento -->
+              <path d="M 660 455 L 660 405" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+
+              <!-- WhatsApp internal connectors -->
+              <!-- Contatos -> Inbound -->
+              <path d="M 1035 155 L 1035 220" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+              <!-- Instancias -> Inbound -->
+              <path d="M 1035 440 L 1035 375" fill="none" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+              <!-- Inbound -> Outbound -->
+              <path d="M 1035 375 L 1035 595" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="3" marker-end="url(#arrow)" />
+
+              <!-- ================= NODES ================= -->
+              
+              <!-- NODE: tb_prefeituras -->
+              <g class="cursor-pointer group" onclick="openDetails('tb_prefeituras')">
+                <rect x="40" y="60" width="220" height="85" rx="10" fill="#1e293b" stroke="#6366f1" stroke-width="2" filter="url(#glow)"/>
+                <rect x="40" y="60" width="220" height="26" rx="10" fill="#312e81" />
+                <text x="55" y="78" fill="#e0e7ff" font-weight="bold">🔑 tb_prefeituras</text>
+                <text x="55" y="102" fill="#94a3b8">id (UUID PK)</text>
+                <text x="55" y="119" fill="#94a3b8">cnpj (VARCHAR 18)</text>
+                <text x="55" y="136" fill="#34d399">status_cauc (ADIMPLENTE)</text>
+              </g>
+
+              <!-- NODE: tb_certidoes_cauc -->
+              <g class="cursor-pointer" onclick="openDetails('tb_certidoes_cauc')">
+                <rect x="320" y="60" width="200" height="85" rx="10" fill="#1e293b" stroke="#6366f1" stroke-width="1.5" filter="url(#glow)"/>
+                <rect x="320" y="60" width="200" height="26" rx="10" fill="#312e81" />
+                <text x="335" y="78" fill="#e0e7ff" font-weight="bold">tb_certidoes_cauc</text>
+                <text x="335" y="102" fill="#38bdf8">prefeitura_id (FK)</text>
+                <text x="335" y="119" fill="#94a3b8">tipo_exigencia (LRF 16)</text>
+                <text x="335" y="136" fill="#fbbf24">data_validade (Semáforo)</text>
+              </g>
+
+              <!-- NODE: tb_convenios -->
+              <g class="cursor-pointer" onclick="openDetails('tb_convenios')">
+                <rect x="40" y="185" width="220" height="90" rx="10" fill="#1e293b" stroke="#6366f1" stroke-width="2" filter="url(#glow)"/>
+                <rect x="40" y="185" width="220" height="26" rx="10" fill="#312e81" />
+                <text x="55" y="203" fill="#e0e7ff" font-weight="bold">tb_convenios (Federal)</text>
+                <text x="55" y="227" fill="#94a3b8">id (UUID PK)</text>
+                <text x="55" y="244" fill="#38bdf8">prefeitura_id (FK)</text>
+                <text x="55" y="261" fill="#94a3b8">numero_siconv (Transferegov)</text>
+              </g>
+
+              <!-- NODE: tb_condicionantes_suspensivas -->
+              <g class="cursor-pointer" onclick="openDetails('tb_condicionantes_suspensivas')">
+                <rect x="320" y="165" width="200" height="75" rx="10" fill="#1e293b" stroke="#6366f1" stroke-width="1.5" filter="url(#glow)"/>
+                <rect x="320" y="165" width="200" height="24" rx="10" fill="#312e81" />
+                <text x="335" y="182" fill="#e0e7ff" font-weight="bold">tb_condicionantes</text>
+                <text x="335" y="206" fill="#38bdf8">convenio_id (FK)</text>
+                <text x="335" y="225" fill="#94a3b8">Engenharia / Ambiental / CRI</text>
+              </g>
+
+              <!-- NODE: tb_contas_bancarias_vinculadas -->
+              <g class="cursor-pointer" onclick="openDetails('tb_contas_bancarias_vinculadas')">
+                <rect x="320" y="250" width="200" height="75" rx="10" fill="#1e293b" stroke="#6366f1" stroke-width="1.5" filter="url(#glow)"/>
+                <rect x="320" y="250" width="200" height="24" rx="10" fill="#312e81" />
+                <text x="335" y="267" fill="#e0e7ff" font-weight="bold">tb_contas_bancarias</text>
+                <text x="335" y="291" fill="#38bdf8">convenio_id (FK)</text>
+                <text x="335" y="310" fill="#94a3b8">Caixa Op 006 / BB Vinculada</text>
+              </g>
+
+              <!-- NODE: tb_metas_plano_trabalho -->
+              <g class="cursor-pointer" onclick="openDetails('tb_metas_plano_trabalho')">
+                <rect x="320" y="335" width="200" height="75" rx="10" fill="#1e293b" stroke="#6366f1" stroke-width="1.5" filter="url(#glow)"/>
+                <rect x="320" y="335" width="200" height="24" rx="10" fill="#312e81" />
+                <text x="335" y="352" fill="#e0e7ff" font-weight="bold">tb_metas_plano_trabalho</text>
+                <text x="335" y="376" fill="#38bdf8">convenio_id (FK)</text>
+                <text x="335" y="395" fill="#94a3b8">Metas Físicas & Financeiras</text>
+              </g>
+
+              <!-- NODE: tb_licitacoes (1:N) -->
+              <g class="cursor-pointer" onclick="openDetails('tb_licitacoes')">
+                <rect x="40" y="320" width="220" height="90" rx="10" fill="#1e293b" stroke="#6366f1" stroke-width="2" filter="url(#glow)"/>
+                <rect x="40" y="320" width="220" height="26" rx="10" fill="#312e81" />
+                <text x="55" y="338" fill="#e0e7ff" font-weight="bold">tb_licitacoes (1:N)</text>
+                <text x="55" y="362" fill="#94a3b8">id (UUID PK)</text>
+                <text x="55" y="379" fill="#38bdf8">convenio_id & prefeitura_id</text>
+                <text x="55" y="396" fill="#34d399">VRPL & AIO / Lei 14.133</text>
+              </g>
+
+              <!-- NODE: tb_contratos_execucao -->
+              <g class="cursor-pointer" onclick="openDetails('tb_contratos_execucao')">
+                <rect x="40" y="455" width="220" height="90" rx="10" fill="#1e293b" stroke="#6366f1" stroke-width="2" filter="url(#glow)"/>
+                <rect x="40" y="455" width="220" height="26" rx="10" fill="#312e81" />
+                <text x="55" y="473" fill="#e0e7ff" font-weight="bold">tb_contratos_execucao</text>
+                <text x="55" y="497" fill="#94a3b8">id (UUID PK)</text>
+                <text x="55" y="514" fill="#38bdf8">licitacao_id & convenio_id</text>
+                <text x="55" y="531" fill="#94a3b8">numero_contrato_municipal</text>
+              </g>
+
+              <!-- NODE: tb_termos_aditivos -->
+              <g class="cursor-pointer" onclick="openDetails('tb_termos_aditivos')">
+                <rect x="40" y="595" width="220" height="90" rx="10" fill="#1e293b" stroke="#6366f1" stroke-width="1.5" filter="url(#glow)"/>
+                <rect x="40" y="595" width="220" height="26" rx="10" fill="#312e81" />
+                <text x="55" y="613" fill="#e0e7ff" font-weight="bold">tb_termos_aditivos</text>
+                <text x="55" y="637" fill="#38bdf8">contrato_id / convenio_id</text>
+                <text x="55" y="654" fill="#fbbf24">Tetos 25%/50% Lei 14.133</text>
+                <text x="55" y="671" fill="#94a3b8">Tempestividade 30 dias</text>
+              </g>
+
+              <!-- NODE: tb_medicoes -->
+              <g class="cursor-pointer" onclick="openDetails('tb_medicoes')">
+                <rect x="330" y="455" width="190" height="90" rx="10" fill="#1e293b" stroke="#6366f1" stroke-width="2" filter="url(#glow)"/>
+                <rect x="330" y="455" width="190" height="26" rx="10" fill="#312e81" />
+                <text x="345" y="473" fill="#e0e7ff" font-weight="bold">tb_medicoes</text>
+                <text x="345" y="497" fill="#38bdf8">contrato_id & convenio_id</text>
+                <text x="345" y="514" fill="#94a3b8">numero_rae_caixa</text>
+                <text x="345" y="531" fill="#34d399">valor_aferido & glosado</text>
+              </g>
+
+              <!-- NODE: tb_documentos_habeis -->
+              <g class="cursor-pointer" onclick="openDetails('tb_documentos_habeis')">
+                <rect x="570" y="455" width="180" height="90" rx="10" fill="#1e293b" stroke="#6366f1" stroke-width="2" filter="url(#glow)"/>
+                <rect x="570" y="455" width="180" height="26" rx="10" fill="#312e81" />
+                <text x="585" y="473" fill="#e0e7ff" font-weight="bold">tb_documentos_habeis</text>
+                <text x="585" y="497" fill="#38bdf8">medicao_id (FK)</text>
+                <text x="585" y="514" fill="#94a3b8">Atesto Lei 4.320/64</text>
+                <text x="585" y="531" fill="#fbbf24">Bruto - Retenções == Líquido</text>
+              </g>
+
+              <!-- NODE: tb_retencoes_tributarias -->
+              <g class="cursor-pointer" onclick="openDetails('tb_retencoes_tributarias')">
+                <rect x="570" y="595" width="180" height="85" rx="10" fill="#1e293b" stroke="#6366f1" stroke-width="1.5" filter="url(#glow)"/>
+                <rect x="570" y="595" width="180" height="26" rx="10" fill="#312e81" />
+                <text x="585" y="613" fill="#e0e7ff" font-weight="bold">tb_retencoes_trib.</text>
+                <text x="585" y="637" fill="#38bdf8">documento_habil_id (FK)</text>
+                <text x="585" y="654" fill="#94a3b8">INSS, ISS, IRRF</text>
+                <text x="585" y="671" fill="#94a3b8">DARF / DAM c/ código barras</text>
+              </g>
+
+              <!-- NODE: tb_ordens_pagamento -->
+              <g class="cursor-pointer" onclick="openDetails('tb_ordens_pagamento')">
+                <rect x="570" y="315" width="180" height="90" rx="10" fill="#1e293b" stroke="#6366f1" stroke-width="2" filter="url(#glow)"/>
+                <rect x="570" y="315" width="180" height="26" rx="10" fill="#312e81" />
+                <text x="585" y="333" fill="#e0e7ff" font-weight="bold">tb_ordens_pagamento</text>
+                <text x="585" y="357" fill="#38bdf8">documento_habil_id & conv</text>
+                <text x="585" y="374" fill="#34d399">OBTV Fornecedor / GRU</text>
+                <text x="585" y="391" fill="#fbbf24">Duplo Comando Gov.br</text>
+              </g>
+
+              <!-- WHATSAPP NODES -->
+              <!-- NODE: tb_contatos_prefeitura -->
+              <g class="cursor-pointer" onclick="openDetails('tb_contatos_prefeitura')">
+                <rect x="920" y="65" width="230" height="90" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="2" filter="url(#glow)"/>
+                <rect x="920" y="65" width="230" height="28" rx="10" fill="#065f46" />
+                <text x="935" y="84" fill="#d1fae5" font-weight="bold">tb_contatos_prefeitura</text>
+                <text x="935" y="110" fill="#38bdf8">prefeitura_id (Cross FK)</text>
+                <text x="935" y="128" fill="#94a3b8">phone_number (E.164)</text>
+                <text x="935" y="146" fill="#34d399">Roteamento por Cargo</text>
+              </g>
+
+              <!-- NODE: tb_mensagens_inbound -->
+              <g class="cursor-pointer" onclick="openDetails('tb_mensagens_inbound')">
+                <rect x="920" y="220" width="230" height="95" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="2" filter="url(#glow)"/>
+                <rect x="920" y="220" width="230" height="28" rx="10" fill="#065f46" />
+                <text x="935" y="239" fill="#d1fae5" font-weight="bold">tb_mensagens_inbound</text>
+                <text x="935" y="265" fill="#94a3b8">sender_phone & type</text>
+                <text x="935" y="283" fill="#a7f3d0">s3_key (Áudio / PDF / XML)</text>
+                <text x="935" y="301" fill="#fbbf24">processed (Pipeline IA)</text>
+              </g>
+
+              <!-- NODE: tb_instancias_whatsapp -->
+              <g class="cursor-pointer" onclick="openDetails('tb_instancias_whatsapp')">
+                <rect x="920" y="440" width="230" height="90" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="2" filter="url(#glow)"/>
+                <rect x="920" y="440" width="230" height="28" rx="10" fill="#065f46" />
+                <text x="935" y="459" fill="#d1fae5" font-weight="bold">tb_instancias_whatsapp</text>
+                <text x="935" y="485" fill="#94a3b8">instance_name (UNIQUE)</text>
+                <text x="935" y="503" fill="#34d399">status ('CONNECTED')</text>
+                <text x="935" y="521" fill="#94a3b8">Evolution / Cloud API</text>
+              </g>
+
+              <!-- NODE: tb_mensagens_outbound -->
+              <g class="cursor-pointer" onclick="openDetails('tb_mensagens_outbound')">
+                <rect x="920" y="595" width="230" height="90" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="2" filter="url(#glow)"/>
+                <rect x="920" y="595" width="230" height="28" rx="10" fill="#065f46" />
+                <text x="935" y="614" fill="#d1fae5" font-weight="bold">tb_mensagens_outbound</text>
+                <text x="935" y="640" fill="#94a3b8">recipient_phone</text>
+                <text x="935" y="658" fill="#fbbf24">Alertas de Prazos Fatais</text>
+                <text x="935" y="676" fill="#94a3b8">status ('SENT', 'READ')</text>
+              </g>
+
+            </svg>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ==================================================================== -->
+      <!-- VIEW 4: FLYWAY DDL SQL VIEWER (V1 A V13) -->
+      <!-- ==================================================================== -->
+      <section id="viewSQL" class="hidden space-y-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm">
+          
+          <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="text-base font-bold text-white flex items-center gap-2">
+                  <i class="fa-solid fa-code text-indigo-400"></i> Scripts DDL das Migrations Flyway
+                </h2>
+                <span class="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">13 Versões Aplicadas</span>
+              </div>
+              <p class="text-xs text-slate-400 mt-0.5">Scripts SQL imutáveis executados na subida do container Docker do Flyway.</p>
+            </div>
+
+            <button onclick="copyCurrentSQL()" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 border border-slate-700 flex items-center gap-2 transition shadow-sm active:scale-95">
+              <i class="fa-solid fa-copy text-emerald-400"></i> Copiar SQL Atual
+            </button>
+          </div>
+
+          <!-- Migration Tabs (V1 to V13) -->
+          <div class="flex flex-wrap items-center gap-1 border-b border-slate-800 pb-2 text-xs font-semibold" id="sqlTabsContainer">
+            <!-- Dynamically populated via JS -->
+          </div>
+
+          <!-- Migration Info Badge -->
+          <div id="migrationInfoBar" class="py-2 text-xs text-slate-400 flex items-center justify-between">
+            <span id="migrationFileName" class="font-mono text-emerald-400">V1__init_whatsapp_schema.sql</span>
+            <span id="migrationScopeBadge" class="px-2 py-0.5 rounded bg-slate-800 text-[11px] text-slate-300">DDL Oficial</span>
+          </div>
+
+          <!-- SQL Code Window -->
+          <pre id="sqlContent" class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs font-mono text-emerald-300 overflow-x-auto max-h-[550px] leading-relaxed select-all">
+          </pre>
+
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-800/80 bg-slate-900/60 py-4 px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+      <p>GovFlow Platform © 2026 — Gestão Inteligente de Convênios Federais & Licitações Municipais</p>
+      <div class="flex items-center gap-4 text-[11px]">
+        <span>Portaria Conjunta 33/2023</span>
+        <span>Lei 14.133/2021</span>
+        <span>Lei 4.320/1964</span>
+        <span>Súmula 230 TCU</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- DETAIL MODAL / DRAWER -->
+  <div id="detailModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 hidden animate-in fade-in duration-150">
+    <div class="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+        <div>
+          <div class="flex items-center gap-2">
+            <span id="modalSchemaTag" class="px-2 py-0.5 text-xs font-semibold font-mono rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">schema</span>
+            <h3 id="modalTableName" class="text-base font-bold text-white font-mono">tb_name</h3>
+          </div>
+          <p id="modalTableTitle" class="text-xs font-semibold text-slate-300 mt-1">Título</p>
+          <p id="modalTableDesc" class="text-xs text-slate-400 mt-0.5">Descrição</p>
+        </div>
+        <button onclick="closeDetails()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition" title="Fechar">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      
+      <!-- Modal Body -->
+      <div class="p-6 overflow-y-auto space-y-5">
+        
+        <!-- Phases Association Pill Group -->
+        <div>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1.5">
+            <i class="fa-solid fa-timeline text-emerald-400"></i> Fases do Convênio em que atua:
+          </h4>
+          <div id="modalPhasesChips" class="flex flex-wrap items-center gap-1.5">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+        <!-- Invariant DDD Note -->
+        <div id="modalInvariants" class="p-4 rounded-xl bg-indigo-950/30 border border-indigo-800/40 text-xs text-indigo-200 leading-relaxed shadow-sm">
+          <!-- Invariants injected via JS -->
+        </div>
+
+        <!-- Columns Table -->
+        <div>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Dicionário de Colunas & Tipos SQL</h4>
+          <div class="border border-slate-800 rounded-xl overflow-hidden shadow-sm">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-950/80 text-slate-400 border-b border-slate-800 text-[11px] uppercase tracking-wider">
+                <tr>
+                  <th class="py-2.5 px-3">Coluna</th>
+                  <th class="py-2.5 px-3">Tipo SQL</th>
+                  <th class="py-2.5 px-3">Restrições / Flags</th>
+                  <th class="py-2.5 px-3 font-sans">Significado de Negócio</th>
+                </tr>
+              </thead>
+              <tbody id="modalColumnsBody" class="divide-y divide-slate-800/60 font-mono text-[11px]">
+                <!-- Rows injected via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 bg-slate-950/60 border-t border-slate-800 flex items-center justify-between text-xs">
+        <span id="modalColCount" class="text-slate-400">0 colunas</span>
+        <button onclick="closeDetails()" class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium transition">
+          Fechar
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- EMBEDDED DATA & APPLICATION LOGIC -->
+  <script>
+    const TABLES_DATA = [
+  {
+    "name": "tb_prefeituras",
+    "schema": "core_schema",
+    "title": "Prefeituras (Convenentes)",
+    "aggregate": "Prefeitura (Aggregate Root)",
+    "desc": "Representa o ente municipal convenente atendido pela consultoria, isolado por tenant_id.",
+    "badgeColor": "indigo",
+    "phases": [
+      "Fase 0",
+      "Fase 1",
+      "Fase 9"
+    ],
+    "invariants": "Invariante de Unicidade e Multi-Tenancy: O CNPJ do município é único por tenant_id (consultoria). A prefeitura é o agregado raiz que agrupa convênios, certidões do CAUC e contatos municipais de mensageria.",
+    "columns": [
+      {
+        "name": "id",
+        "type": "UUID",
+        "flags": [
+          "PK",
+          "DEFAULT gen_random_uuid()"
+        ],
+        "desc": "Identificador único global da prefeitura (v7 / Time-ordered)"
+      },
+      {
+        "name": "tenant_id",
+        "type": "UUID",
+        "flags": [
+          "NOT NULL",
+          "INDEX"
+        ],
+        "desc": "Identificador da consultoria dona da conta (Multi-tenant isolado)"
+      },
+      {
+        "name": "cnpj",
+        "type": "VARCHAR(18)",
+        "flags": [
+          "NOT NULL",
+          "UNIQUE(cnpj, tenant_id)"
+        ],
+        "desc": "CNPJ oficial com máscara (ex: 08.923.456/0001-12)"
+      },
+      {
+        "name": "razao_social",
+        "type": "VARCHAR(200)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Razão social cadastrada na Receita Federal do Brasil"
+      },
+      {
+        "name": "nome_municipio",
+        "type": "VARCHAR(100)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Nome do município convenente (ex: Pombal, Massaranduba)"
+      },
+      {
+        "name": "uf",
+        "type": "CHAR(2)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Sigla da Unidade Federativa (ex: PB, PE, RN)"
+      },
+      {
+        "name": "codigo_ibge",
+        "type": "VARCHAR(7)",
+        "flags": [
+          "NOT NULL",
+          "INDEX"
+        ],
+        "desc": "Código IBGE de 7 dígitos para auditoria governamental"
+      },
+      {
+        "name": "porte_municipio",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "NOT NULL",
+          "DEFAULT 'PEQUENO_PORTE_I'"
+        ],
+        "desc": "Classificação orçamentária para cálculo da contrapartida mínima"
+      },
+      {
+        "name": "status_cauc",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "NOT NULL",
+          "DEFAULT 'ADIMPLENTE'"
+        ],
+        "desc": "Situação consolidada no CAUC/SIAFI (ADIMPLENTE, BLOQUEADO)"
+      },
+      {
+        "name": "ativo",
+        "type": "BOOLEAN",
+        "flags": [
+          "DEFAULT true"
+        ],
+        "desc": "Indica se o contrato de consultoria com a prefeitura está ativo"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "flags": [
+          "DEFAULT CURRENT_TIMESTAMP"
+        ],
+        "desc": "Data e hora de cadastramento no sistema"
+      }
+    ]
+  },
+  {
+    "name": "tb_certidoes_cauc",
+    "schema": "core_schema",
+    "title": "Certidões CAUC (Radar LRF)",
+    "aggregate": "CertidaoCauc (Entity)",
+    "desc": "Monitoramento preventivo das 16 exigências da Lei de Responsabilidade Fiscal e certidões negativas.",
+    "badgeColor": "indigo",
+    "phases": [
+      "Fase 0",
+      "Fase 1",
+      "Fase 9"
+    ],
+    "invariants": "Invariante de Regularidade Fiscal: A negativação em qualquer um dos 16 itens do CAUC bloqueia novos repasses voluntários da União (art. 25 da LRF) e a assinatura de novos convênios.",
+    "columns": [
+      {
+        "name": "id",
+        "type": "UUID",
+        "flags": [
+          "PK",
+          "DEFAULT gen_random_uuid()"
+        ],
+        "desc": "Identificador da certidão"
+      },
+      {
+        "name": "prefeitura_id",
+        "type": "UUID",
+        "flags": [
+          "FK -> tb_prefeituras.id",
+          "NOT NULL"
+        ],
+        "desc": "Prefeitura convenente monitorada"
+      },
+      {
+        "name": "tipo_exigencia",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Item da LRF: RECEITA_PGFN, FGTS, CNDT, RREO, RGF, SICONFI, LIMITE_PESSOAL"
+      },
+      {
+        "name": "numero_certidao",
+        "type": "VARCHAR(100)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Número de controle da certidão ou protocolo oficial"
+      },
+      {
+        "name": "data_emissao",
+        "type": "DATE",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Data de expedição do documento no órgão federal/estadual"
+      },
+      {
+        "name": "data_validade",
+        "type": "DATE",
+        "flags": [
+          "NOT NULL",
+          "INDEX"
+        ],
+        "desc": "Data fatal de expiração da certidão (dispara alerta no WhatsApp)"
+      },
+      {
+        "name": "situacao",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "REGULAR, IRREGULAR, EM_RISCO_VENCIMENTO"
+      },
+      {
+        "name": "dias_para_vencer",
+        "type": "INTEGER",
+        "flags": [
+          "GENERATED / CALCULATED"
+        ],
+        "desc": "Contagem regressiva diária até o vencimento"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "flags": [
+          "DEFAULT CURRENT_TIMESTAMP"
+        ],
+        "desc": "Registro da checagem"
+      }
+    ]
+  },
+  {
+    "name": "tb_convenios",
+    "schema": "core_schema",
+    "title": "Convênios Federais (Transferegov)",
+    "aggregate": "Convenio (Aggregate Root)",
+    "desc": "O instrumento jurídico federal entre a União/Caixa e a prefeitura, cobrindo as 10 fases do ciclo de vida.",
+    "badgeColor": "indigo",
+    "phases": [
+      "Fase 0",
+      "Fase 1",
+      "Fase 2",
+      "Fase 6",
+      "Fase 7",
+      "Fase 8",
+      "Fase 9"
+    ],
+    "invariants": "Invariante Financeira: Valor Global = Valor Repasse + Valor Contrapartida. Toda alteração de vigência ou metas é registrada via Termos Aditivos sem sobrescrever dados históricos.",
+    "columns": [
+      {
+        "name": "id",
+        "type": "UUID",
+        "flags": [
+          "PK",
+          "DEFAULT gen_random_uuid()"
+        ],
+        "desc": "Identificador único do convênio"
+      },
+      {
+        "name": "tenant_id",
+        "type": "UUID",
+        "flags": [
+          "NOT NULL",
+          "INDEX"
+        ],
+        "desc": "Multi-tenant da consultoria"
+      },
+      {
+        "name": "prefeitura_id",
+        "type": "UUID",
+        "flags": [
+          "FK -> tb_prefeituras.id",
+          "NOT NULL"
+        ],
+        "desc": "Vínculo com a prefeitura convenente"
+      },
+      {
+        "name": "numero_siconv",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "NOT NULL",
+          "UNIQUE(siconv, tenant)"
+        ],
+        "desc": "Número oficial no Transferegov (ex: 912345/2024)"
+      },
+      {
+        "name": "numero_proposta_siconv",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 0: Número da proposta originária no Transferegov"
+      },
+      {
+        "name": "tipo_instrumento",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "NOT NULL",
+          "DEFAULT 'CONVENIO_TRADICIONAL'"
+        ],
+        "desc": "CONVENIO_TRADICIONAL, CONTRATO_REPASSE_CAIXA, EMENDA_ESPECIAL_PIX"
+      },
+      {
+        "name": "modalidade_emenda",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "INDIVIDUAL_RP6, BANCADA_RP7, COMISSAO_RP8, EXTRAEMENDA_RP2"
+      },
+      {
+        "name": "gnd_despesa",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "DEFAULT 'GND_4_INVESTIMENTOS'"
+        ],
+        "desc": "GND_3_DESPESAS_CORRENTES (Custeio) ou GND_4_INVESTIMENTOS (Obras/Equipamentos)"
+      },
+      {
+        "name": "nome_parlamentar_autor",
+        "type": "VARCHAR(150)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Deputado ou Senador autor da emenda orçamentária"
+      },
+      {
+        "name": "numero_nota_empenho_siafi",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 1: Nota de Empenho federal emitida no SIAFI"
+      },
+      {
+        "name": "status_analise_proposta",
+        "type": "VARCHAR(35)",
+        "flags": [
+          "DEFAULT 'EM_CADASTRAMENTO'"
+        ],
+        "desc": "Fase 0: EM_CADASTRAMENTO, ENVIADA_PARA_ANALISE, EM_DILIGENCIA, APROVADA_EMPENHADA"
+      },
+      {
+        "name": "data_limite_saneamento_diligencia",
+        "type": "DATE",
+        "flags": [
+          "NULLABLE",
+          "INDEX"
+        ],
+        "desc": "Fase 0: Prazo fatal de 15 a 30 dias para responder diligências dos ministérios"
+      },
+      {
+        "name": "mandataria",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "DEFAULT 'CAIXA_GIGOV'"
+        ],
+        "desc": "Instituição financeira mandatária (CAIXA_GIGOV, BANCO_DO_BRASIL)"
+      },
+      {
+        "name": "objeto",
+        "type": "TEXT",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Objeto pactuado no plano de trabalho"
+      },
+      {
+        "name": "valor_global",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Montante global pactuado (Repasse + Contrapartida)"
+      },
+      {
+        "name": "valor_repasse",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Recurso federal transferido pela União"
+      },
+      {
+        "name": "valor_contrapartida",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "DEFAULT 0.00"
+        ],
+        "desc": "Aporte financeiro municipal obrigatório"
+      },
+      {
+        "name": "dotacao_orcamentaria_contrapartida_loa",
+        "type": "VARCHAR(100)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 0: Dotação orçamentária na LOA municipal para a contrapartida"
+      },
+      {
+        "name": "s3_key_dossie_declaracoes_proposta",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 0: Dossiê com declarações e certidões no S3/MinIO"
+      },
+      {
+        "name": "s3_key_termo_convenio_assinado",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 1: Termo de Convênio assinado digitalmente no Gov.br"
+      },
+      {
+        "name": "s3_key_extrato_dou",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 1: Publicação oficial no Diário Oficial da União"
+      },
+      {
+        "name": "possui_clausula_suspensiva",
+        "type": "BOOLEAN",
+        "flags": [
+          "DEFAULT false"
+        ],
+        "desc": "Fase 2: Indica se a eficácia depende de projetos e licenças"
+      },
+      {
+        "name": "status_clausula_suspensiva",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "DEFAULT 'NAO_APLICA'"
+        ],
+        "desc": "Fase 2: NAO_APLICA, PENDENTE, SUPERADA, VENCIDA_EXTINTA"
+      },
+      {
+        "name": "prazo_clausula_suspensiva",
+        "type": "DATE",
+        "flags": [
+          "NULLABLE",
+          "INDEX"
+        ],
+        "desc": "Fase 2: Prazo fatal de 180 dias para aprovação Caixa"
+      },
+      {
+        "name": "prorrogacao_solicitada",
+        "type": "BOOLEAN",
+        "flags": [
+          "DEFAULT false"
+        ],
+        "desc": "Fase 2: Flag de pedido formal tempestivo de prorrogação"
+      },
+      {
+        "name": "novo_prazo_prorrogado",
+        "type": "DATE",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 2: Novo prazo aprovado pelo concedente"
+      },
+      {
+        "name": "s3_key_termo_retirada_suspensiva",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 2: Termo formal de retirada da cláusula suspensiva"
+      },
+      {
+        "name": "data_limite_prestacao_contas",
+        "type": "DATE",
+        "flags": [
+          "NULLABLE",
+          "INDEX"
+        ],
+        "desc": "Fase 7: Prazo fatal de 60 dias após vigência (Portaria 33, art. 82)"
+      },
+      {
+        "name": "data_envio_prestacao_contas",
+        "type": "DATE",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 7: Data da transmissão do RCO no Transferegov"
+      },
+      {
+        "name": "situacao_prestacao_contas",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "DEFAULT 'EM_EXECUCAO'"
+        ],
+        "desc": "Fase 7/8: EM_EXECUCAO, ENVIADA, APROVADA, REJEITADA"
+      },
+      {
+        "name": "status_parecer_tecnico",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "DEFAULT 'EM_ANALISE'"
+        ],
+        "desc": "Fase 8: Parecer Técnico Conclusivo da Caixa GIGOV"
+      },
+      {
+        "name": "status_parecer_financeiro",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "DEFAULT 'EM_ANALISE'"
+        ],
+        "desc": "Fase 8: Parecer Financeiro Conclusivo do Concedente"
+      },
+      {
+        "name": "data_homologacao_prestacao_contas",
+        "type": "DATE",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 8: Despacho decisório final de homologação da União"
+      },
+      {
+        "name": "valor_saldo_remanescente_devolvido",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "DEFAULT 0.00"
+        ],
+        "desc": "Fase 7: Saldo não utilizado devolvido via GRU"
+      },
+      {
+        "name": "valor_rendimentos_devolvidos",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "DEFAULT 0.00"
+        ],
+        "desc": "Fase 7: Rendimentos da conta recolhidos ao Tesouro"
+      },
+      {
+        "name": "numero_gru_devolucao",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 7: Número da GRU paga no Banco do Brasil"
+      },
+      {
+        "name": "s3_key_relatorio_cumprimento_objeto",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 7: RCO oficial transmitido no Transferegov"
+      },
+      {
+        "name": "s3_key_comprovante_gru",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 7: Comprovante de quitação bancária da GRU"
+      },
+      {
+        "name": "s3_key_termo_recebimento_definitivo",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 7: TRD assinado pelos fiscais da obra (art. 140 Lei 14.133)"
+      },
+      {
+        "name": "s3_key_termo_encerramento_conta",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 8: Declaração de encerramento da conta Op 006 com saldo zero"
+      },
+      {
+        "name": "s3_key_parecer_tecnico_concedente",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 8: Parecer Técnico conclusivo da Caixa/Ministério"
+      },
+      {
+        "name": "s3_key_parecer_financeiro_concedente",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 8: Parecer Financeiro conclusivo do Ministério"
+      },
+      {
+        "name": "status_inadimplencia_siafi",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "DEFAULT 'ADIMPLENTE'"
+        ],
+        "desc": "Fase 9: ADIMPLENTE, NOTIFICADO_45_DIAS, INADIMPLENTE_SUSPENSO, INADIMPLENTE_BLOQUEADO"
+      },
+      {
+        "name": "motivo_inadimplencia",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 9: OMISSAO_PRESTACAO_CONTAS, GLOSA_REJEICAO_CONTAS, FALTA_FUNCIONALIDADE, DANO_AO_ERARIO"
+      },
+      {
+        "name": "fase_tce",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "DEFAULT 'NAO_INSTAURADA'"
+        ],
+        "desc": "Fase 9: NAO_INSTAURADA, NOTIFICACAO_PREVIA, FASE_INTERNA_MINISTERIO, FASE_EXTERNA_TCU"
+      },
+      {
+        "name": "data_notificacao_cgu",
+        "type": "DATE",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 9: Data da notificação prévia de 45 dias da União"
+      },
+      {
+        "name": "data_limite_defesa_45_dias",
+        "type": "DATE",
+        "flags": [
+          "NULLABLE",
+          "INDEX"
+        ],
+        "desc": "Fase 9: Prazo fatal de 45 dias para defesa ou quitação do débito"
+      },
+      {
+        "name": "valor_glosa_apurado",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "DEFAULT 0.00"
+        ],
+        "desc": "Fase 9: Valor original glosado e impugnado pelo concedente"
+      },
+      {
+        "name": "valor_debito_atualizado_selic",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 9: Débito recalculado pela taxa SELIC até a data presente"
+      },
+      {
+        "name": "processo_tce_numero_tcu",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 9: Número do processo de TCE autuado no Tribunal de Contas da União"
+      },
+      {
+        "name": "amparado_sumula_230_tcu",
+        "type": "BOOLEAN",
+        "flags": [
+          "DEFAULT false"
+        ],
+        "desc": "Fase 9: Ação do prefeito sucessor que libera a prefeitura no CAUC"
+      },
+      {
+        "name": "numero_processo_judicial_sucessor",
+        "type": "VARCHAR(100)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 9: Processo judicial / Representação ao MPF pelo sucessor"
+      },
+      {
+        "name": "data_ajuizamento_sumula_230",
+        "type": "DATE",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 9: Data do ajuizamento comprovando tempestividade"
+      },
+      {
+        "name": "s3_key_notificacao_cgu",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 9: PDF da notificação formal de 45 dias"
+      },
+      {
+        "name": "s3_key_defesa_previa",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 9: Cópia da defesa prévia administrativa apresentada"
+      },
+      {
+        "name": "s3_key_peticao_judicial_sucessor",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 9: Petição e certidão do processo da Súmula 230 TCU"
+      },
+      {
+        "name": "s3_key_acordao_tcu",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 9: Cópia do Acórdão final do TCU"
+      }
+    ]
+  },
+  {
+    "name": "tb_condicionantes_suspensivas",
+    "schema": "core_schema",
+    "title": "Condicionantes Suspensivas (Caixa)",
+    "aggregate": "CondicionanteSuspensiva (Entity)",
+    "desc": "Rastreabilidade e saneamento dos 3 pilares técnicos para retirar a cláusula suspensiva.",
+    "badgeColor": "indigo",
+    "phases": [
+      "Fase 2"
+    ],
+    "invariants": "Invariante Legal: Sem a aprovação dos 3 pilares (Engenharia SINAPI, Licença Ambiental e Titularidade do Imóvel) dentro do prazo limite, o convênio é compulsoriamente extinto sem repasse financeiro.",
+    "columns": [
+      {
+        "name": "id",
+        "type": "UUID",
+        "flags": [
+          "PK",
+          "DEFAULT gen_random_uuid()"
+        ],
+        "desc": "Identificador da condicionante"
+      },
+      {
+        "name": "convenio_id",
+        "type": "UUID",
+        "flags": [
+          "FK -> tb_convenios.id",
+          "NOT NULL"
+        ],
+        "desc": "Convênio federal vinculado"
+      },
+      {
+        "name": "tipo_condicionante",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "ENGENHARIA_PROJETOS_SINAPI, LICENCIAMENTO_AMBIENTAL, TITULARIDADE_IMOVEL"
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "PENDENTE, EM_ANALISE_CAIXA, DILIGENCIA_EMITIDA, APROVADO"
+      },
+      {
+        "name": "numero_documento_comprobatorio",
+        "type": "VARCHAR(100)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Número da SPA/LAE, licença prévia ou certidão de matrícula CRI"
+      },
+      {
+        "name": "data_aprovacao",
+        "type": "DATE",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Data de superação formal expedida pela Caixa"
+      },
+      {
+        "name": "data_validade",
+        "type": "DATE",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Validade da licença ambiental ou certidão imobiliária"
+      },
+      {
+        "name": "data_limite_saneamento",
+        "type": "DATE",
+        "flags": [
+          "NULLABLE",
+          "INDEX"
+        ],
+        "desc": "Prazo fatal para sanear laudo de pendências técnicas emitido pela GIGOV"
+      },
+      {
+        "name": "valor_orcamento_aprovado_caixa",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Orçamento de engenharia aprovado na SPA que limita o teto da licitação"
+      },
+      {
+        "name": "percentual_bdi_aprovado",
+        "type": "NUMERIC(5,2)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Percentual de BDI aceito conforme acórdãos do TCU"
+      },
+      {
+        "name": "numero_art_rrt",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "ART/RRT de elaboração de projeto registrada no CREA/CAU"
+      },
+      {
+        "name": "orgao_emissor",
+        "type": "VARCHAR(100)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Órgão ambiental ou Cartório de Registro de Imóveis emissor"
+      },
+      {
+        "name": "s3_key_laudo_pendencias",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Laudo de pendências técnicas emitido pela equipe de engenharia da Caixa"
+      },
+      {
+        "name": "s3_key_documento",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Documento comprobatório definitivo armazenado no S3/MinIO"
+      }
+    ]
+  },
+  {
+    "name": "tb_contas_bancarias_vinculadas",
+    "schema": "core_schema",
+    "title": "Contas Vinculadas & Rendimentos",
+    "aggregate": "ContaBancariaVinculada (Entity)",
+    "desc": "Contas correntes bloqueadas de custódia na Caixa (Op 006) ou Banco do Brasil, com aplicação financeira compulsória.",
+    "badgeColor": "indigo",
+    "phases": [
+      "Fase 1",
+      "Fase 5",
+      "Fase 7",
+      "Fase 8"
+    ],
+    "invariants": "Invariante de Exclusividade e Saldo Zero: Movimentação financeira 100% exclusiva via OBTV no Transferegov. No encerramento, todos os rendimentos devem ser devolvidos à União via GRU, zerando a conta.",
+    "columns": [
+      {
+        "name": "id",
+        "type": "UUID",
+        "flags": [
+          "PK",
+          "DEFAULT gen_random_uuid()"
+        ],
+        "desc": "Identificador da conta bancária"
+      },
+      {
+        "name": "convenio_id",
+        "type": "UUID",
+        "flags": [
+          "FK -> tb_convenios.id",
+          "NOT NULL"
+        ],
+        "desc": "Convênio federal titular da conta"
+      },
+      {
+        "name": "banco",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Código e nome do banco (104 - CAIXA / 001 - BANCO DO BRASIL)"
+      },
+      {
+        "name": "agencia",
+        "type": "VARCHAR(10)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Agência bancária vinculada"
+      },
+      {
+        "name": "numero_conta",
+        "type": "VARCHAR(20)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Número da conta corrente específica (ex: Operação 006 na Caixa)"
+      },
+      {
+        "name": "saldo_total_disponivel",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "DEFAULT 0.00"
+        ],
+        "desc": "Saldo financeiro atualizado na conta vinculada"
+      },
+      {
+        "name": "rendimentos_aplicacao_acumulados",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "DEFAULT 0.00"
+        ],
+        "desc": "Total acumulado de aplicação financeira compulsória"
+      },
+      {
+        "name": "total_desembolsado_uniao",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "DEFAULT 0.00"
+        ],
+        "desc": "Soma de parcelas de repasse creditadas pelo Governo Federal"
+      },
+      {
+        "name": "total_aportado_contrapartida",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "DEFAULT 0.00"
+        ],
+        "desc": "Contrapartida depositada pelo município na conta"
+      },
+      {
+        "name": "s3_key_comprovante_abertura",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 1: Ficha cadastral e comprovante de abertura da conta no S3"
+      },
+      {
+        "name": "s3_key_ultimo_extrato",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 5/8: Extrato bancário conciliado com as movimentações OBTV"
+      }
+    ]
+  },
+  {
+    "name": "tb_metas_plano_trabalho",
+    "schema": "core_schema",
+    "title": "Metas do Plano de Trabalho",
+    "aggregate": "MetaPlanoTrabalho (Entity)",
+    "desc": "Decomposição das entregas físicas e financeiras pactuadas formalmente no convênio.",
+    "badgeColor": "indigo",
+    "phases": [
+      "Fase 0",
+      "Fase 4",
+      "Fase 7"
+    ],
+    "invariants": "Invariante de Entrega Física: O somatório dos valores das metas equivale ao valor global do convênio. Medições e notas fiscais vinculam-se a cada meta específica.",
+    "columns": [
+      {
+        "name": "id",
+        "type": "UUID",
+        "flags": [
+          "PK",
+          "DEFAULT gen_random_uuid()"
+        ],
+        "desc": "Identificador da meta"
+      },
+      {
+        "name": "convenio_id",
+        "type": "UUID",
+        "flags": [
+          "FK -> tb_convenios.id",
+          "NOT NULL"
+        ],
+        "desc": "Convênio vinculado"
+      },
+      {
+        "name": "numero_meta",
+        "type": "INTEGER",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Número ordinal da meta (ex: Meta 1, Meta 2)"
+      },
+      {
+        "name": "titulo_meta",
+        "type": "VARCHAR(200)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Descrição da entrega física pactuada"
+      },
+      {
+        "name": "valor_previsto",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Orçamento previsto para esta meta"
+      },
+      {
+        "name": "valor_executado_acumulado",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "DEFAULT 0.00"
+        ],
+        "desc": "Total medido e pago nesta meta"
+      },
+      {
+        "name": "percentual_fisico_concluido",
+        "type": "NUMERIC(5,2)",
+        "flags": [
+          "DEFAULT 0.00"
+        ],
+        "desc": "Progresso percentual da entrega física (%)"
+      }
+    ]
+  },
+  {
+    "name": "tb_licitacoes",
+    "schema": "core_schema",
+    "title": "Licitações Públicas (Lei 14.133/2021)",
+    "aggregate": "Licitacao (Aggregate Root)",
+    "desc": "Certames licitatórios municipais vinculados ao convênio (relação 1:N), integrados ao VRPL e à emissão do AIO.",
+    "badgeColor": "indigo",
+    "phases": [
+      "Fase 3"
+    ],
+    "invariants": "Invariante 1:N & VRPL: Um convênio pode comportar múltiplas licitações independentes. A soma dos valores homologados não pode exceder o valor do convênio. Nenhuma obra pode ser iniciada antes da Autorização de Início de Objeto (AIO) emitida pela Caixa.",
+    "columns": [
+      {
+        "name": "id",
+        "type": "UUID",
+        "flags": [
+          "PK",
+          "DEFAULT gen_random_uuid()"
+        ],
+        "desc": "Identificador único da licitação"
+      },
+      {
+        "name": "tenant_id",
+        "type": "UUID",
+        "flags": [
+          "NOT NULL",
+          "INDEX"
+        ],
+        "desc": "Multi-tenant da consultoria"
+      },
+      {
+        "name": "convenio_id",
+        "type": "UUID",
+        "flags": [
+          "FK -> tb_convenios.id",
+          "NOT NULL",
+          "INDEX"
+        ],
+        "desc": "Convênio federal financiador (1:N)"
+      },
+      {
+        "name": "prefeitura_id",
+        "type": "UUID",
+        "flags": [
+          "FK -> tb_prefeituras.id",
+          "NOT NULL",
+          "INDEX"
+        ],
+        "desc": "Município licitante"
+      },
+      {
+        "name": "numero_licitacao",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "NOT NULL",
+          "UNIQUE(convenio_id, numero)"
+        ],
+        "desc": "Identificador do certame (ex: PE 012/2024, CC 002/2024)"
+      },
+      {
+        "name": "numero_processo_administrativo",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Processo administrativo municipal (ex: PA-104/2024)"
+      },
+      {
+        "name": "modalidade",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "PREGAO_ELETRONICO, CONCORRENCIA_ELETRONICA, DISPENSA, INEXIGIBILIDADE"
+      },
+      {
+        "name": "criterio_julgamento",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "MENOR_PRECO, MAIOR_DESCONTO, MELHOR_TECNICA"
+      },
+      {
+        "name": "regime_execucao",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "EMPREITADA_PRECO_GLOBAL, EMPREITADA_PRECO_UNITARIO"
+      },
+      {
+        "name": "objeto",
+        "type": "TEXT",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Objeto licitado no certame"
+      },
+      {
+        "name": "valor_estimado",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Orçamento de referência aprovado na SPA"
+      },
+      {
+        "name": "valor_homologado",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Valor arrematado pela empreiteira vencedora"
+      },
+      {
+        "name": "percentual_desconto",
+        "type": "NUMERIC(5,2)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Percentual de economia obtido na disputa (%)"
+      },
+      {
+        "name": "cnpj_vencedor",
+        "type": "VARCHAR(18)",
+        "flags": [
+          "NULLABLE",
+          "INDEX"
+        ],
+        "desc": "CNPJ da empresa contratada vencedora"
+      },
+      {
+        "name": "razao_social_vencedor",
+        "type": "VARCHAR(200)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Razão social da empreiteira adjudicada"
+      },
+      {
+        "name": "situacao",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "DEFAULT 'PLANEJAMENTO'"
+        ],
+        "desc": "PLANEJAMENTO, EDITAL_PUBLICADO, EM_DISPUTA, HOMOLOGADA, FRACASSADA"
+      },
+      {
+        "name": "numero_vrpl_transferegov",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Protocolo do VRPL submetido à Caixa GIGOV"
+      },
+      {
+        "name": "status_vrpl",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "DEFAULT 'NAO_ENVIADO'"
+        ],
+        "desc": "NAO_ENVIADO, EM_ANALISE_CAIXA, DILIGENCIA, ACEITO_HOMOLOGADO"
+      },
+      {
+        "name": "numero_aio",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Número da Autorização de Início de Objeto formal"
+      },
+      {
+        "name": "status_aio",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "DEFAULT 'NAO_EMITIDO'"
+        ],
+        "desc": "NAO_EMITIDO, SOLICITADO, EMITIDO_LIBERADO"
+      },
+      {
+        "name": "s3_key_proposta_vencedora",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Planilha orçamentária vencedora com BDI detalhado no S3"
+      },
+      {
+        "name": "s3_key_ata_sessao",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Ata da sessão pública eletrônica e histórico de lances"
+      }
+    ]
+  },
+  {
+    "name": "tb_contratos_execucao",
+    "schema": "core_schema",
+    "title": "Contratos de Execução (Obras/Prestadoras)",
+    "aggregate": "ContratoExecucao (Aggregate Root)",
+    "desc": "Contrato administrativo municipal firmado com a empreiteira vencedora da licitação.",
+    "badgeColor": "indigo",
+    "phases": [
+      "Fase 3",
+      "Fase 4",
+      "Fase 6"
+    ],
+    "invariants": "Desambiguação DDD: 'Contrato de Execução' é o instrumento bilateral municipal com a empreiteira. É subordinado à Licitação e ao Convênio, exigindo ART de Execução e Ordem de Serviço pós-AIO.",
+    "columns": [
+      {
+        "name": "id",
+        "type": "UUID",
+        "flags": [
+          "PK",
+          "DEFAULT gen_random_uuid()"
+        ],
+        "desc": "Identificador do contrato administrativo"
+      },
+      {
+        "name": "convenio_id",
+        "type": "UUID",
+        "flags": [
+          "FK -> tb_convenios.id",
+          "NOT NULL"
+        ],
+        "desc": "Convênio financiador"
+      },
+      {
+        "name": "licitacao_id",
+        "type": "UUID",
+        "flags": [
+          "FK -> tb_licitacoes.id",
+          "NULLABLE",
+          "INDEX"
+        ],
+        "desc": "Licitação de origem"
+      },
+      {
+        "name": "numero_contrato_municipal",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Número oficial do contrato (ex: CT-042/2024)"
+      },
+      {
+        "name": "cnpj_contratada",
+        "type": "VARCHAR(18)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "CNPJ da empreiteira contratada"
+      },
+      {
+        "name": "razao_social_contratada",
+        "type": "VARCHAR(200)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Razão social da empresa de engenharia"
+      },
+      {
+        "name": "valor_total_contrato",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Valor inicial homologado no certame"
+      },
+      {
+        "name": "valor_contratado_atual",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Valor atualizado por termos aditivos"
+      },
+      {
+        "name": "data_ordem_servico",
+        "type": "DATE",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Fase 4: Data de expedição da OS pelo município pós-AIO"
+      },
+      {
+        "name": "numero_art_execucao",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "ART do engenheiro responsável pela execução"
+      },
+      {
+        "name": "s3_key_ordem_servico",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Ordem de Serviço assinada no S3"
+      },
+      {
+        "name": "status_contrato",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "DEFAULT 'VIGENTE'"
+        ],
+        "desc": "VIGENTE, PARALISADO, CONCLUIDO, RESCINDIDO"
+      }
+    ]
+  },
+  {
+    "name": "tb_termos_aditivos",
+    "schema": "core_schema",
+    "title": "Termos Aditivos (Vigência e Valor)",
+    "aggregate": "TermoAditivo (Entity)",
+    "desc": "Histórico imutável de alterações de prazo, reprogramação de metas e acréscimos orçamentários de convênios e contratos.",
+    "badgeColor": "indigo",
+    "phases": [
+      "Fase 6"
+    ],
+    "invariants": "Invariante Legal dos Tetos (Lei 14.133/21): Aditivos de acréscimo são limitados a 25% (obras novas) ou 50% (reforma de edifícios). Exige solicitação tempestiva com antecedência mínima de 30 dias (Portaria 33, art. 57) e laudo de reprogramação da Caixa.",
+    "columns": [
+      {
+        "name": "id",
+        "type": "UUID",
+        "flags": [
+          "PK",
+          "DEFAULT gen_random_uuid()"
+        ],
+        "desc": "Identificador do termo aditivo"
+      },
+      {
+        "name": "tipo_instrumento_aditivado",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "CONVENIO_FEDERAL ou CONTRATO_MUNICIPAL"
+      },
+      {
+        "name": "convenio_id",
+        "type": "UUID",
+        "flags": [
+          "FK -> tb_convenios.id",
+          "NULLABLE"
+        ],
+        "desc": "Convênio federal aditivado"
+      },
+      {
+        "name": "contrato_id",
+        "type": "UUID",
+        "flags": [
+          "FK -> tb_contratos_execucao.id",
+          "NULLABLE"
+        ],
+        "desc": "Contrato de execução aditivado"
+      },
+      {
+        "name": "numero_aditivo",
+        "type": "INTEGER",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Sequencial (ex: 1º Aditivo, 2º Aditivo)"
+      },
+      {
+        "name": "tipo_aditivo",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "PRORROGACAO_VIGENCIA, VALOR_ACRESCIMO, VALOR_SUPRESSAO, REMANEJAMENTO_METAS, REEQUILIBRIO_ECONOMICO"
+      },
+      {
+        "name": "data_assinatura",
+        "type": "DATE",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Data da assinatura digital formal"
+      },
+      {
+        "name": "nova_data_fim_vigencia",
+        "type": "DATE",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Nova data limite de vigência estendida"
+      },
+      {
+        "name": "valor_aditado",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "DEFAULT 0.00"
+        ],
+        "desc": "Impacto financeiro (+ acréscimo / - supressão)"
+      },
+      {
+        "name": "percentual_aditado",
+        "type": "NUMERIC(5,2)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Percentual acumulado frente ao valor inicial (teto 25%/50%)"
+      },
+      {
+        "name": "parecer_tecnico_caixa",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Número do Laudo de Reprogramação da Caixa GIGOV"
+      },
+      {
+        "name": "status_aprovacao_concedente",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "DEFAULT 'EM_ELABORACAO'"
+        ],
+        "desc": "EM_ELABORACAO, SUBMETIDO_CAIXA, DILIGENCIA_CAIXA, APROVADO_CONCEDENTE"
+      },
+      {
+        "name": "data_limite_solicitacao_tempestiva",
+        "type": "DATE",
+        "flags": [
+          "NULLABLE",
+          "INDEX"
+        ],
+        "desc": "Data fatal de 30 dias antes do fim da vigência atual"
+      },
+      {
+        "name": "s3_key_justificativa_tecnica",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Parecer técnico do engenheiro fiscal municipal no S3"
+      },
+      {
+        "name": "s3_key_planilha_comparativa",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Planilha orçamentária comparativa (previsto x proposto)"
+      },
+      {
+        "name": "s3_key_parecer_caixa",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Laudo oficial da Caixa GIGOV aprovando o aditivo"
+      },
+      {
+        "name": "s3_key_extrato_publicacao",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Publicação do extrato do aditivo no DOU / PNCP"
+      }
+    ]
+  },
+  {
+    "name": "tb_medicoes",
+    "schema": "core_schema",
+    "title": "Medições de Obras & RAE",
+    "aggregate": "Medicao (Entity)",
+    "desc": "Boletins de medição do avanço físico atestados pelo engenheiro fiscal e auditados pela Caixa (Relatório RAE).",
+    "badgeColor": "indigo",
+    "phases": [
+      "Fase 4"
+    ],
+    "invariants": "Invariante de Engenharia: A soma dos avanços não pode ultrapassar 100%. Nenhuma nota fiscal pode ser paga antes do Laudo RAE da Caixa autorizar o valor aferido (recursos ficam glosados caso haja divergência física).",
+    "columns": [
+      {
+        "name": "id",
+        "type": "UUID",
+        "flags": [
+          "PK",
+          "DEFAULT gen_random_uuid()"
+        ],
+        "desc": "Identificador da medição"
+      },
+      {
+        "name": "contrato_id",
+        "type": "UUID",
+        "flags": [
+          "FK -> tb_contratos_execucao.id",
+          "NOT NULL"
+        ],
+        "desc": "Contrato municipal medido"
+      },
+      {
+        "name": "convenio_id",
+        "type": "UUID",
+        "flags": [
+          "FK -> tb_convenios.id",
+          "NOT NULL"
+        ],
+        "desc": "Convênio financiador"
+      },
+      {
+        "name": "numero_medicao",
+        "type": "INTEGER",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Número da medição (ex: 1ª Medição, 2ª Medição)"
+      },
+      {
+        "name": "valor_medicao_periodo",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Valor atestado pelo fiscal municipal"
+      },
+      {
+        "name": "percentual_acumulado_obra",
+        "type": "NUMERIC(5,2)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Avanço físico total da obra acumulado (%)"
+      },
+      {
+        "name": "numero_rae_caixa",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Número oficial do RAE emitido pela Caixa"
+      },
+      {
+        "name": "percentual_aferido_caixa",
+        "type": "NUMERIC(5,2)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Percentual chancelado na vistoria in loco da Caixa"
+      },
+      {
+        "name": "valor_aferido_caixa",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Valor liberado no laudo para pagamento"
+      },
+      {
+        "name": "valor_glosado_caixa",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "DEFAULT 0.00"
+        ],
+        "desc": "Valor retido preventivamente pela Caixa por inconsistência física"
+      },
+      {
+        "name": "georreferenciamento_validado",
+        "type": "BOOLEAN",
+        "flags": [
+          "DEFAULT false"
+        ],
+        "desc": "Validação das coordenadas GPS nas fotos da obra"
+      },
+      {
+        "name": "s3_key_diario_obras",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Diário de Obras Digital assinado (art. 88 Lei 14.133)"
+      },
+      {
+        "name": "s3_key_laudo_rae",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Laudo oficial RAE da Caixa GIGOV no S3"
+      },
+      {
+        "name": "status_medicao",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "DEFAULT 'EM_CONFERENCIA'"
+        ],
+        "desc": "EM_CONFERENCIA, ATESTADA_FISCAL, AFERIDA_CAIXA, REJEITADA"
+      }
+    ]
+  },
+  {
+    "name": "tb_documentos_habeis",
+    "schema": "core_schema",
+    "title": "Documentos Hábeis (Notas Fiscais)",
+    "aggregate": "DocumentoHabil (Entity)",
+    "desc": "Notas Fiscais Eletrônicas (NFS-e/NF-e) auditadas com tolerância zero pela IA e conferidas com o RAE.",
+    "badgeColor": "indigo",
+    "phases": [
+      "Fase 5"
+    ],
+    "invariants": "Invariante Matemática e Legal: Valor Líquido = Valor Bruto - Soma das Retenções. Exige Atesto de Liquidação formal (art. 63 da Lei 4.320/64) antes da emissão de qualquer comando bancário de pagamento.",
+    "columns": [
+      {
+        "name": "id",
+        "type": "UUID",
+        "flags": [
+          "PK",
+          "DEFAULT gen_random_uuid()"
+        ],
+        "desc": "Identificador do documento hábil"
+      },
+      {
+        "name": "medicao_id",
+        "type": "UUID",
+        "flags": [
+          "FK -> tb_medicoes.id",
+          "NOT NULL"
+        ],
+        "desc": "Boletim de medição comprobatório"
+      },
+      {
+        "name": "numero_documento",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Número da nota fiscal de serviço ou mercadoria"
+      },
+      {
+        "name": "chave_acesso_nfe",
+        "type": "VARCHAR(44)",
+        "flags": [
+          "NULLABLE",
+          "INDEX"
+        ],
+        "desc": "Chave de 44 dígitos da NF-e para consulta na SEFAZ"
+      },
+      {
+        "name": "data_emissao",
+        "type": "DATE",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Data de emissão fiscal"
+      },
+      {
+        "name": "data_atesto_liquidacao",
+        "type": "DATE",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Data do atesto do ordenador de despesa (Lei 4.320/64)"
+      },
+      {
+        "name": "cnpj_favorecido",
+        "type": "VARCHAR(18)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "CNPJ da empreiteira contratada"
+      },
+      {
+        "name": "valor_bruto",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Valor bruto faturado na nota"
+      },
+      {
+        "name": "valor_total_deducoes",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "DEFAULT 0.00"
+        ],
+        "desc": "Soma de todas as retenções tributárias"
+      },
+      {
+        "name": "valor_liquido",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Valor líquido devido à empreiteira"
+      },
+      {
+        "name": "status_validacao_matematica",
+        "type": "BOOLEAN",
+        "flags": [
+          "DEFAULT false"
+        ],
+        "desc": "TRUE se Bruto - Retenções == Líquido"
+      },
+      {
+        "name": "confidence_score_geral",
+        "type": "NUMERIC(4,3)",
+        "flags": [
+          "DEFAULT 1.000"
+        ],
+        "desc": "Confiança do VLM Gemini na extração do documento"
+      },
+      {
+        "name": "status_revisao",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "DEFAULT 'PENDENTE_REVISAO'"
+        ],
+        "desc": "PENDENTE_REVISAO, APROVADO_ANALISTA, INJETADO_NO_GOVERNO"
+      },
+      {
+        "name": "injetado_transferegov",
+        "type": "BOOLEAN",
+        "flags": [
+          "DEFAULT false"
+        ],
+        "desc": "Flag de injeção automática no Transferegov via Chrome Extension"
+      },
+      {
+        "name": "s3_key_xml_documento",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Arquivo XML original da NF-e/NFS-e no S3"
+      }
+    ]
+  },
+  {
+    "name": "tb_retencoes_tributarias",
+    "schema": "core_schema",
+    "title": "Retenções Tributárias (INSS/ISS/IRRF)",
+    "aggregate": "RetencaoTributaria (Value Object)",
+    "desc": "Tributos retidos na fonte com controle de guias DARF, DAM e códigos oficiais de receita da Receita Federal.",
+    "badgeColor": "indigo",
+    "phases": [
+      "Fase 5"
+    ],
+    "invariants": "Invariante Tributária: O valor retido gera uma OBTV específica para o órgão arrecadador (RFB/Prefeitura), devendo ser pago antes do vencimento da guia sob pena de multa e juros.",
+    "columns": [
+      {
+        "name": "id",
+        "type": "UUID",
+        "flags": [
+          "PK",
+          "DEFAULT gen_random_uuid()"
+        ],
+        "desc": "Identificador da retenção"
+      },
+      {
+        "name": "documento_habil_id",
+        "type": "UUID",
+        "flags": [
+          "FK -> tb_documentos_habeis.id",
+          "NOT NULL"
+        ],
+        "desc": "Nota fiscal de origem"
+      },
+      {
+        "name": "tipo_tributo",
+        "type": "VARCHAR(20)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "INSS, ISS, IRRF, PIS, COFINS, CSLL"
+      },
+      {
+        "name": "base_calculo",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Base de cálculo tributável"
+      },
+      {
+        "name": "aliquota_percentual",
+        "type": "NUMERIC(5,2)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Alíquota aplicada (ex: 11.00)"
+      },
+      {
+        "name": "valor_retido",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Valor monetário a recolher"
+      },
+      {
+        "name": "codigo_receita_darf",
+        "type": "VARCHAR(20)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Código da Receita (ex: 0588 IRRF, 2631 INSS)"
+      },
+      {
+        "name": "codigo_barras_guia",
+        "type": "VARCHAR(100)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Linha digitável da guia de recolhimento (DARF/DAM)"
+      },
+      {
+        "name": "data_vencimento_guia",
+        "type": "DATE",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Data fatal de vencimento da guia tributária"
+      },
+      {
+        "name": "s3_key_guia_recolhimento",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "PDF da guia com código de barras no S3"
+      }
+    ]
+  },
+  {
+    "name": "tb_ordens_pagamento",
+    "schema": "core_schema",
+    "title": "Ordens de Pagamento (OBTV)",
+    "aggregate": "OrdemPagamento (Entity)",
+    "desc": "Comando eletrônico de débito na conta vinculada (OBTV Fornecedor, OBTV Tributos ou Devolução GRU).",
+    "badgeColor": "indigo",
+    "phases": [
+      "Fase 5",
+      "Fase 7"
+    ],
+    "invariants": "Invariante de Duplo Comando (Gov.br): A OBTV exige assinatura digital conjunta de dois ordenadores (Prefeito e Secretário de Finanças) com certificado Gov.br Prata/Ouro para liberação bancária.",
+    "columns": [
+      {
+        "name": "id",
+        "type": "UUID",
+        "flags": [
+          "PK",
+          "DEFAULT gen_random_uuid()"
+        ],
+        "desc": "Identificador da ordem de pagamento"
+      },
+      {
+        "name": "documento_habil_id",
+        "type": "UUID",
+        "flags": [
+          "FK -> tb_documentos_habeis.id",
+          "NULLABLE"
+        ],
+        "desc": "Nota fiscal associada (nulo em devolução GRU)"
+      },
+      {
+        "name": "convenio_id",
+        "type": "UUID",
+        "flags": [
+          "FK -> tb_convenios.id",
+          "NOT NULL"
+        ],
+        "desc": "Convênio debitado"
+      },
+      {
+        "name": "numero_obtv",
+        "type": "VARCHAR(50)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Número oficial gerado pelo Transferegov"
+      },
+      {
+        "name": "tipo_obtv",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "OBTV_FORNECEDOR, OBTV_TRIBUTOS_DARF_DAM, OBTV_DEVOLUCAO_SALDO_GRU"
+      },
+      {
+        "name": "favorecido_nome",
+        "type": "VARCHAR(200)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Nome do recebedor (empreiteira ou órgão tributário)"
+      },
+      {
+        "name": "chave_pix_favorecido",
+        "type": "VARCHAR(100)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Chave Pix para liquidação imediata"
+      },
+      {
+        "name": "codigo_barras_guia",
+        "type": "VARCHAR(100)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Linha digitável em caso de pagamento de guias DARF/DAM/GRU"
+      },
+      {
+        "name": "valor_pago",
+        "type": "NUMERIC(15,2)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Valor liquidado via comando bancário"
+      },
+      {
+        "name": "data_emissao_obtv",
+        "type": "DATE",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Data do envio da ordem"
+      },
+      {
+        "name": "situacao_obtv",
+        "type": "VARCHAR(40)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "AGUARDANDO_ASSINATURA_GESTOR, ENVIADA_BANCO, PAGA_CONFIRMADA"
+      },
+      {
+        "name": "assinante_1_nome",
+        "type": "VARCHAR(150)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "1º Assinante Gov.br (Prefeito / Ordenador)"
+      },
+      {
+        "name": "assinante_2_nome",
+        "type": "VARCHAR(150)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "2º Assinante Gov.br (Secretário de Finanças)"
+      },
+      {
+        "name": "s3_key_comprovante_obtv",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Comprovante oficial de débito emitido pelo banco no S3"
+      }
+    ]
+  },
+  {
+    "name": "tb_instancias_whatsapp",
+    "schema": "whatsapp_schema",
+    "title": "Instâncias do WhatsApp (Evolution API)",
+    "aggregate": "InstanciaWhatsApp (Entity)",
+    "desc": "Conexões ativas com a Evolution API (Baileys) ou Meta Cloud API gerenciadas pela consultoria.",
+    "badgeColor": "emerald",
+    "phases": [
+      "WhatsApp Transversal"
+    ],
+    "invariants": "Invariante de Conectividade: Mantém o estado 'CONNECTED', webhook URLs ativas e apiKey para comunicação bidirecional com os municípios.",
+    "columns": [
+      {
+        "name": "id",
+        "type": "UUID",
+        "flags": [
+          "PK",
+          "DEFAULT gen_random_uuid()"
+        ],
+        "desc": "Identificador da instância"
+      },
+      {
+        "name": "instance_name",
+        "type": "VARCHAR(100)",
+        "flags": [
+          "NOT NULL",
+          "UNIQUE"
+        ],
+        "desc": "Nome da instância (ex: govflow-consultoria)"
+      },
+      {
+        "name": "provider",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "DEFAULT 'EVOLUTION'"
+        ],
+        "desc": "EVOLUTION (Baileys) ou META_CLOUD"
+      },
+      {
+        "name": "phone_number",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Número de telefone E.164 conectado"
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "CONNECTED, DISCONNECTED, CONNECTING"
+      },
+      {
+        "name": "webhook_url",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "URL do webhook no backend GovFlow"
+      },
+      {
+        "name": "is_active",
+        "type": "BOOLEAN",
+        "flags": [
+          "DEFAULT true"
+        ],
+        "desc": "Habilita ou desativa a instância"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "flags": [
+          "DEFAULT CURRENT_TIMESTAMP"
+        ],
+        "desc": "Data de criação"
+      }
+    ]
+  },
+  {
+    "name": "tb_contatos_prefeitura",
+    "schema": "whatsapp_schema",
+    "title": "Roteamento de Contatos Municipais",
+    "aggregate": "ContatoPrefeitura (Entity)",
+    "desc": "Mapeamento dos telefones autorizados com suas respectivas prefeituras, cargos e permissões.",
+    "badgeColor": "emerald",
+    "phases": [
+      "WhatsApp Transversal",
+      "Fase 0",
+      "Fase 2",
+      "Fase 4",
+      "Fase 5",
+      "Fase 7",
+      "Fase 9"
+    ],
+    "invariants": "Invariante de Roteamento: Toda mensagem inbound recebida é imediatamente identificada pelo sender_phone, vinculando o evento à prefeitura, convênios ativos e alçadas de decisão.",
+    "columns": [
+      {
+        "name": "id",
+        "type": "UUID",
+        "flags": [
+          "PK",
+          "DEFAULT gen_random_uuid()"
+        ],
+        "desc": "Identificador do contato"
+      },
+      {
+        "name": "tenant_id",
+        "type": "UUID",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Tenant da consultoria"
+      },
+      {
+        "name": "prefeitura_id",
+        "type": "UUID",
+        "flags": [
+          "FK -> core_schema.tb_prefeituras.id"
+        ],
+        "desc": "Prefeitura convenente do contato"
+      },
+      {
+        "name": "phone_number",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "NOT NULL",
+          "UNIQUE"
+        ],
+        "desc": "Telefone no padrão E.164 (ex: 5583999999999)"
+      },
+      {
+        "name": "nome_contato",
+        "type": "VARCHAR(150)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Nome completo do servidor ou secretário"
+      },
+      {
+        "name": "cargo",
+        "type": "VARCHAR(100)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "PREFEITO, SECRETARIO_FINANCAS, FISCAL_OBRAS, ENGENHEIRO"
+      },
+      {
+        "name": "ativo",
+        "type": "BOOLEAN",
+        "flags": [
+          "DEFAULT true"
+        ],
+        "desc": "Contato autorizado a receber alertas e enviar documentos"
+      }
+    ]
+  },
+  {
+    "name": "tb_mensagens_inbound",
+    "schema": "whatsapp_schema",
+    "title": "Mensagens Recebidas (Inbound Webhooks)",
+    "aggregate": "MensagemInbound (Entity)",
+    "desc": "Log de áudios, fotos de obras, PDFs de notas fiscais e mensagens de texto recebidas dos gestores municipais.",
+    "badgeColor": "emerald",
+    "phases": [
+      "WhatsApp Transversal",
+      "Fase 0",
+      "Fase 2",
+      "Fase 4",
+      "Fase 5",
+      "Fase 7"
+    ],
+    "invariants": "Invariante de Resiliência: Arquivos de mídia (áudios/PDFs) são imediatamente baixados da Evolution API e gravados com segurança no MinIO/S3, mantendo auditoria perene.",
+    "columns": [
+      {
+        "name": "id",
+        "type": "UUID",
+        "flags": [
+          "PK",
+          "DEFAULT gen_random_uuid()"
+        ],
+        "desc": "Identificador do evento"
+      },
+      {
+        "name": "tenant_id",
+        "type": "UUID",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Tenant identificado"
+      },
+      {
+        "name": "prefeitura_id",
+        "type": "UUID",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Prefeitura remetente"
+      },
+      {
+        "name": "instance_name",
+        "type": "VARCHAR(100)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Instância Evolution receptora"
+      },
+      {
+        "name": "external_message_id",
+        "type": "VARCHAR(150)",
+        "flags": [
+          "NOT NULL",
+          "INDEX"
+        ],
+        "desc": "ID único da mensagem no WhatsApp"
+      },
+      {
+        "name": "sender_phone",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "NOT NULL",
+          "INDEX"
+        ],
+        "desc": "Telefone do remetente"
+      },
+      {
+        "name": "message_type",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "TEXT, AUDIO, DOCUMENT, IMAGE"
+      },
+      {
+        "name": "s3_bucket",
+        "type": "VARCHAR(100)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Bucket de armazenamento (ex: evolution)"
+      },
+      {
+        "name": "s3_key",
+        "type": "VARCHAR(500)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Caminho do áudio ou PDF salvo no S3"
+      },
+      {
+        "name": "processed",
+        "type": "BOOLEAN",
+        "flags": [
+          "DEFAULT false",
+          "INDEX"
+        ],
+        "desc": "Flag indicando se a pipeline de IA já processou"
+      }
+    ]
+  },
+  {
+    "name": "tb_mensagens_outbound",
+    "schema": "whatsapp_schema",
+    "title": "Mensagens Enviadas (Outbound)",
+    "aggregate": "MensagemOutbound (Entity)",
+    "desc": "Fila e histórico de notificações automáticas, lembretes de prazos fatais e respostas da consultoria.",
+    "badgeColor": "emerald",
+    "phases": [
+      "WhatsApp Transversal",
+      "Fase 0",
+      "Fase 2",
+      "Fase 4",
+      "Fase 5",
+      "Fase 6",
+      "Fase 7",
+      "Fase 9"
+    ],
+    "invariants": "Invariante de Notificação Ativa: Garante que secretários e prefeitos recebam alertas antecipados de vencimento de certidões, prazos de diligência e cláusulas suspensivas.",
+    "columns": [
+      {
+        "name": "id",
+        "type": "UUID",
+        "flags": [
+          "PK",
+          "DEFAULT gen_random_uuid()"
+        ],
+        "desc": "Identificador do disparo"
+      },
+      {
+        "name": "instance_name",
+        "type": "VARCHAR(100)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Instância remetente"
+      },
+      {
+        "name": "recipient_phone",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "Telefone do destinatário"
+      },
+      {
+        "name": "message_type",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "NOT NULL"
+        ],
+        "desc": "TEXT, DOCUMENT, IMAGE"
+      },
+      {
+        "name": "content_text",
+        "type": "TEXT",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "Texto da notificação enviada"
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR(30)",
+        "flags": [
+          "DEFAULT 'PENDING'"
+        ],
+        "desc": "PENDING, SENT, DELIVERED, READ, FAILED"
+      },
+      {
+        "name": "provider_message_id",
+        "type": "VARCHAR(150)",
+        "flags": [
+          "NULLABLE"
+        ],
+        "desc": "ID retornado pela Evolution API"
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "flags": [
+          "DEFAULT CURRENT_TIMESTAMP"
+        ],
+        "desc": "Data e hora do disparo"
+      }
+    ]
+  }
+];
+    const PHASES_DATA = [
+  {
+    "id": "fase-0",
+    "number": "0",
+    "group": "pre-execucao",
+    "groupName": "Pré-Execução",
+    "title": "Origem do Recurso, Emenda Parlamentar e Cadastramento da Proposta",
+    "normative": "Portaria Conjunta MGI/MF/MP nº 33/2023 • Emenda Constitucional nº 105/2019 • Lei de Responsabilidade Fiscal",
+    "summary": "Captação da emenda parlamentar (RP6/RP7/RP8/RP2), verificação prévia de regularidade no CAUC, elaboração do plano de trabalho no Transferegov e garantia da contrapartida na LOA.",
+    "deadlines": "Prazo fatal de 15 a 30 dias para saneamento de diligências técnicas expedidas pela SOF/SIOP ou Ministério.",
+    "risks": "Perda definitiva do recurso por inércia de diligência, enquadramento incorreto de GND 3 (Custeio) vs GND 4 (Investimento) e impedimento do município no CAUC.",
+    "automation": "Radar de diligências com aviso instantâneo via WhatsApp ao secretário municipal e checagem automática das 16 certidões fiscais.",
+    "s3_keys": [
+      "s3_key_plano_trabalho_proposta",
+      "s3_key_dossie_declaracoes_proposta"
+    ],
+    "tables": [
+      {
+        "name": "tb_convenios",
+        "role": "Armazena a proposta, parlamentar autor, GND da despesa, dotação da contrapartida na LOA e status de análise de diligências.",
+        "key_cols": [
+          "numero_proposta_siconv",
+          "modalidade_emenda",
+          "gnd_despesa",
+          "dotacao_orcamentaria_contrapartida_loa",
+          "status_analise_proposta",
+          "data_limite_saneamento_diligencia"
+        ]
+      },
+      {
+        "name": "tb_prefeituras",
+        "role": "Entidade convenente proponente, determinando o porte orçamentário e percentual mínimo de contrapartida.",
+        "key_cols": [
+          "cnpj",
+          "nome_municipio",
+          "porte_municipio",
+          "status_cauc"
+        ]
+      },
+      {
+        "name": "tb_certidoes_cauc",
+        "role": "Radar fiscal de 16 exigências da LRF; trava a proposta caso haja pendência cadastral na PGFN, FGTS ou SICONFI.",
+        "key_cols": [
+          "tipo_exigencia",
+          "data_validade",
+          "situacao",
+          "dias_para_vencer"
+        ]
+      },
+      {
+        "name": "tb_metas_plano_trabalho",
+        "role": "Cadastro do plano de trabalho inicial decomposto em metas físicas e financeiras.",
+        "key_cols": [
+          "numero_meta",
+          "titulo_meta",
+          "valor_previsto"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "fase-1",
+    "number": "1",
+    "group": "pre-execucao",
+    "groupName": "Pré-Execução",
+    "title": "Celebração, Formalização e Abertura da Conta Vinculada",
+    "normative": "Portaria Conjunta nº 33/2023, arts. 20 a 24 • Decreto Federal nº 11.531/2023 • SIAFI",
+    "summary": "Assinatura digital do termo com certificação Gov.br, emissão da Nota de Empenho federal no SIAFI, publicação obrigatória no DOU e abertura da conta bancária de custódia na Caixa (Op 006) ou BB.",
+    "deadlines": "Publicação do extrato no DOU em até 20 dias da assinatura como requisito de eficácia jurídica.",
+    "risks": "Nulidade dos atos por ausência de publicação no DOU ou bloqueio da conta bancária vinculada.",
+    "automation": "Auditoria de publicação no Diário Oficial e guarda perene do comprovante de abertura da conta Op 006 com chave no S3.",
+    "s3_keys": [
+      "s3_key_termo_convenio_assinado",
+      "s3_key_extrato_dou",
+      "s3_key_comprovante_abertura"
+    ],
+    "tables": [
+      {
+        "name": "tb_convenios",
+        "role": "Registro formal da pactuação, número de empenho SIAFI, valor repassado e links para o termo assinado e extrato DOU.",
+        "key_cols": [
+          "numero_siconv",
+          "numero_nota_empenho_siafi",
+          "valor_global",
+          "valor_repasse",
+          "s3_key_termo_convenio_assinado",
+          "s3_key_extrato_dou"
+        ]
+      },
+      {
+        "name": "tb_contas_bancarias_vinculadas",
+        "role": "Abertura da conta corrente exclusiva bloqueada na Caixa (Operação 006) ou BB com aplicação automática.",
+        "key_cols": [
+          "banco",
+          "agencia",
+          "numero_conta",
+          "s3_key_comprovante_abertura"
+        ]
+      },
+      {
+        "name": "tb_prefeituras",
+        "role": "Validação de que a prefeitura manteve adimplência no CAUC na data da celebração.",
+        "key_cols": [
+          "status_cauc",
+          "cnpj"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "fase-2",
+    "number": "2",
+    "group": "pre-execucao",
+    "groupName": "Pré-Execução",
+    "title": "Gestão da Cláusula Suspensiva e Condicionantes Técnicas",
+    "normative": "Portaria 33/2023, art. 26 • Acórdão TCU nº 2.622/2013 (BDI) • Tabela SINAPI",
+    "summary": "Apresentação e aprovação dos 3 pilares técnicos perante a Caixa GIGOV: Projetos Básicos/Executivos (SINAPI), Licenciamento Ambiental e Titularidade da Área (CRI) para obter a SPA.",
+    "deadlines": "Prazo fatal de 180 dias a contar da celebração para aprovação na Caixa (prorrogável 1 única vez se solicitado tempestivamente).",
+    "risks": "Extinção sumária e rescisão unilateral do convênio com perda integral do repasse federal caso o prazo de 180 dias expire.",
+    "automation": "Cronômetro regressivo com alertas preventivos de vencimento aos 60, 30 e 15 dias, e controle do laudo de pendências técnicas da GIGOV.",
+    "s3_keys": [
+      "s3_key_laudo_pendencias",
+      "s3_key_documento",
+      "s3_key_termo_retirada_suspensiva"
+    ],
+    "tables": [
+      {
+        "name": "tb_condicionantes_suspensivas",
+        "role": "Gestão detalhada dos 3 pilares técnicos, controle do orçamento aprovado, BDI Caixa, ART de projeto e laudos de diligência.",
+        "key_cols": [
+          "tipo_condicionante",
+          "status",
+          "data_limite_saneamento",
+          "valor_orcamento_aprovado_caixa",
+          "percentual_bdi_aprovado",
+          "numero_art_rrt"
+        ]
+      },
+      {
+        "name": "tb_convenios",
+        "role": "Monitoramento do prazo de 180 dias da cláusula, controle do pedido formal de prorrogação e retirada formal no Transferegov.",
+        "key_cols": [
+          "possui_clausula_suspensiva",
+          "status_clausula_suspensiva",
+          "prazo_clausula_suspensiva",
+          "prorrogacao_solicitada",
+          "novo_prazo_prorrogado"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "fase-3",
+    "number": "3",
+    "group": "pre-execucao",
+    "groupName": "Pré-Execução",
+    "title": "Licitações Municipais, VRPL e Autorização de Início de Objeto (AIO)",
+    "normative": "Lei nº 14.133/2021 (Nova Lei de Licitações) • Portaria 33/2023, arts. 40 a 44 • Transferegov Módulo VRPL",
+    "summary": "Realização do certame licitatório municipal (1:N com o convênio), homologação, adjudicação e submissão do processo no módulo VRPL da Caixa para emissão da AIO.",
+    "deadlines": "Submissão imediata após homologação licitatória para não comprometer o cronograma físico-financeiro.",
+    "risks": "Início precoce de obras sem AIO emitida (violação da Portaria 33 com glosa total das despesas) ou sobrepreço em relação ao orçamento aprovado.",
+    "automation": "Validação de conformidade da planilha arrematada frente ao teto da SPA e controle estrito do status do VRPL e AIO.",
+    "s3_keys": [
+      "s3_key_proposta_vencedora",
+      "s3_key_ata_sessao"
+    ],
+    "tables": [
+      {
+        "name": "tb_licitacoes",
+        "role": "Gerenciamento dos múltiplos certames (1:N), modalidade Lei 14.133, desconto obtido, CNPJ vencedor, status VRPL e número da AIO.",
+        "key_cols": [
+          "numero_licitacao",
+          "modalidade",
+          "valor_estimado",
+          "valor_homologado",
+          "cnpj_vencedor",
+          "status_vrpl",
+          "numero_aio",
+          "status_aio"
+        ]
+      },
+      {
+        "name": "tb_contratos_execucao",
+        "role": "Contrato administrativo municipal decorrente da licitação firmado com a empreiteira vencedora.",
+        "key_cols": [
+          "numero_contrato_municipal",
+          "licitacao_id",
+          "cnpj_contratada",
+          "valor_total_contrato",
+          "numero_art_execucao"
+        ]
+      },
+      {
+        "name": "tb_convenios",
+        "role": "Âncora orçamentária que assegura que a soma das licitações não ultrapasse o valor global pactuado.",
+        "key_cols": [
+          "valor_global",
+          "mandataria"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "fase-4",
+    "number": "4",
+    "group": "execucao",
+    "groupName": "Execução & Gestão Financeira",
+    "title": "Execução Física, Acompanhamento, Medições e Laudo RAE Caixa",
+    "normative": "Lei nº 14.133/2021, art. 88 (Diário de Obras Digital) • Portaria 33/2023, arts. 50 a 54 • Manuais Técnicos Caixa",
+    "summary": "Emissão formal da Ordem de Serviço pós-AIO, acompanhamento in loco pelo fiscal municipal, vistorias periódicas da Caixa e emissão do Laudo RAE com percentual aferido.",
+    "deadlines": "Medições periódicas mensais ou por etapas físicas conforme cronograma aprovado.",
+    "risks": "Glosas preventivas por divergência entre o boletim municipal e a vistoria da Caixa, paralisação de obra e ausência de Diário de Obras.",
+    "automation": "Validação de georreferenciamento nas fotos do canteiro, conciliação do boletim com o RAE e rastreamento de glosas.",
+    "s3_keys": [
+      "s3_key_ordem_servico",
+      "s3_key_diario_obras",
+      "s3_key_laudo_rae"
+    ],
+    "tables": [
+      {
+        "name": "tb_medicoes",
+        "role": "Boletins periódicos de medição física, percentual aferido pela Caixa, valor liberado para pagamento e glosas preventivas.",
+        "key_cols": [
+          "numero_medicao",
+          "valor_medicao_periodo",
+          "percentual_acumulado_obra",
+          "numero_rae_caixa",
+          "valor_aferido_caixa",
+          "valor_glosado_caixa",
+          "status_medicao"
+        ]
+      },
+      {
+        "name": "tb_contratos_execucao",
+        "role": "Controle formal da Ordem de Serviço pós-AIO, ART de execução e status do contrato (Vigente, Paralisado).",
+        "key_cols": [
+          "data_ordem_servico",
+          "numero_art_execucao",
+          "status_contrato"
+        ]
+      },
+      {
+        "name": "tb_metas_plano_trabalho",
+        "role": "Atualização cumulativa do progresso físico e financeiro de cada meta do plano de trabalho.",
+        "key_cols": [
+          "valor_executado_acumulado",
+          "percentual_fisico_concluido"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "fase-5",
+    "number": "5",
+    "group": "execucao",
+    "groupName": "Execução & Gestão Financeira",
+    "title": "Execução Financeira, Documentos Hábeis e Pagamentos OBTV",
+    "normative": "Lei nº 4.320/1964, arts. 62 e 63 (Liquidação) • Portaria 33/2023, arts. 60 a 68 • Decreto nº 11.531/2023 (OBTV)",
+    "summary": "Auditoria de notas fiscais com IA, liquidação formal da despesa, apuração de retenções de INSS/ISS/IRRF, emissão de guias e pagamento exclusivo via OBTV com duplo comando Gov.br.",
+    "deadlines": "Pagamento de guias tributárias dentro do vencimento para evitar multa/juros sob responsabilidade do gestor.",
+    "risks": "Pagamento sem atesto regular (crime de responsabilidade), erro na linha digitável de tributos ou pagamento de conta de terceiros não cadastrada.",
+    "automation": "Extração inteligente de NFS-e via Gemini VLM com conferência da fórmula Líquido = Bruto - Retenções e geração do comando de duplo comando Gov.br.",
+    "s3_keys": [
+      "s3_key_xml_documento",
+      "s3_key_guia_recolhimento",
+      "s3_key_comprovante_obtv",
+      "s3_key_ultimo_extrato"
+    ],
+    "tables": [
+      {
+        "name": "tb_documentos_habeis",
+        "role": "Notas fiscais (NFS-e/NF-e), chave de 44 dígitos, atesto de liquidação da Lei 4.320 e auditoria de consistência matemática.",
+        "key_cols": [
+          "numero_documento",
+          "data_atesto_liquidacao",
+          "valor_bruto",
+          "valor_total_deducoes",
+          "valor_liquido",
+          "status_validacao_matematica"
+        ]
+      },
+      {
+        "name": "tb_retencoes_tributarias",
+        "role": "Retenções na fonte (INSS, ISS, IRRF), cálculo de alíquotas, código de receita DARF e código de barras da guia.",
+        "key_cols": [
+          "tipo_tributo",
+          "base_calculo",
+          "aliquota_percentual",
+          "valor_retido",
+          "codigo_barras_guia",
+          "data_vencimento_guia"
+        ]
+      },
+      {
+        "name": "tb_ordens_pagamento",
+        "role": "Comandos de débito bancário via OBTV (fornecedor e tributos), Pix favorecido, duplo comando Gov.br e comprovante oficial.",
+        "key_cols": [
+          "numero_obtv",
+          "tipo_obtv",
+          "valor_pago",
+          "situacao_obtv",
+          "assinante_1_nome",
+          "assinante_2_nome"
+        ]
+      },
+      {
+        "name": "tb_contas_bancarias_vinculadas",
+        "role": "Monitoramento de saldos da conta bloqueada Op 006, crédito dos repasses federais e conciliação de extratos.",
+        "key_cols": [
+          "saldo_total_disponivel",
+          "rendimentos_aplicacao_acumulados",
+          "s3_key_ultimo_extrato"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "fase-6",
+    "number": "6",
+    "group": "execucao",
+    "groupName": "Execução & Gestão Financeira",
+    "title": "Alterações Contratuais, Termos Aditivos e Reequilíbrio",
+    "normative": "Lei nº 14.133/2021, arts. 124 a 136 • Portaria 33/2023, arts. 55 a 59 (Tempestividade de 30 dias)",
+    "summary": "Prorrogação de vigência, alteração de valores (acréscimos/supressões), remanejamento de metas e reequilíbrio econômico-financeiro de convênios e contratos.",
+    "deadlines": "Solicitação formal no Transferegov com antecedência mínima obrigatória de 30 dias do fim da vigência.",
+    "risks": "Extinção fatal do convênio por perda do prazo de 30 dias ou anulação de aditivos que violem os tetos de 25% (obras novas) e 50% (reformas).",
+    "automation": "Alerta preventivo aos 45 e 30 dias do vencimento contratual, validação automática de tetos legais e histórico de versões imutável.",
+    "s3_keys": [
+      "s3_key_justificativa_tecnica",
+      "s3_key_planilha_comparativa",
+      "s3_key_parecer_caixa",
+      "s3_key_extrato_publicacao"
+    ],
+    "tables": [
+      {
+        "name": "tb_termos_aditivos",
+        "role": "Registro imutável dos aditivos, novo prazo de vigência, impacto financeiro, validação de tetos da Lei 14.133 e prazo de tempestividade de 30 dias.",
+        "key_cols": [
+          "tipo_instrumento_aditivado",
+          "tipo_aditivo",
+          "nova_data_fim_vigencia",
+          "valor_aditado",
+          "percentual_aditado",
+          "data_limite_solicitacao_tempestiva"
+        ]
+      },
+      {
+        "name": "tb_convenios",
+        "role": "Atualização das datas de vigência e valor pactuado após aprovação da reprogramação pelo concedente.",
+        "key_cols": [
+          "valor_global",
+          "valor_repasse",
+          "mandataria"
+        ]
+      },
+      {
+        "name": "tb_contratos_execucao",
+        "role": "Atualização do valor contratado municipal e extensão do prazo de execução da obra.",
+        "key_cols": [
+          "valor_contratado_atual",
+          "status_contrato"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "fase-7",
+    "number": "7",
+    "group": "encerramento",
+    "groupName": "Encerramento, Prestação & Passivo",
+    "title": "Prestação de Contas Final (RCO) e Devolução de Saldo Remanescente",
+    "normative": "Portaria 33/2023, arts. 80 a 86 • Lei nº 14.133/2021, art. 140 (TRD) • Guia de Recolhimento da União (GRU)",
+    "summary": "Emissão do Termo de Recebimento Definitivo (TRD), transmissão do Relatório de Cumprimento do Objeto (RCO) no Transferegov e devolução integral do saldo remanescente e rendimentos via GRU.",
+    "deadlines": "Prazo fatal improrrogável de 60 dias corridos após o término da vigência para envio da prestação de contas.",
+    "risks": "Omissão na prestação de contas que acarreta registro imediato da prefeitura no CAUC/SIAFI e abertura de processo de TCE.",
+    "automation": "Alerta regressivo dos 60 dias no WhatsApp do prefeito e emissão automatizada do comando de OBTV para devolução do saldo via GRU.",
+    "s3_keys": [
+      "s3_key_relatorio_cumprimento_objeto",
+      "s3_key_termo_recebimento_definitivo",
+      "s3_key_comprovante_gru"
+    ],
+    "tables": [
+      {
+        "name": "tb_convenios",
+        "role": "Controle do prazo fatal de 60 dias do RCO, data de transmissão, valores devolvidos via GRU e guarda do dossiê final.",
+        "key_cols": [
+          "data_limite_prestacao_contas",
+          "data_envio_prestacao_contas",
+          "situacao_prestacao_contas",
+          "valor_saldo_remanescente_devolvido",
+          "valor_rendimentos_devolvidos",
+          "numero_gru_devolucao"
+        ]
+      },
+      {
+        "name": "tb_ordens_pagamento",
+        "role": "Comando OBTV específico de devolução de saldo remanescente via GRU ao Tesouro Nacional.",
+        "key_cols": [
+          "tipo_obtv",
+          "numero_obtv",
+          "valor_pago",
+          "codigo_barras_guia"
+        ]
+      },
+      {
+        "name": "tb_contas_bancarias_vinculadas",
+        "role": "Conciliação do saldo remanescente e dos rendimentos de aplicação compulsória para zerar a conta.",
+        "key_cols": [
+          "saldo_total_disponivel",
+          "rendimentos_aplicacao_acumulados"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "fase-8",
+    "number": "8",
+    "group": "encerramento",
+    "groupName": "Encerramento, Prestação & Passivo",
+    "title": "Análise da Prestação de Contas e Encerramento do Convênio",
+    "normative": "Portaria Conjunta nº 33/2023, arts. 87 a 92 • Manuais Técnicos Concedente/Caixa",
+    "summary": "Emissão dos Pareceres Conclusivos do concedente (Técnico e Financeiro), encerramento formal da conta vinculada com saldo zero e publicação do Despacho Decisório de Homologação.",
+    "deadlines": "Prazo de até 180 dias para análise final do concedente no Transferegov.",
+    "risks": "Rejeição parcial ou total de contas por falta de funcionalidade da obra ou ausência de nexo causal financeiro.",
+    "automation": "Monitoramento diário do status dos pareceres no Transferegov e registro do comprovante de encerramento da conta Op 006.",
+    "s3_keys": [
+      "s3_key_parecer_tecnico_concedente",
+      "s3_key_parecer_financeiro_concedente",
+      "s3_key_termo_encerramento_conta"
+    ],
+    "tables": [
+      {
+        "name": "tb_convenios",
+        "role": "Rastreamento do parecer técnico da Caixa, parecer financeiro ministerial, data de homologação e situação final (APROVADO/REJEITADO).",
+        "key_cols": [
+          "status_parecer_tecnico",
+          "status_parecer_financeiro",
+          "data_homologacao_prestacao_contas",
+          "situacao_prestacao_contas"
+        ]
+      },
+      {
+        "name": "tb_contas_bancarias_vinculadas",
+        "role": "Comprovação bancária de que a conta vinculada foi formalmente encerrada sem resíduo financeiro.",
+        "key_cols": [
+          "saldo_total_disponivel",
+          "s3_key_ultimo_extrato"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "fase-9",
+    "number": "9",
+    "group": "encerramento",
+    "groupName": "Encerramento, Prestação & Passivo",
+    "title": "Inadimplência, Notificação de 45 Dias e Tomada de Contas Especial (TCE)",
+    "normative": "Instrução Normativa TCU nº 71/2012 • Lei nº 8.443/1992 (Lei Orgânica TCU) • Súmula nº 230 do TCU • Taxa SELIC",
+    "summary": "Gestão de passivos decorrentes de rejeição de contas ou omissão: notificação formal de 45 dias com débito atualizado pela SELIC, defesa administrativa ou blindagem judicial do prefeito sucessor via Súmula 230 TCU.",
+    "deadlines": "Prazo fatal de 45 dias da notificação prévia para sanar irregularidades ou quitar o débito antes da autuação da TCE no TCU.",
+    "risks": "Bloqueio do FPM do município no CAUC/SIAFI, inscrição do prefeito no CADIN e condenação em débito e multa pelo TCU.",
+    "automation": "Cálculo instantâneo do débito corrigido pela SELIC e protocolo ágil de documentos da Súmula 230 para suspender o bloqueio do município.",
+    "s3_keys": [
+      "s3_key_notificacao_cgu",
+      "s3_key_defesa_previa",
+      "s3_key_peticao_judicial_sucessor",
+      "s3_key_acordao_tcu"
+    ],
+    "tables": [
+      {
+        "name": "tb_convenios",
+        "role": "Ciclo completo da inadimplência no SIAFI, máquina de estados da TCE, cálculo com taxa SELIC, prazo de 45 dias e amparo da Súmula 230 TCU.",
+        "key_cols": [
+          "status_inadimplencia_siafi",
+          "motivo_inadimplencia",
+          "fase_tce",
+          "data_limite_defesa_45_dias",
+          "valor_glosa_apurado",
+          "valor_debito_atualizado_selic",
+          "processo_tce_numero_tcu",
+          "amparado_sumula_230_tcu"
+        ]
+      },
+      {
+        "name": "tb_prefeituras",
+        "role": "Reflexo do bloqueio ou liberação preventiva da certidão municipal perante o CAUC e Secretaria do Tesouro Nacional.",
+        "key_cols": [
+          "status_cauc",
+          "cnpj"
+        ]
+      },
+      {
+        "name": "tb_certidoes_cauc",
+        "role": "Auditoria de registros de pendências no SIAFI / CADIN vinculados ao convênio inadimplente.",
+        "key_cols": [
+          "tipo_exigencia",
+          "situacao",
+          "data_validade"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "fase-whatsapp",
+    "number": "WA",
+    "group": "transversal",
+    "groupName": "Camada Transversal",
+    "title": "Comunicação, Mensageria & Notificações via WhatsApp (Evolution API)",
+    "normative": "Integração Multimodal com IA (Gemini VLM + Whisper) • Baileys / Meta Cloud API • Armazenamento Seguro MinIO/S3",
+    "summary": "Camada transversal ativa em todas as 10 fases do ciclo de vida: recepção de notas fiscais, fotos de obras, áudios e disparo proativo de alertas de prazos fatais aos prefeitos e secretários.",
+    "deadlines": "Notificações instantâneas em tempo real e rotina diária de radar aos 60, 45, 30, 15 e 5 dias de cada vencimento fatal.",
+    "risks": "Perda de prazos regulatórios por falta de comunicação com o gestor municipal ou envio de documentos desorganizados.",
+    "automation": "Recepção de arquivos com gravação direta no MinIO e roteamento automático baseado no número de telefone do servidor.",
+    "s3_keys": [
+      "s3_key (bucket: evolution)",
+      "s3_key_comprovante_abertura",
+      "s3_key_xml_documento",
+      "s3_key_diario_obras"
+    ],
+    "tables": [
+      {
+        "name": "tb_instancias_whatsapp",
+        "role": "Conexão e monitoramento dos números de WhatsApp da consultoria com webhook configurado.",
+        "key_cols": [
+          "instance_name",
+          "provider",
+          "phone_number",
+          "status",
+          "is_active"
+        ]
+      },
+      {
+        "name": "tb_contatos_prefeitura",
+        "role": "Roteamento inteligente por telefone para prefeitura, nome do gestor e cargo (Prefeito, Secretário, Fiscal).",
+        "key_cols": [
+          "phone_number",
+          "nome_contato",
+          "cargo",
+          "prefeitura_id",
+          "ativo"
+        ]
+      },
+      {
+        "name": "tb_mensagens_inbound",
+        "role": "Log completo de eventos recebidos, persistência imediata de mídias no MinIO e flag de processamento pela IA.",
+        "key_cols": [
+          "sender_phone",
+          "message_type",
+          "s3_bucket",
+          "s3_key",
+          "processed"
+        ]
+      },
+      {
+        "name": "tb_mensagens_outbound",
+        "role": "Fila de envio de lembretes preventivos de prazos, cobranças de documentos e confirmações de protocolo.",
+        "key_cols": [
+          "recipient_phone",
+          "message_type",
+          "content_text",
+          "status",
+          "provider_message_id"
+        ]
+      }
+    ]
+  }
+];
+    const SQL_SCRIPTS = {
+  "V1": "-- ==============================================================================\n-- V1__init_whatsapp_schema.sql\n-- Descrição: Estrutura inicial do schema de integração do WhatsApp (whatsapp_schema)\n-- Serviço: whatsapp-service / GovFlow\n-- ==============================================================================\n\nCREATE SCHEMA IF NOT EXISTS whatsapp_schema;\n\n-- 1. Tabela de Instâncias do WhatsApp conectadas via Evolution API\nCREATE TABLE IF NOT EXISTS whatsapp_schema.tb_instancias_whatsapp (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    instance_name VARCHAR(100) NOT NULL UNIQUE,\n    provider VARCHAR(30) NOT NULL DEFAULT 'EVOLUTION', -- 'EVOLUTION' ou 'META_CLOUD'\n    phone_number VARCHAR(30),\n    status VARCHAR(30) NOT NULL DEFAULT 'DISCONNECTED', -- 'CONNECTED', 'DISCONNECTED', 'CONNECTING'\n    api_key VARCHAR(255),\n    webhook_url VARCHAR(500),\n    is_active BOOLEAN NOT NULL DEFAULT TRUE,\n    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP\n);\n\n-- 2. Tabela de Mapeamento de Contatos Municipais (Roteamento Prefeitura / Secretaria)\nCREATE TABLE IF NOT EXISTS whatsapp_schema.tb_contatos_prefeitura (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    tenant_id UUID NOT NULL,\n    prefeitura_id UUID,\n    phone_number VARCHAR(30) NOT NULL UNIQUE, -- E.164 (ex: 5583999999999)\n    nome_contato VARCHAR(150) NOT NULL,\n    cargo VARCHAR(100), -- 'SECRETARIO_FINANCAS', 'SECRETARIO_OBRAS', 'FISCAL_ENGENHEIRO'\n    departamento VARCHAR(100),\n    ativo BOOLEAN NOT NULL DEFAULT TRUE,\n    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP\n);\n\nCREATE INDEX IF NOT EXISTS idx_contatos_phone ON whatsapp_schema.tb_contatos_prefeitura (phone_number);\nCREATE INDEX IF NOT EXISTS idx_contatos_tenant ON whatsapp_schema.tb_contatos_prefeitura (tenant_id);\n\n-- 3. Tabela de Mensagens Inbound (Recebidas via Webhook da Evolution API)\nCREATE TABLE IF NOT EXISTS whatsapp_schema.tb_mensagens_inbound (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    tenant_id UUID,\n    prefeitura_id UUID,\n    instance_name VARCHAR(100) NOT NULL,\n    external_message_id VARCHAR(150) NOT NULL, -- ID original da mensagem no WhatsApp\n    sender_phone VARCHAR(30) NOT NULL,\n    sender_name VARCHAR(150),\n    message_type VARCHAR(30) NOT NULL, -- 'TEXT', 'AUDIO', 'DOCUMENT', 'IMAGE', 'POLL_RESPONSE'\n    content_text TEXT,\n    s3_bucket VARCHAR(100),\n    s3_key VARCHAR(500),\n    media_url TEXT,\n    media_mimetype VARCHAR(100),\n    file_size_bytes BIGINT,\n    raw_payload JSONB,\n    processed BOOLEAN NOT NULL DEFAULT FALSE,\n    processing_error TEXT,\n    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP\n);\n\nCREATE INDEX IF NOT EXISTS idx_inbound_msg_id ON whatsapp_schema.tb_mensagens_inbound (external_message_id);\nCREATE INDEX IF NOT EXISTS idx_inbound_sender ON whatsapp_schema.tb_mensagens_inbound (sender_phone);\nCREATE INDEX IF NOT EXISTS idx_inbound_processed ON whatsapp_schema.tb_mensagens_inbound (processed);\n\n-- 4. Tabela de Mensagens Outbound (Enviadas pelo Analista / Sistema)\nCREATE TABLE IF NOT EXISTS whatsapp_schema.tb_mensagens_outbound (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    tenant_id UUID,\n    instance_name VARCHAR(100) NOT NULL,\n    recipient_phone VARCHAR(30) NOT NULL,\n    message_type VARCHAR(30) NOT NULL, -- 'TEXT', 'DOCUMENT', 'IMAGE'\n    content_text TEXT,\n    s3_key VARCHAR(500),\n    status VARCHAR(30) NOT NULL DEFAULT 'PENDING', -- 'PENDING', 'SENT', 'DELIVERED', 'READ', 'FAILED'\n    provider_message_id VARCHAR(150),\n    error_message TEXT,\n    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP\n);\n\nCREATE INDEX IF NOT EXISTS idx_outbound_status ON whatsapp_schema.tb_mensagens_outbound (status);\nCREATE INDEX IF NOT EXISTS idx_outbound_recipient ON whatsapp_schema.tb_mensagens_outbound (recipient_phone);\n",
+  "V2": "-- ==============================================================================\n-- V2__init_core_schema.sql\n-- Descrição: Estrutura inicial do schema central de domínio (core_schema)\n-- Baseado em: docs/architecture/09_modelo_de_dominio_e_entidades.md\n-- ==============================================================================\n\nCREATE SCHEMA IF NOT EXISTS core_schema;\n\n-- 1. Tabela de Prefeituras (Ente Convenente)\nCREATE TABLE IF NOT EXISTS core_schema.tb_prefeituras (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    tenant_id UUID NOT NULL,\n    cnpj VARCHAR(18) NOT NULL,\n    razao_social VARCHAR(200) NOT NULL,\n    nome_municipio VARCHAR(100) NOT NULL,\n    uf CHAR(2) NOT NULL,\n    codigo_ibge VARCHAR(7) NOT NULL,\n    porte_municipio VARCHAR(30) NOT NULL DEFAULT 'PEQUENO_PORTE_1',\n    nome_prefeito VARCHAR(150),\n    cpf_prefeito VARCHAR(14),\n    inicio_mandato DATE,\n    fim_mandato DATE,\n    status_cauc VARCHAR(30) NOT NULL DEFAULT 'ADIMPLENTE',\n    ativo BOOLEAN NOT NULL DEFAULT TRUE,\n    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    CONSTRAINT uk_prefeitura_cnpj_tenant UNIQUE (cnpj, tenant_id)\n);\n\nCREATE INDEX IF NOT EXISTS idx_prefeituras_tenant ON core_schema.tb_prefeituras (tenant_id);\nCREATE INDEX IF NOT EXISTS idx_prefeituras_ibge ON core_schema.tb_prefeituras (codigo_ibge);\n\n-- 2. Tabela de Convênios Federais (Transferegov / SICONV)\nCREATE TABLE IF NOT EXISTS core_schema.tb_convenios (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    tenant_id UUID NOT NULL,\n    prefeitura_id UUID NOT NULL REFERENCES core_schema.tb_prefeituras(id) ON DELETE CASCADE,\n    numero_siconv VARCHAR(30) NOT NULL,\n    numero_processo VARCHAR(50),\n    orgao_concedente VARCHAR(150) NOT NULL,\n    objeto TEXT NOT NULL,\n    valor_global NUMERIC(15, 2) NOT NULL,\n    valor_repasse NUMERIC(15, 2) NOT NULL,\n    valor_contrapartida NUMERIC(15, 2) NOT NULL DEFAULT 0.00,\n    situacao VARCHAR(50) NOT NULL,\n    possui_clausula_suspensiva BOOLEAN NOT NULL DEFAULT FALSE,\n    prazo_clausula_suspensiva DATE,\n    data_inicio_vigencia DATE,\n    data_fim_vigencia DATE,\n    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    CONSTRAINT uk_convenio_siconv_tenant UNIQUE (numero_siconv, tenant_id)\n);\n\nCREATE INDEX IF NOT EXISTS idx_convenios_prefeitura ON core_schema.tb_convenios (prefeitura_id);\nCREATE INDEX IF NOT EXISTS idx_convenios_suspensiva ON core_schema.tb_convenios (possui_clausula_suspensiva, prazo_clausula_suspensiva);\n\n-- 3. Tabela de Contratos de Execução (Contrato Administrativo / Licitação Municipal)\nCREATE TABLE IF NOT EXISTS core_schema.tb_contratos_execucao (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    tenant_id UUID NOT NULL,\n    convenio_id UUID NOT NULL REFERENCES core_schema.tb_convenios(id) ON DELETE CASCADE,\n    numero_contrato_municipal VARCHAR(50) NOT NULL,\n    numero_licitacao VARCHAR(50),\n    modalidade_licitacao VARCHAR(50),\n    cnpj_contratada VARCHAR(18) NOT NULL,\n    razao_social_contratada VARCHAR(200) NOT NULL,\n    valor_total_contrato NUMERIC(15, 2) NOT NULL,\n    data_assinatura DATE,\n    data_fim_vigencia DATE,\n    status_contrato VARCHAR(30) NOT NULL DEFAULT 'VIGENTE',\n    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP\n);\n\nCREATE INDEX IF NOT EXISTS idx_contratos_convenio ON core_schema.tb_contratos_execucao (convenio_id);\n",
+  "V3": "-- ==============================================================================\n-- V3__complete_core_lifecycle_schema.sql\n-- Descrição: Expansão e consolidação do schema de domínio (core_schema)\n--            com 100% de cobertura do ciclo de vida de convênios federais (Transferegov.br)\n-- Baseado em: docs/architecture/10_deep_research_ciclo_de_vida_convenios.md\n-- ==============================================================================\n\n-- ------------------------------------------------------------------------------\n-- 1. ATUALIZAÇÃO DE TABELAS EXISTENTES (FASES 0, 1, 2, 3, 7, 8 e 9)\n-- ------------------------------------------------------------------------------\n\n-- 1.1 Expansão de tb_convenios (Ciclo de Vida Completo)\nALTER TABLE core_schema.tb_convenios\n    -- Fase 0: Origem Orçamentária e Proposta\n    ADD COLUMN IF NOT EXISTS numero_proposta_siconv VARCHAR(30),\n    ADD COLUMN IF NOT EXISTS tipo_instrumento VARCHAR(50) NOT NULL DEFAULT 'CONVENIO_TRADICIONAL', -- 'CONVENIO_TRADICIONAL', 'CONTRATO_REPASSE_CAIXA', 'TERMO_COMPROMISSO_FNDE', 'EMENDA_ESPECIAL_PIX'\n    ADD COLUMN IF NOT EXISTS modalidade_emenda VARCHAR(30), -- 'INDIVIDUAL_RP6', 'BANCADA_RP7', 'COMISSAO_RP8', 'EXTRAEMENDA_RP2'\n    ADD COLUMN IF NOT EXISTS nome_parlamentar_autor VARCHAR(150),\n    ADD COLUMN IF NOT EXISTS numero_emenda VARCHAR(30),\n    ADD COLUMN IF NOT EXISTS numero_nota_empenho_siafi VARCHAR(50),\n    ADD COLUMN IF NOT EXISTS data_empenho DATE,\n\n    -- Fase 1: Celebração & Publicidade Oficial\n    ADD COLUMN IF NOT EXISTS mandataria VARCHAR(50) DEFAULT 'CAIXA_GIGOV', -- 'CAIXA_GIGOV', 'BANCO_DO_BRASIL', 'DIRETO_MINISTERIO'\n    ADD COLUMN IF NOT EXISTS data_assinatura DATE,\n    ADD COLUMN IF NOT EXISTS data_publicacao_dou DATE,\n    ADD COLUMN IF NOT EXISTS link_dou VARCHAR(500),\n\n    -- Fase 2: Gestão de Cláusula Suspensiva\n    ADD COLUMN IF NOT EXISTS status_clausula_suspensiva VARCHAR(30) NOT NULL DEFAULT 'NAO_APLICA', -- 'NAO_APLICA', 'PENDENTE', 'SUPERADA', 'VENCIDA_EXTINTA'\n    ADD COLUMN IF NOT EXISTS data_superacao_clausula_suspensiva DATE,\n\n    -- Fase 7 e 8: Prestação de Contas Final & Julgamento do Concedente\n    ADD COLUMN IF NOT EXISTS data_limite_prestacao_contas DATE, -- 60 dias após término de vigência\n    ADD COLUMN IF NOT EXISTS data_envio_prestacao_contas DATE,\n    ADD COLUMN IF NOT EXISTS situacao_prestacao_contas VARCHAR(50) NOT NULL DEFAULT 'EM_EXECUCAO', -- 'EM_EXECUCAO', 'AGUARDANDO_PRESTACAO_CONTAS', 'PRESTACAO_CONTAS_ENVIADA', 'APROVADO_INTEGRAL', 'APROVADO_COM_RESSALVA', 'REJEITADO_COM_GLOSA'\n    ADD COLUMN IF NOT EXISTS tipo_procedimento_analise VARCHAR(30) DEFAULT 'CONVENCIONAL', -- 'INFORMATIZADO_60D', 'CONVENCIONAL_180D'\n    ADD COLUMN IF NOT EXISTS valor_saldo_remanescente_devolvido NUMERIC(15, 2) NOT NULL DEFAULT 0.00,\n    ADD COLUMN IF NOT EXISTS valor_rendimentos_devolvidos NUMERIC(15, 2) NOT NULL DEFAULT 0.00,\n    ADD COLUMN IF NOT EXISTS numero_gru_devolucao VARCHAR(50),\n    ADD COLUMN IF NOT EXISTS s3_key_comprovante_gru VARCHAR(500),\n    ADD COLUMN IF NOT EXISTS s3_key_termo_recebimento_definitivo VARCHAR(500),\n\n    -- Fase 9: Fase Sancionatória, Notificações e Tomada de Contas Especial (TCE)\n    ADD COLUMN IF NOT EXISTS status_inadimplencia_siafi VARCHAR(30) NOT NULL DEFAULT 'ADIMPLENTE', -- 'ADIMPLENTE', 'NOTIFICADO_45_DIAS', 'INADIMPLENTE_SUSPENSO'\n    ADD COLUMN IF NOT EXISTS data_notificacao_cgu DATE,\n    ADD COLUMN IF NOT EXISTS data_limite_defesa_45_dias DATE,\n    ADD COLUMN IF NOT EXISTS valor_glosa_apurado NUMERIC(15, 2) NOT NULL DEFAULT 0.00,\n    ADD COLUMN IF NOT EXISTS processo_tce_numero_tcu VARCHAR(50),\n    ADD COLUMN IF NOT EXISTS amparado_sumula_230_tcu BOOLEAN NOT NULL DEFAULT FALSE,\n    ADD COLUMN IF NOT EXISTS numero_processo_judicial_sucessor VARCHAR(100);\n\nCREATE INDEX IF NOT EXISTS idx_convenios_prestacao_contas ON core_schema.tb_convenios (data_limite_prestacao_contas, situacao_prestacao_contas);\nCREATE INDEX IF NOT EXISTS idx_convenios_inadimplencia ON core_schema.tb_convenios (status_inadimplencia_siafi);\n\n-- 1.2 Expansão de tb_contratos_execucao (Vínculo com Licitação Federal, VRPL e AIO)\nALTER TABLE core_schema.tb_contratos_execucao\n    ADD COLUMN IF NOT EXISTS prefeitura_id UUID REFERENCES core_schema.tb_prefeituras(id) ON DELETE CASCADE,\n    ADD COLUMN IF NOT EXISTS objeto_contratado TEXT,\n    ADD COLUMN IF NOT EXISTS dados_bancarios_credor JSONB,\n    ADD COLUMN IF NOT EXISTS valor_contratado_atual NUMERIC(15, 2),\n    ADD COLUMN IF NOT EXISTS valor_acumulado_medido NUMERIC(15, 2) NOT NULL DEFAULT 0.00,\n    ADD COLUMN IF NOT EXISTS valor_acumulado_pago NUMERIC(15, 2) NOT NULL DEFAULT 0.00,\n    ADD COLUMN IF NOT EXISTS saldo_contratual_restante NUMERIC(15, 2),\n    ADD COLUMN IF NOT EXISTS percentual_execucao_fisica NUMERIC(5, 2) NOT NULL DEFAULT 0.00,\n    ADD COLUMN IF NOT EXISTS data_ordem_servico DATE,\n    ADD COLUMN IF NOT EXISTS data_inicio_vigencia DATE,\n    -- Validação e Autorização Federal da Licitação\n    ADD COLUMN IF NOT EXISTS numero_vrpl_transferegov VARCHAR(50), -- Verificação do Resultado do Processo Licitatório\n    ADD COLUMN IF NOT EXISTS data_aceite_licitacao_concedente DATE,\n    ADD COLUMN IF NOT EXISTS desconto_licitacao_percentual NUMERIC(5, 2),\n    ADD COLUMN IF NOT EXISTS numero_aio VARCHAR(50), -- Autorização de Início de Objeto\n    ADD COLUMN IF NOT EXISTS data_emissao_aio DATE,\n    ADD COLUMN IF NOT EXISTS s3_key_contrato_assinado VARCHAR(500);\n\n-- Preenchimento padrão para compatibilidade de dados existentes\nUPDATE core_schema.tb_contratos_execucao\nSET valor_contratado_atual = valor_total_contrato\nWHERE valor_contratado_atual IS NULL;\n\n-- ------------------------------------------------------------------------------\n-- 2. CRIAÇÃO DAS NOVAS ENTIDADES DO CICLO DE VIDA INTEGRAL\n-- ------------------------------------------------------------------------------\n\n-- 2.1 Fase 0: Tabela de Certidões do CAUC (Radar Granular de Regularidade Fiscal da LRF)\nCREATE TABLE IF NOT EXISTS core_schema.tb_certidoes_cauc (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    tenant_id UUID NOT NULL,\n    prefeitura_id UUID NOT NULL REFERENCES core_schema.tb_prefeituras(id) ON DELETE CASCADE,\n    tipo_exigencia VARCHAR(50) NOT NULL, -- 'RECEITA_FEDERAL_PGFN', 'FGTS', 'CNDT_TRABALHISTA', 'PRESTACAO_CONTAS_SIAFI', 'RREO_RGF_SICONFI', 'LIMITE_PESSOAL_LRF', 'LIMITE_SAUDE_15', 'LIMITE_EDUCACAO_25', 'CADIN'\n    numero_certidao VARCHAR(100),\n    data_emissao DATE NOT NULL,\n    data_validade DATE NOT NULL,\n    situacao VARCHAR(30) NOT NULL DEFAULT 'REGULAR', -- 'REGULAR', 'IRREGULAR', 'EM_RISCO'\n    dias_para_vencer INTEGER GENERATED ALWAYS AS (data_validade - CURRENT_DATE) STORED,\n    s3_key_comprovante VARCHAR(500),\n    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    CONSTRAINT uk_prefeitura_tipo_certidao UNIQUE (prefeitura_id, tipo_exigencia)\n);\n\nCREATE INDEX IF NOT EXISTS idx_cauc_validade ON core_schema.tb_certidoes_cauc (data_validade);\nCREATE INDEX IF NOT EXISTS idx_cauc_situacao ON core_schema.tb_certidoes_cauc (situacao);\n\n-- 2.2 Fase 2: Tabela de Condicionantes Suspensivas (Checklist Caixa / GIGOV)\nCREATE TABLE IF NOT EXISTS core_schema.tb_condicionantes_suspensivas (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    tenant_id UUID NOT NULL,\n    convenio_id UUID NOT NULL REFERENCES core_schema.tb_convenios(id) ON DELETE CASCADE,\n    tipo_condicionante VARCHAR(50) NOT NULL, -- 'ENGENHARIA_PROJETOS_SINAPI', 'LICENCIAMENTO_AMBIENTAL', 'TITULARIDADE_IMOVEL'\n    status VARCHAR(30) NOT NULL DEFAULT 'PENDENTE', -- 'PENDENTE', 'EM_ANALISE_CAIXA', 'DILIGENCIA_EMITIDA', 'APROVADO'\n    numero_documento_comprobatorio VARCHAR(100), -- Nº da SPA/LAE, Nº da Licença ou Matrícula no Cartório de Imóveis\n    data_aprovacao DATE,\n    data_validade DATE,\n    observacoes_analise_caixa TEXT,\n    s3_key_documento VARCHAR(500),\n    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    CONSTRAINT uk_convenio_tipo_condicionante UNIQUE (convenio_id, tipo_condicionante)\n);\n\nCREATE INDEX IF NOT EXISTS idx_condicionantes_convenio ON core_schema.tb_condicionantes_suspensivas (convenio_id);\n\n-- 2.3 Fase 1 & 5: Contas Bancárias Vinculadas e Gestão de Rendimentos\nCREATE TABLE IF NOT EXISTS core_schema.tb_contas_bancarias_vinculadas (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    tenant_id UUID NOT NULL,\n    convenio_id UUID NOT NULL REFERENCES core_schema.tb_convenios(id) ON DELETE CASCADE,\n    banco VARCHAR(50) NOT NULL, -- '001_BANCO_DO_BRASIL', '104_CAIXA_ECONOMICA'\n    agencia VARCHAR(10) NOT NULL,\n    numero_conta VARCHAR(20) NOT NULL,\n    tipo_bloqueio VARCHAR(30) NOT NULL DEFAULT 'CONTA_BLOQUEADA_OBTV',\n    saldo_total_disponivel NUMERIC(15, 2) NOT NULL DEFAULT 0.00,\n    saldo_repasse_disponivel NUMERIC(15, 2) NOT NULL DEFAULT 0.00,\n    saldo_contrapartida_disponivel NUMERIC(15, 2) NOT NULL DEFAULT 0.00,\n    rendimentos_aplicacao_acumulados NUMERIC(15, 2) NOT NULL DEFAULT 0.00,\n    total_desembolsado_uniao NUMERIC(15, 2) NOT NULL DEFAULT 0.00,\n    total_aportado_contrapartida NUMERIC(15, 2) NOT NULL DEFAULT 0.00,\n    data_ultimo_extrato DATE,\n    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    CONSTRAINT uk_convenio_conta_bancaria UNIQUE (convenio_id, banco, agencia, numero_conta)\n);\n\nCREATE INDEX IF NOT EXISTS idx_contas_convenio ON core_schema.tb_contas_bancarias_vinculadas (convenio_id);\n\n-- 2.4 Fase 0, 4 e 5: Metas e Etapas do Plano de Trabalho Aprovado\nCREATE TABLE IF NOT EXISTS core_schema.tb_metas_plano_trabalho (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    tenant_id UUID NOT NULL,\n    convenio_id UUID NOT NULL REFERENCES core_schema.tb_convenios(id) ON DELETE CASCADE,\n    numero_meta INTEGER NOT NULL,\n    titulo_meta VARCHAR(200) NOT NULL,\n    descricao TEXT,\n    valor_previsto NUMERIC(15, 2) NOT NULL,\n    valor_executado_acumulado NUMERIC(15, 2) NOT NULL DEFAULT 0.00,\n    percentual_fisico_concluido NUMERIC(5, 2) NOT NULL DEFAULT 0.00,\n    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    CONSTRAINT uk_convenio_numero_meta UNIQUE (convenio_id, numero_meta)\n);\n\nCREATE INDEX IF NOT EXISTS idx_metas_convenio ON core_schema.tb_metas_plano_trabalho (convenio_id);\n\n-- 2.5 Fase 6: Governança de Alterações e Termos Aditivos\nCREATE TABLE IF NOT EXISTS core_schema.tb_termos_aditivos (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    tenant_id UUID NOT NULL,\n    tipo_instrumento_aditivado VARCHAR(30) NOT NULL, -- 'CONVENIO_FEDERAL', 'CONTRATO_MUNICIPAL'\n    convenio_id UUID REFERENCES core_schema.tb_convenios(id) ON DELETE CASCADE,\n    contrato_id UUID REFERENCES core_schema.tb_contratos_execucao(id) ON DELETE CASCADE,\n    numero_aditivo INTEGER NOT NULL, -- 1 para 1º Termo Aditivo, etc.\n    tipo_aditivo VARCHAR(50) NOT NULL, -- 'PRORROGACAO_VIGENCIA', 'VALOR_ACRESCIMO', 'VALOR_SUPRESSAO', 'REMANEJAMENTO_METAS', 'REEQUILIBRIO_ECONOMICO'\n    data_assinatura DATE NOT NULL,\n    data_publicacao_dou_ou_dom DATE,\n    nova_data_fim_vigencia DATE,\n    valor_aditado NUMERIC(15, 2) NOT NULL DEFAULT 0.00,\n    justificativa TEXT NOT NULL,\n    s3_key_aditivo VARCHAR(500),\n    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP\n);\n\nCREATE INDEX IF NOT EXISTS idx_aditivos_convenio ON core_schema.tb_termos_aditivos (convenio_id);\nCREATE INDEX IF NOT EXISTS idx_aditivos_contrato ON core_schema.tb_termos_aditivos (contrato_id);\n\n-- 2.6 Fase 4: Boletins de Medição de Obras\nCREATE TABLE IF NOT EXISTS core_schema.tb_medicoes (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    tenant_id UUID NOT NULL,\n    contrato_id UUID NOT NULL REFERENCES core_schema.tb_contratos_execucao(id) ON DELETE CASCADE,\n    convenio_id UUID NOT NULL REFERENCES core_schema.tb_convenios(id) ON DELETE CASCADE,\n    numero_medicao INTEGER NOT NULL,\n    data_inicio_periodo DATE NOT NULL,\n    data_fim_periodo DATE NOT NULL,\n    valor_medicao_periodo NUMERIC(15, 2) NOT NULL,\n    valor_medicao_acumulado NUMERIC(15, 2) NOT NULL,\n    percentual_medicao_periodo NUMERIC(5, 2) NOT NULL,\n    percentual_acumulado_obra NUMERIC(5, 2) NOT NULL,\n    status_medicao VARCHAR(30) NOT NULL DEFAULT 'EM_CONFERENCIA', -- 'EM_CONFERENCIA', 'ATESTADA_FISCAL', 'AFERIDA_CAIXA', 'REJEITADA'\n    nome_fiscal_atestante VARCHAR(150),\n    registro_crea_fiscal VARCHAR(30),\n    numero_art_fiscalizacao VARCHAR(40),\n    data_atesto_fiscal DATE,\n    numero_rae_caixa VARCHAR(50), -- Relatório de Acompanhamento de Engenharia da Caixa\n    percentual_aferido_caixa NUMERIC(5, 2),\n    data_vistoria_caixa DATE,\n    s3_key_planilha_medicao VARCHAR(500) NOT NULL,\n    s3_key_relatorio_fotografico VARCHAR(500),\n    georreferenciamento_validado BOOLEAN NOT NULL DEFAULT FALSE,\n    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    CONSTRAINT uk_contrato_num_medicao UNIQUE (contrato_id, numero_medicao)\n);\n\nCREATE INDEX IF NOT EXISTS idx_medicoes_contrato ON core_schema.tb_medicoes (contrato_id);\nCREATE INDEX IF NOT EXISTS idx_medicoes_convenio ON core_schema.tb_medicoes (convenio_id);\n\n-- 2.7 Fase 5: Documentos Hábeis (Notas Fiscais Eletrônicas)\nCREATE TABLE IF NOT EXISTS core_schema.tb_documentos_habeis (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    tenant_id UUID NOT NULL,\n    medicao_id UUID NOT NULL REFERENCES core_schema.tb_medicoes(id) ON DELETE CASCADE,\n    contrato_id UUID NOT NULL REFERENCES core_schema.tb_contratos_execucao(id) ON DELETE CASCADE,\n    convenio_id UUID NOT NULL REFERENCES core_schema.tb_convenios(id) ON DELETE CASCADE,\n    tipo_documento_habil VARCHAR(30) NOT NULL, -- 'NOTA_FISCAL_SERVICOS', 'NOTA_FISCAL_MERCADORIAS', 'RECIBO_LEGAL'\n    numero_documento VARCHAR(50) NOT NULL,\n    serie_documento VARCHAR(10),\n    chave_acesso_nfe VARCHAR(44),\n    data_emissao DATE NOT NULL,\n    cnpj_favorecido VARCHAR(18) NOT NULL,\n    razao_social_favorecido VARCHAR(200) NOT NULL,\n    valor_bruto NUMERIC(15, 2) NOT NULL,\n    valor_total_deducoes NUMERIC(15, 2) NOT NULL DEFAULT 0.00,\n    valor_liquido NUMERIC(15, 2) NOT NULL,\n    status_validacao_matematica BOOLEAN NOT NULL DEFAULT FALSE,\n    confidence_score_geral NUMERIC(4, 3) NOT NULL DEFAULT 1.000,\n    bounding_boxes_json JSONB,\n    status_revisao VARCHAR(30) NOT NULL DEFAULT 'PENDENTE_REVISAO', -- 'PENDENTE_REVISAO', 'APROVADO_ANALISTA', 'REJEITADO_DEVOLVIDO', 'INJETADO_NO_GOVERNO'\n    analista_responsavel_id UUID,\n    data_aprovacao_revisao TIMESTAMP WITH TIME ZONE,\n    injetado_transferegov BOOLEAN NOT NULL DEFAULT FALSE,\n    s3_key_pdf_original VARCHAR(500) NOT NULL,\n    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP\n);\n\nCREATE INDEX IF NOT EXISTS idx_doc_habil_medicao ON core_schema.tb_documentos_habeis (medicao_id);\nCREATE INDEX IF NOT EXISTS idx_doc_habil_revisao ON core_schema.tb_documentos_habeis (status_revisao);\n\n-- 2.8 Fase 5: Deduções e Retenções Tributárias\nCREATE TABLE IF NOT EXISTS core_schema.tb_retencoes_tributarias (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    documento_habil_id UUID NOT NULL REFERENCES core_schema.tb_documentos_habeis(id) ON DELETE CASCADE,\n    tipo_tributo VARCHAR(20) NOT NULL, -- 'INSS', 'ISS', 'IRRF', 'PIS', 'COFINS', 'CSLL'\n    base_calculo NUMERIC(15, 2) NOT NULL,\n    aliquota_percentual NUMERIC(5, 2) NOT NULL,\n    valor_retido NUMERIC(15, 2) NOT NULL,\n    codigo_receita_darf VARCHAR(20), -- Código oficial de recolhimento (ex: 0588 para IRRF, 2631 para INSS)\n    confidence_score NUMERIC(4, 3) NOT NULL DEFAULT 1.000,\n    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP\n);\n\nCREATE INDEX IF NOT EXISTS idx_retencoes_doc_habil ON core_schema.tb_retencoes_tributarias (documento_habil_id);\n\n-- 2.9 Fase 5 & 7: Ordens de Pagamento (OBTV Fornecedor, Tributos e Devolução GRU)\nCREATE TABLE IF NOT EXISTS core_schema.tb_ordens_pagamento (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    tenant_id UUID NOT NULL,\n    documento_habil_id UUID REFERENCES core_schema.tb_documentos_habeis(id) ON DELETE SET NULL,\n    convenio_id UUID NOT NULL REFERENCES core_schema.tb_convenios(id) ON DELETE CASCADE,\n    conta_bancaria_id UUID REFERENCES core_schema.tb_contas_bancarias_vinculadas(id) ON DELETE SET NULL,\n    numero_obtv VARCHAR(50), -- Número oficial gerado pelo Transferegov\n    tipo_obtv VARCHAR(30) NOT NULL DEFAULT 'OBTV_FORNECEDOR', -- 'OBTV_FORNECEDOR', 'OBTV_TRIBUTOS_DARF_DAM', 'OBTV_DEVOLUCAO_SALDO_GRU'\n    favorecido_nome VARCHAR(200) NOT NULL,\n    favorecido_cnpj_cpf VARCHAR(18) NOT NULL,\n    dados_bancarios_destino JSONB,\n    codigo_barras_guia VARCHAR(100), -- Para DARF, DAM ou GRU\n    valor_pago NUMERIC(15, 2) NOT NULL,\n    data_emissao_obtv DATE NOT NULL,\n    data_debito_efetivo DATE,\n    situacao_obtv VARCHAR(40) NOT NULL DEFAULT 'AGUARDANDO_ASSINATURA_GESTOR', -- 'AGUARDANDO_ASSINATURA_GESTOR', 'ENVIADA_BANCO', 'PAGA_CONFIRMADA', 'ESTORNADA'\n    autenticacao_bancaria VARCHAR(100),\n    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP\n);\n\nCREATE INDEX IF NOT EXISTS idx_obtv_doc_habil ON core_schema.tb_ordens_pagamento (documento_habil_id);\nCREATE INDEX IF NOT EXISTS idx_obtv_convenio ON core_schema.tb_ordens_pagamento (convenio_id);\nCREATE INDEX IF NOT EXISTS idx_obtv_situacao ON core_schema.tb_ordens_pagamento (situacao_obtv);\n",
+  "V4": "-- ==============================================================================\n-- V4__create_licitacoes_table.sql\n-- Descrição: Criação da tabela dedicada de Licitações (Fase 3 - Contratação Pública)\n--            Permite múltiplos certames licitatórios para um único Convênio (1:N)\n-- Baseado em: Lei nº 14.133/2021 (NLLC) e Portaria Conjunta MGI/MF/CGU nº 33/2023\n-- ==============================================================================\n\n-- ------------------------------------------------------------------------------\n-- 1. CRIAÇÃO DA TABELA DE LICITAÇÕES\n-- ------------------------------------------------------------------------------\nCREATE TABLE IF NOT EXISTS core_schema.tb_licitacoes (\n    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n    tenant_id UUID NOT NULL,\n    convenio_id UUID NOT NULL REFERENCES core_schema.tb_convenios(id) ON DELETE CASCADE,\n    prefeitura_id UUID NOT NULL REFERENCES core_schema.tb_prefeituras(id) ON DELETE CASCADE,\n    \n    -- Identificação e Processo Administrativo\n    numero_processo_administrativo VARCHAR(50),\n    numero_licitacao VARCHAR(50) NOT NULL, -- Ex: \"PE 012/2024\", \"CC 002/2024\", \"DISP 005/2024\"\n    modalidade VARCHAR(50) NOT NULL, -- 'PREGAO_ELETRONICO', 'CONCORRENCIA_ELETRONICA', 'CONCURSO', 'LEILAO', 'DIALOGO_COMPETITIVO', 'DISPENSA', 'INEXIGIBILIDADE'\n    criterio_julgamento VARCHAR(50), -- 'MENOR_PRECO', 'MAIOR_DESCONTO', 'MELHOR_TECNICA', 'TECNICA_E_PRECO', 'MAIOR_LANCE'\n    regime_execucao VARCHAR(50), -- 'EMPREITADA_PRECO_GLOBAL', 'EMPREITADA_PRECO_UNITARIO', 'CONTRATACAO_INTEGRADA', 'CONTRATACAO_SEMI_INTEGRADA', 'FORNECIMENTO'\n    objeto TEXT NOT NULL,\n    \n    -- Valores Financeiros e Economia\n    valor_estimado NUMERIC(15, 2) NOT NULL,\n    valor_homologado NUMERIC(15, 2),\n    percentual_desconto NUMERIC(5, 2),\n    \n    -- Ciclo de Andamento Municipal (Lei 14.133/2021)\n    situacao VARCHAR(50) NOT NULL DEFAULT 'PLANEJAMENTO', -- 'PLANEJAMENTO', 'EDITAL_PUBLICADO', 'IMPUGNADO', 'EM_DISPUTA', 'JULGAMENTO', 'HOMOLOGADA', 'DESERTA', 'FRACASSADA', 'REVOGADA', 'ANULADA'\n    data_publicacao_edital DATE,\n    data_abertura_propostas DATE,\n    data_homologacao DATE,\n    \n    -- Portais e Sistemas Eletrônicos\n    link_pncp VARCHAR(500), -- Portal Nacional de Contratações Públicas\n    link_transferegov VARCHAR(500),\n    link_sistema_compras VARCHAR(500), -- Ex: Compras.gov.br, BBMNET, BLL Compras\n    \n    -- Validação e Autorização Federal Transferegov / Mandatária (Caixa GIGOV)\n    numero_vrpl_transferegov VARCHAR(50), -- Verificação do Resultado do Processo Licitatório\n    status_vrpl VARCHAR(30) NOT NULL DEFAULT 'NAO_ENVIADO', -- 'NAO_ENVIADO', 'EM_ANALISE_CAIXA', 'DILIGENCIA', 'ACEITO_HOMOLOGADO', 'REJEITADO'\n    data_envio_vrpl DATE,\n    data_aceite_vrpl DATE,\n    numero_aio VARCHAR(50), -- Autorização de Início de Objeto\n    data_emissao_aio DATE,\n    status_aio VARCHAR(30) NOT NULL DEFAULT 'NAO_EMITIDO', -- 'NAO_EMITIDO', 'SOLICITADO', 'EMITIDO'\n    \n    -- Armazenamento Seguro de Documentos (S3 / MinIO)\n    s3_key_edital VARCHAR(500),\n    s3_key_termo_homologacao VARCHAR(500),\n    s3_key_parecer_vrpl VARCHAR(500),\n    s3_key_autorizacao_aio VARCHAR(500),\n    \n    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    \n    CONSTRAINT uk_licitacao_convenio_numero UNIQUE (convenio_id, numero_licitacao)\n);\n\n-- Índices de Consulta e Desempenho\nCREATE INDEX IF NOT EXISTS idx_licitacoes_convenio ON core_schema.tb_licitacoes (convenio_id);\nCREATE INDEX IF NOT EXISTS idx_licitacoes_prefeitura ON core_schema.tb_licitacoes (prefeitura_id);\nCREATE INDEX IF NOT EXISTS idx_licitacoes_status ON core_schema.tb_licitacoes (situacao, status_vrpl);\nCREATE INDEX IF NOT EXISTS idx_licitacoes_tenant ON core_schema.tb_licitacoes (tenant_id);\n\n-- ------------------------------------------------------------------------------\n-- 2. VÍNCULO DE CONTRATOS DE EXECUÇÃO À LICITAÇÃO ORIGINÁRIA\n-- ------------------------------------------------------------------------------\nALTER TABLE core_schema.tb_contratos_execucao\n    ADD COLUMN IF NOT EXISTS licitacao_id UUID REFERENCES core_schema.tb_licitacoes(id) ON DELETE SET NULL;\n\nCREATE INDEX IF NOT EXISTS idx_contratos_licitacao ON core_schema.tb_contratos_execucao (licitacao_id);\n",
+  "V5": "-- ==============================================================================\n-- V5__enhance_fase_0_proposal_fields.sql\n-- Descrição: Refinamento dos campos da Fase 0 (Pré-Convênio, Origem e Proposta)\n--            Conforme Deep Research Especializado da Fase 0 (docs/architecture/11)\n-- ==============================================================================\n\n-- ------------------------------------------------------------------------------\n-- 1. EXPANSÃO DE tb_convenios COM METADADOS OPERACIONAIS DA FASE 0\n-- ------------------------------------------------------------------------------\nALTER TABLE core_schema.tb_convenios\n    -- Enquadramento Orçamentário e Prevenção de Impedimentos Técnicos\n    ADD COLUMN IF NOT EXISTS gnd_despesa VARCHAR(30) DEFAULT 'GND_4_INVESTIMENTOS', -- 'GND_3_DESPESAS_CORRENTES', 'GND_4_INVESTIMENTOS'\n    \n    -- Contrapartida e Dotação Orçamentária na LOA Municipal\n    ADD COLUMN IF NOT EXISTS dotacao_orcamentaria_contrapartida_loa VARCHAR(100), -- Ex: '02.05.10.301.0012.2045.4.4.90.51.00 - Fonte 1.500.0000'\n    ADD COLUMN IF NOT EXISTS percentual_contrapartida_calculado NUMERIC(5, 2), -- Percentual mínimo exigido pela LDO vigente\n    \n    -- Controle de Análise e Janela Fatal de Diligências Preliminares (SIOP / SOF)\n    ADD COLUMN IF NOT EXISTS status_analise_proposta VARCHAR(35) NOT NULL DEFAULT 'EM_CADASTRAMENTO', -- 'EM_CADASTRAMENTO', 'ENVIADA_PARA_ANALISE', 'EM_DILIGENCIA', 'APROVADA_EMPENHADA', 'IMPEDIMENTO_TECNICO'\n    ADD COLUMN IF NOT EXISTS data_limite_saneamento_diligencia DATE, -- Prazo fatal de 15 a 30 dias para não perder a emenda\n    \n    -- Armazenamento Seguro do Dossiê Preparatório da Proposta (MinIO / S3)\n    ADD COLUMN IF NOT EXISTS s3_key_plano_trabalho_proposta VARCHAR(500), -- PDF gerado do Plano de Trabalho submetido\n    ADD COLUMN IF NOT EXISTS s3_key_dossie_declaracoes_proposta VARCHAR(500); -- Pacote de 6 declarações + Folha da LOA assinados digitalmente\n\n-- ------------------------------------------------------------------------------\n-- 2. ÍNDICE OPERACIONAL PARA MONITORAMENTO DE DILIGÊNCIAS PREVENTIVAS\n-- ------------------------------------------------------------------------------\nCREATE INDEX IF NOT EXISTS idx_convenios_diligencia_proposta \n    ON core_schema.tb_convenios (status_analise_proposta, data_limite_saneamento_diligencia);\n",
+  "V6": "﻿-- ==============================================================================\n-- V6__enhance_fase_1_celebracao_dossie_fields.sql\n-- Descrição: Adiciona colunas para armazenamento de documentos comprobatórios\n--            (Dossiê da Fase 1: Celebração, Publicidade no DOU e Conta Vinculada)\n-- Baseado em: docs/architecture/12_deep_research_fase_1_celebracao_formalizacao_e_custodia.md\n-- ==============================================================================\n\n-- 1. Armazenamento de Arquivos da Celebração e Eficácia no S3/MinIO\nALTER TABLE core_schema.tb_convenios\n    ADD COLUMN IF NOT EXISTS s3_key_termo_convenio_assinado VARCHAR(500), -- Cópia integral em PDF do Termo de Convênio/Contrato de Repasse com assinaturas Gov.br\n    ADD COLUMN IF NOT EXISTS s3_key_extrato_dou VARCHAR(500);            -- Certidão/Página em PDF da publicação oficial no Diário Oficial da União\n\n-- 2. Armazenamento da Ficha Cadastral da Conta Corrente Bloqueada\nALTER TABLE core_schema.tb_contas_bancarias_vinculadas\n    ADD COLUMN IF NOT EXISTS s3_key_comprovante_abertura VARCHAR(500);   -- Ficha cadastral / termo de abertura bancária emitido pela Caixa (Op 006) ou Banco do Brasil\n",
+  "V7": "﻿-- ==============================================================================\n-- V7__enhance_fase_2_clausula_suspensiva_fields.sql\n-- Descrição: Refinamento dos campos da Fase 2 (Gestão e Superação da Cláusula Suspensiva)\n--            Adiciona controle de prorrogação de prazo, diligências da Caixa GIGOV\n--            e parâmetros técnicos da Síntese do Projeto Aprovado (SPA).\n-- Baseado em: docs/architecture/13_deep_research_fase_2_gestao_clausula_suspensiva.md\n-- ==============================================================================\n\n-- 1. Expansão de tb_convenios: Prorrogação de Prazo e Termo de Retirada\nALTER TABLE core_schema.tb_convenios\n    ADD COLUMN IF NOT EXISTS prorrogacao_solicitada BOOLEAN NOT NULL DEFAULT FALSE,\n    ADD COLUMN IF NOT EXISTS novo_prazo_prorrogado DATE,\n    ADD COLUMN IF NOT EXISTS s3_key_termo_retirada_suspensiva VARCHAR(500);\n\n-- 2. Expansão de tb_condicionantes_suspensivas: Gestão de Diligências Caixa & Parâmetros SPA\nALTER TABLE core_schema.tb_condicionantes_suspensivas\n    ADD COLUMN IF NOT EXISTS data_limite_saneamento DATE,\n    ADD COLUMN IF NOT EXISTS s3_key_laudo_pendencias VARCHAR(500),\n    ADD COLUMN IF NOT EXISTS valor_orcamento_aprovado_caixa NUMERIC(15, 2),\n    ADD COLUMN IF NOT EXISTS percentual_bdi_aprovado NUMERIC(5, 2),\n    ADD COLUMN IF NOT EXISTS numero_art_rrt VARCHAR(50),\n    ADD COLUMN IF NOT EXISTS orgao_emissor VARCHAR(100);\n\nCREATE INDEX IF NOT EXISTS idx_condicionantes_saneamento \n    ON core_schema.tb_condicionantes_suspensivas (status, data_limite_saneamento);\n",
+  "V8": "﻿-- ==============================================================================\n-- V8__enhance_fase_3_licitacoes_vrpl_fields.sql\n-- Descrição: Refinamento dos campos da Fase 3 (Licitações Municipais e VRPL Transferegov)\n--            Adiciona identificação da empresa vencedora adjudicada e arquivos\n--            do dossiê de proposta e ata de lances para auditoria da Caixa GIGOV.\n-- Baseado em: docs/architecture/14_deep_research_fase_3_licitacoes_vrpl_e_aio.md\n-- ==============================================================================\n\nALTER TABLE core_schema.tb_licitacoes\n    ADD COLUMN IF NOT EXISTS cnpj_vencedor VARCHAR(18),\n    ADD COLUMN IF NOT EXISTS razao_social_vencedor VARCHAR(200),\n    ADD COLUMN IF NOT EXISTS s3_key_proposta_vencedora VARCHAR(500), -- Proposta e Planilha de Preços com desconto adjudicado\n    ADD COLUMN IF NOT EXISTS s3_key_ata_sessao VARCHAR(500);         -- Ata da sessão pública eletrônica com histórico de lances\n\nCREATE INDEX IF NOT EXISTS idx_licitacoes_vencedor \n    ON core_schema.tb_licitacoes (cnpj_vencedor);\n",
+  "V9": "﻿-- ==============================================================================\n-- V9__enhance_fase_4_medicoes_e_rae_fields.sql\n-- Descrição: Refinamento dos campos da Fase 4 (Execução Física, Medições e RAE Caixa)\n--            Adiciona valores financeiros aferidos/glosados pela Caixa GIGOV,\n--            chaves S3 para Diário de Obras Digital e Laudo RAE em tb_medicoes,\n--            além de controle da Ordem de Serviço em tb_contratos_execucao.\n-- Baseado em: docs/architecture/15_deep_research_fase_4_execucao_fisica_medicoes_e_rae.md\n-- ==============================================================================\n\n-- 1. Expansão de tb_medicoes: Valores do Laudo RAE e Dossiê S3\nALTER TABLE core_schema.tb_medicoes\n    ADD COLUMN IF NOT EXISTS valor_aferido_caixa NUMERIC(15, 2),\n    ADD COLUMN IF NOT EXISTS valor_glosado_caixa NUMERIC(15, 2) NOT NULL DEFAULT 0.00,\n    ADD COLUMN IF NOT EXISTS s3_key_diario_obras VARCHAR(500), -- Diário de Obra Digital (art. 88 da Lei 14.133/2021)\n    ADD COLUMN IF NOT EXISTS s3_key_laudo_rae VARCHAR(500);    -- Relatório de Acompanhamento de Engenharia da Caixa\n\n-- 2. Expansão de tb_contratos_execucao: Controle de Ordem de Serviço pós-AIO\nALTER TABLE core_schema.tb_contratos_execucao\n    ADD COLUMN IF NOT EXISTS data_ordem_servico DATE,\n    ADD COLUMN IF NOT EXISTS s3_key_ordem_servico VARCHAR(500),\n    ADD COLUMN IF NOT EXISTS numero_art_execucao VARCHAR(50);\n",
+  "V10": "﻿-- ==============================================================================\n-- V10__enhance_fase_5_execucao_financeira_obtv_fields.sql\n-- Descrição: Adiciona colunas para liquidação formal, armazenamento do XML fiscal,\n--            auditoria de retenções tributárias, rastreamento de duplo comando\n--            e conciliação da conta vinculada (Fase 5 - Execução Financeira & OBTV)\n-- Baseado em: docs/architecture/16_deep_research_fase_5_execucao_financeira_e_obtv.md\n-- ==============================================================================\n\n-- 1. Documentos Hábeis (Liquidação formal e guarda do XML da NF-e / NFS-e)\nALTER TABLE core_schema.tb_documentos_habeis\n    ADD COLUMN IF NOT EXISTS data_atesto_liquidacao DATE,                -- Data do atesto do secretário/fiscal (art. 63 da Lei 4.320/64)\n    ADD COLUMN IF NOT EXISTS s3_key_xml_documento VARCHAR(500);          -- Arquivo XML original da NF-e / NFS-e para auditoria e parsing\n\n-- 2. Retenções Tributárias (Linha digitável, vencimento e guarda da guia DARF/DAM)\nALTER TABLE core_schema.tb_retencoes_tributarias\n    ADD COLUMN IF NOT EXISTS codigo_barras_guia VARCHAR(100),            -- Linha digitável da guia de recolhimento tributário (DARF/DAM)\n    ADD COLUMN IF NOT EXISTS data_vencimento_guia DATE,                  -- Prazo fatal para pagamento da guia tributária sem juros/multa\n    ADD COLUMN IF NOT EXISTS s3_key_guia_recolhimento VARCHAR(500);      -- PDF da guia de recolhimento tributário emitida (DARF DCTFWeb / DAM)\n\n-- 3. Ordens de Pagamento OBTV (Duplo Comando Gov.br, Pix e comprovante bancário)\nALTER TABLE core_schema.tb_ordens_pagamento\n    ADD COLUMN IF NOT EXISTS assinante_1_nome VARCHAR(150),              -- 1º Comando: Prefeito Municipal ou Ordenador de Despesas\n    ADD COLUMN IF NOT EXISTS data_assinatura_1 TIMESTAMP WITH TIME ZONE, -- Data/hora da assinatura do 1º comando no Transferegov\n    ADD COLUMN IF NOT EXISTS assinante_2_nome VARCHAR(150),              -- 2º Comando: Secretário de Finanças ou Tesoureiro Municipal\n    ADD COLUMN IF NOT EXISTS data_assinatura_2 TIMESTAMP WITH TIME ZONE, -- Data/hora da assinatura do 2º comando no Transferegov\n    ADD COLUMN IF NOT EXISTS chave_pix_favorecido VARCHAR(100),          -- Chave Pix do credor para liquidação eletrônica instantânea\n    ADD COLUMN IF NOT EXISTS s3_key_comprovante_obtv VARCHAR(500);       -- Comprovante bancário definitivo do débito/liquidação da OBTV\n\n-- 4. Contas Bancárias Vinculadas (Conciliação da Conta Bloqueada Op 006)\nALTER TABLE core_schema.tb_contas_bancarias_vinculadas\n    ADD COLUMN IF NOT EXISTS s3_key_ultimo_extrato VARCHAR(500);         -- PDF do extrato bancário oficial da conta vinculada (Op 006)\n",
+  "V11": "﻿-- ==============================================================================\n-- V11__enhance_fase_6_termos_aditivos_fields.sql\n-- Descrição: Adiciona colunas para validação de tetos da Lei 14.133/21 (25% e 50%),\n--            rastreamento de reprogramação Caixa GIGOV, radar tempestivo de 30 dias\n--            e armazenamento do dossiê documental (Fase 6 - Termos Aditivos e Reequilíbrio)\n-- Baseado em: docs/architecture/17_deep_research_fase_6_termos_aditivos_e_reequilibrio.md\n-- ==============================================================================\n\nALTER TABLE core_schema.tb_termos_aditivos\n    ADD COLUMN IF NOT EXISTS percentual_aditado NUMERIC(5, 2),                  -- Percentual de acréscimo ou supressão calculado sobre o valor original\n    ADD COLUMN IF NOT EXISTS parecer_tecnico_caixa VARCHAR(50),                 -- Protocolo do Parecer Técnico de Engenharia (PTE) ou SPA da Caixa GIGOV\n    ADD COLUMN IF NOT EXISTS status_aprovacao_concedente VARCHAR(30) NOT NULL DEFAULT 'EM_ELABORACAO', -- 'EM_ELABORACAO', 'SUBMETIDO_CAIXA', 'DILIGENCIA_CAIXA', 'APROVADO_CONCEDENTE', 'REJEITADO'\n    ADD COLUMN IF NOT EXISTS data_limite_solicitacao_tempestiva DATE,           -- Prazo fatal de 30 dias antes do fim da vigência (Portaria 33, art. 57)\n    ADD COLUMN IF NOT EXISTS s3_key_justificativa_tecnica VARCHAR(500),         -- Laudo e memória de cálculo do engenheiro fiscal municipal\n    ADD COLUMN IF NOT EXISTS s3_key_planilha_comparativa VARCHAR(500),          -- Planilha orçamentária comparativa SINAPI (previsto x proposto)\n    ADD COLUMN IF NOT EXISTS s3_key_parecer_caixa VARCHAR(500),                 -- Laudo de Reprogramação da Caixa GIGOV em PDF\n    ADD COLUMN IF NOT EXISTS s3_key_extrato_publicacao VARCHAR(500);            -- Certidão de publicação oficial no DOU ou PNCP em PDF\n\nCREATE INDEX IF NOT EXISTS idx_aditivos_status_tempestivo\n    ON core_schema.tb_termos_aditivos (status_aprovacao_concedente, data_limite_solicitacao_tempestiva);\n",
+  "V12": "﻿-- ==============================================================================\n-- V12__enhance_fases_7_e_8_prestacao_contas_encerramento_fields.sql\n-- Descrição: Adiciona colunas para monitoramento do prazo de 60 dias do RCO,\n--            pareceres conclusivos do concedente (técnico e financeiro),\n--            despacho decisório de homologação e dossiê de encerramento bancário\n--            (Fases 7 e 8 - Prestação de Contas Final e Encerramento)\n-- Baseado em: docs/architecture/18_deep_research_fase_7_e_8_prestacao_contas_e_encerramento.md\n-- ==============================================================================\n\nALTER TABLE core_schema.tb_convenios\n    ADD COLUMN IF NOT EXISTS data_envio_prestacao_contas DATE,                -- Data da transmissão formal do RCO no Transferegov (Portaria 33, art. 82)\n    ADD COLUMN IF NOT EXISTS status_parecer_tecnico VARCHAR(30) DEFAULT 'EM_ANALISE', -- 'EM_ANALISE', 'APROVADO_SEM_RESSALVA', 'APROVADO_COM_RESSALVA', 'REJEITADO'\n    ADD COLUMN IF NOT EXISTS status_parecer_financeiro VARCHAR(30) DEFAULT 'EM_ANALISE', -- 'EM_ANALISE', 'APROVADO_SEM_RESSALVA', 'APROVADO_COM_RESSALVA', 'REJEITADO'\n    ADD COLUMN IF NOT EXISTS data_homologacao_prestacao_contas DATE,          -- Data do despacho decisório final emitido pelo concedente\n    ADD COLUMN IF NOT EXISTS s3_key_relatorio_cumprimento_objeto VARCHAR(500),-- PDF do Relatório de Cumprimento do Objeto (RCO) assinado e protocolado\n    ADD COLUMN IF NOT EXISTS s3_key_termo_encerramento_conta VARCHAR(500),    -- Declaração bancária da Caixa/BB de saldo zerado e encerramento da conta Op 006\n    ADD COLUMN IF NOT EXISTS s3_key_parecer_tecnico_concedente VARCHAR(500),  -- Laudo e Parecer Técnico Conclusivo de Engenharia da Caixa/Ministério\n    ADD COLUMN IF NOT EXISTS s3_key_parecer_financeiro_concedente VARCHAR(500);-- Parecer Financeiro Conclusivo de Conformidade Contábil do Concedente\n\nCREATE INDEX IF NOT EXISTS idx_convenios_prestacao_contas_status\n    ON core_schema.tb_convenios (situacao_prestacao_contas, data_limite_prestacao_contas);\n",
+  "V13": "﻿-- ==============================================================================\n-- V13__enhance_fase_9_inadimplencia_tce_fields.sql\n-- Descrição: Adiciona colunas para tipificação de inadimplência, ciclo de vida\n--            da Tomada de Contas Especial (TCE), cálculo do débito com taxa SELIC,\n--            rastreamento de blindagem da Súmula 230 do TCU e guarda do contencioso\n--            (Fase 9 - Inadimplência, Notificação de 45 Dias e TCE)\n-- Baseado em: docs/architecture/19_deep_research_fase_9_inadimplencia_tce_e_sumula_230.md\n-- ==============================================================================\n\nALTER TABLE core_schema.tb_convenios\n    ADD COLUMN IF NOT EXISTS motivo_inadimplencia VARCHAR(50),                      -- 'OMISSAO_PRESTACAO_CONTAS', 'GLOSA_REJEICAO_CONTAS', 'FALTA_FUNCIONALIDADE', 'DESVIO_FINALIDADE', 'DANO_AO_ERARIO'\n    ADD COLUMN IF NOT EXISTS fase_tce VARCHAR(30) NOT NULL DEFAULT 'NAO_INSTAURADA',-- 'NAO_INSTAURADA', 'NOTIFICACAO_PREVIA', 'FASE_INTERNA_MINISTERIO', 'AUDITORIA_CGU', 'FASE_EXTERNA_TCU', 'JULGADA_CONDENATORIA', 'ARQUIVADA_QUITADA', 'PRESCRITA'\n    ADD COLUMN IF NOT EXISTS valor_debito_atualizado_selic NUMERIC(15, 2),          -- Débito com atualização monetária e juros SELIC (Portaria 33, art. 91)\n    ADD COLUMN IF NOT EXISTS data_ajuizamento_sumula_230 DATE,                     -- Data da ação judicial ou representação MPF ajuizada pelo prefeito sucessor\n    ADD COLUMN IF NOT EXISTS s3_key_notificacao_cgu VARCHAR(500),                  -- PDF do ofício formal de notificação de 45 dias\n    ADD COLUMN IF NOT EXISTS s3_key_defesa_previa VARCHAR(500),                    -- PDF da defesa técnica administrativa no prazo de 45 dias\n    ADD COLUMN IF NOT EXISTS s3_key_peticao_judicial_sucessor VARCHAR(500),        -- Petição inicial e certidão judicial para suspensão no CAUC (Súmula 230 TCU)\n    ADD COLUMN IF NOT EXISTS s3_key_acordao_tcu VARCHAR(500);                      -- Cópia digital do Acórdão proferido pelo Plenário/Câmaras do TCU\n\nCREATE INDEX IF NOT EXISTS idx_convenios_inadimplencia_tce\n    ON core_schema.tb_convenios (status_inadimplencia_siafi, fase_tce, data_limite_defesa_45_dias);\n"
+};
+
+    let currentMainView = "fases";
+    let currentSchemaFilter = "ALL";
+    let currentPhaseGroupFilter = "all";
+    let activeSQLTab = "V1";
+
+    // INITIALIZATION
+    document.addEventListener("DOMContentLoaded", () => {
+      renderPhasesTimeline();
+      renderTablesGrid();
+      renderSQLTabs();
+    });
+
+    // VIEW SWITCHER
+    function switchMainView(view) {
+      currentMainView = view;
+      const vFases = document.getElementById("viewFases");
+      const vCards = document.getElementById("viewCards");
+      const vERD = document.getElementById("viewERD");
+      const vSQL = document.getElementById("viewSQL");
+
+      const bFases = document.getElementById("navBtnFases");
+      const bCards = document.getElementById("navBtnCards");
+      const bERD = document.getElementById("navBtnERD");
+      const bSQL = document.getElementById("navBtnSQL");
+
+      // Hide all
+      [vFases, vCards, vERD, vSQL].forEach(v => v.classList.add("hidden"));
+      [bFases, bCards, bERD, bSQL].forEach(b => {
+        b.className = "px-3 py-1.5 rounded-lg text-slate-300 hover:text-white font-medium flex items-center gap-1.5 transition";
+      });
+
+      // Show selected
+      if (view === "fases") {
+        vFases.classList.remove("hidden");
+        bFases.className = "px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-medium flex items-center gap-1.5 transition shadow-sm";
+      } else if (view === "cards") {
+        vCards.classList.remove("hidden");
+        bCards.className = "px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-medium flex items-center gap-1.5 transition shadow-sm";
+      } else if (view === "erd") {
+        vERD.classList.remove("hidden");
+        bERD.className = "px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-medium flex items-center gap-1.5 transition shadow-sm";
+      } else if (view === "sql") {
+        vSQL.classList.remove("hidden");
+        bSQL.className = "px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-medium flex items-center gap-1.5 transition shadow-sm";
+        loadSQLContent();
+      }
+    }
+
+    // ====================================================================
+    // RENDER VIEW 1: PHASES TIMELINE & TABLE RELATION
+    // ====================================================================
+    function renderPhasesTimeline() {
+      const container = document.getElementById("phasesTimeline");
+      container.innerHTML = "";
+
+      const query = document.getElementById("globalSearch").value.toLowerCase();
+
+      PHASES_DATA.forEach(phase => {
+        if (currentPhaseGroupFilter !== "all" && phase.group !== currentPhaseGroupFilter) {
+          return;
+        }
+
+        // Text filter
+        if (query) {
+          const matchTitle = phase.title.toLowerCase().includes(query);
+          const matchNorm = phase.normative.toLowerCase().includes(query);
+          const matchSum = phase.summary.toLowerCase().includes(query);
+          const matchTables = phase.tables.some(t => t.name.toLowerCase().includes(query) || t.role.toLowerCase().includes(query));
+          if (!matchTitle && !matchNorm && !matchSum && !matchTables) return;
+        }
+
+        const card = document.createElement("div");
+        card.className = "bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-sm hover:border-slate-700 transition duration-150";
+
+        let badgeBg = "bg-indigo-500/10 text-indigo-400 border-indigo-500/20";
+        let icon = "fa-diagram-project";
+        if (phase.group === "pre-execucao") {
+          badgeBg = "bg-sky-500/10 text-sky-400 border-sky-500/20";
+          icon = "fa-file-signature";
+        } else if (phase.group === "execucao") {
+          badgeBg = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+          icon = "fa-screwdriver-wrench";
+        } else if (phase.group === "encerramento") {
+          badgeBg = "bg-amber-500/10 text-amber-400 border-amber-500/20";
+          icon = "fa-scale-balanced";
+        } else if (phase.group === "transversal") {
+          badgeBg = "bg-teal-500/10 text-teal-400 border-teal-500/20";
+          icon = "fa-comments";
+        }
+
+        card.innerHTML = `
+          <!-- Phase Card Header -->
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-slate-800/80">
+            <div class="flex items-start sm:items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-emerald-400 font-bold text-sm shrink-0 shadow-sm">
+                ${phase.number}
+              </div>
+              <div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${badgeBg} flex items-center gap-1">
+                    <i class="fa-solid ${icon} text-[10px]"></i> ${phase.groupName}
+                  </span>
+                  <span class="text-xs font-mono text-slate-400 font-medium">#fase-${phase.number}</span>
+                </div>
+                <h3 class="text-base font-bold text-white mt-1 tracking-tight">
+                  ${phase.title}
+                </h3>
+              </div>
+            </div>
+
+            <!-- Regulatory Reference Pill -->
+            <div class="text-xs text-slate-400 bg-slate-950/60 px-3 py-1.5 rounded-xl border border-slate-800 self-start md:self-auto">
+              <i class="fa-solid fa-gavel text-amber-400 mr-1"></i> ${phase.normative}
+            </div>
+          </div>
+
+          <!-- Phase Details Grid -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 py-4 text-xs border-b border-slate-800/80">
+            <!-- Col 1: Overview & Automation -->
+            <div class="space-y-3">
+              <div>
+                <h4 class="font-bold text-slate-300 uppercase tracking-wider text-[11px] mb-1">
+                  <i class="fa-solid fa-circle-info text-indigo-400 mr-1"></i> Resumo da Fase
+                </h4>
+                <p class="text-slate-400 leading-relaxed">${phase.summary}</p>
+              </div>
+
+              <div class="p-3 rounded-xl bg-emerald-950/20 border border-emerald-900/30 text-emerald-300">
+                <strong class="block text-emerald-400 font-semibold mb-0.5">
+                  <i class="fa-solid fa-robot mr-1"></i> Automação GovFlow:
+                </strong>
+                ${phase.automation}
+              </div>
+            </div>
+
+            <!-- Col 2: Deadlines & Critical Risks -->
+            <div class="space-y-3">
+              <div class="p-3 rounded-xl bg-amber-950/20 border border-amber-900/30 text-amber-300">
+                <strong class="block text-amber-400 font-semibold mb-0.5">
+                  <i class="fa-solid fa-clock mr-1"></i> Prazos Fatais & Tempestividade:
+                </strong>
+                ${phase.deadlines}
+              </div>
+
+              <div class="p-3 rounded-xl bg-red-950/20 border border-red-900/30 text-red-300">
+                <strong class="block text-red-400 font-semibold mb-0.5">
+                  <i class="fa-solid fa-triangle-exclamation mr-1"></i> Riscos Regulatórios Prevenidos:
+                </strong>
+                ${phase.risks}
+              </div>
+            </div>
+
+            <!-- Col 3: S3/MinIO Digital Dossier -->
+            <div>
+              <h4 class="font-bold text-slate-300 uppercase tracking-wider text-[11px] mb-2">
+                <i class="fa-solid fa-cloud-arrow-up text-cyan-400 mr-1"></i> Dossiê Digital (S3 / MinIO)
+              </h4>
+              <div class="space-y-1.5 font-mono text-[11px]">
+                ${phase.s3_keys.map(key => `
+                  <div class="flex items-center gap-1.5 p-1.5 rounded-lg bg-slate-950/80 border border-slate-800/80 text-cyan-300">
+                    <i class="fa-solid fa-file-pdf text-rose-400 text-xs shrink-0"></i>
+                    <span class="truncate">${key}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+
+          <!-- Phase Associated Tables (Clickable Chips/Cards) -->
+          <div class="pt-4">
+            <h4 class="font-bold text-slate-300 uppercase tracking-wider text-[11px] mb-3 flex items-center gap-1.5">
+              <i class="fa-solid fa-database text-emerald-400"></i> Tabelas do Banco de Dados Ativas Nesta Fase (${phase.tables.length}):
+            </h4>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              ${phase.tables.map(t => `
+                <div class="p-3 rounded-xl bg-slate-950/70 border border-slate-800/90 hover:border-slate-700 flex flex-col justify-between transition">
+                  <div>
+                    <div class="flex items-center justify-between gap-2 mb-1.5">
+                      <span class="font-mono font-bold text-emerald-400 text-xs flex items-center gap-1.5">
+                        <i class="fa-solid fa-table text-slate-500"></i> ${t.name}
+                      </span>
+                      <button onclick="openDetails('${t.name}')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium text-[10px] flex items-center gap-1 transition">
+                        Inspecionar <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                      </button>
+                    </div>
+                    <p class="text-xs text-slate-300 font-sans leading-relaxed">${t.role}</p>
+                  </div>
+                  <div class="mt-2.5 pt-2 border-t border-slate-800/60 text-[10px] text-slate-400 font-mono">
+                    <span class="text-slate-500 font-sans">Colunas-chave:</span> ${t.key_cols.join(', ')}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    function filterPhaseGroup(group) {
+      currentPhaseGroupFilter = group;
+      document.querySelectorAll(".phase-group-btn").forEach(btn => {
+        if (btn.dataset.group === group) {
+          btn.className = "phase-group-btn active px-3 py-1 rounded-lg bg-emerald-600 text-white font-medium transition";
+        } else {
+          btn.className = "phase-group-btn px-3 py-1 rounded-lg text-slate-400 hover:text-white transition";
+        }
+      });
+      renderPhasesTimeline();
+    }
+
+
+    // ====================================================================
+    // RENDER VIEW 2: TABLES GRID (DICTIONARY)
+    // ====================================================================
+    function renderTablesGrid() {
+      const container = document.getElementById("tablesGrid");
+      container.innerHTML = "";
+
+      const query = document.getElementById("globalSearch").value.toLowerCase();
+      const phaseFilter = document.getElementById("filterPhaseSelect").value;
+
+      TABLES_DATA.forEach(table => {
+        if (currentSchemaFilter !== "ALL" && table.schema !== currentSchemaFilter) {
+          return;
+        }
+
+        if (phaseFilter !== "ALL" && !table.phases.some(p => p.includes(phaseFilter))) {
+          return;
+        }
+
+        // Text Search query
+        if (query) {
+          const matchName = table.name.toLowerCase().includes(query);
+          const matchTitle = table.title.toLowerCase().includes(query);
+          const matchDesc = table.desc.toLowerCase().includes(query);
+          const matchCols = table.columns.some(c => c.name.toLowerCase().includes(query) || c.type.toLowerCase().includes(query) || c.desc.toLowerCase().includes(query));
+          const matchPhases = table.phases.some(p => p.toLowerCase().includes(query));
+          if (!matchName && !matchTitle && !matchDesc && !matchCols && !matchPhases) return;
+        }
+
+        const card = document.createElement("div");
+        card.className = "table-card bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between";
+
+        let schemaBadgeBg = "bg-indigo-950/60 text-indigo-400 border-indigo-500/30";
+        if (table.schema === "whatsapp_schema") {
+          schemaBadgeBg = "bg-emerald-950/60 text-emerald-400 border-emerald-500/30";
+        }
+
+        card.innerHTML = `
+          <div>
+            <!-- Header -->
+            <div class="p-4 border-b border-slate-800 bg-slate-950/50 flex items-start justify-between gap-2">
+              <div>
+                <span class="px-2 py-0.5 text-[10px] font-mono uppercase font-bold rounded border ${schemaBadgeBg}">
+                  ${table.schema}
+                </span>
+                <h3 class="text-sm font-bold text-white mt-1.5 flex items-center gap-1.5 font-mono">
+                  ${table.name}
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">${table.title}</p>
+              </div>
+              <button onclick="openDetails('${table.name}')" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition text-xs shrink-0" title="Ver Detalhes">
+                <i class="fa-solid fa-expand"></i>
+              </button>
+            </div>
+
+            <!-- Phases Pills -->
+            <div class="px-4 py-2 bg-slate-950/30 border-b border-slate-800/60 flex flex-wrap items-center gap-1">
+              ${table.phases.map(ph => `
+                <span class="phase-badge-pill px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-emerald-300 border border-slate-700">
+                  ${ph}
+                </span>
+              `).join('')}
+            </div>
+
+            <!-- Columns preview -->
+            <div class="p-4 space-y-1 text-xs font-mono">
+              ${table.columns.slice(0, 5).map(col => `
+                <div class="flex items-center justify-between py-1 border-b border-slate-800/40 text-[11px]">
+                  <span class="flex items-center gap-1.5 ${col.flags.includes('PK') ? 'text-amber-400 font-bold' : col.flags.some(f => f.includes('FK')) ? 'text-cyan-400' : 'text-slate-300'}">
+                    ${col.flags.includes('PK') ? '<i class="fa-solid fa-key text-[9px] text-amber-400"></i>' : ''}
+                    ${col.flags.some(f => f.includes('FK')) ? '<i class="fa-solid fa-link text-[9px] text-cyan-400"></i>' : ''}
+                    ${col.name}
+                  </span>
+                  <span class="text-slate-500 text-[10px]">${col.type}</span>
+                </div>
+              `).join('')}
+              ${table.columns.length > 5 ? `
+                <div class="text-[10px] text-slate-500 text-center pt-1 font-sans">
+                  + ${table.columns.length - 5} outras colunas...
+                </div>
+              ` : ''}
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="p-3 bg-slate-950/60 border-t border-slate-800/80 flex items-center justify-between text-xs">
+            <span class="text-[11px] text-slate-400">${table.columns.length} colunas</span>
+            <button onclick="openDetails('${table.name}')" class="text-emerald-400 hover:text-emerald-300 font-medium text-xs flex items-center gap-1 transition">
+              Inspecionar <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </button>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    function setSchemaFilter(schema) {
+      currentSchemaFilter = schema;
+      document.querySelectorAll(".schema-btn").forEach(btn => {
+        if (btn.dataset.schema === schema) {
+          btn.className = "schema-btn active px-3 py-1 rounded-lg text-xs font-semibold transition border border-emerald-500/40 bg-emerald-950/40 text-emerald-300";
+        } else {
+          btn.className = "schema-btn px-3 py-1 rounded-lg text-xs font-semibold transition border border-slate-700 bg-slate-800/70 text-slate-300 hover:bg-slate-800";
+        }
+      });
+      renderTablesGrid();
+    }
+
+    function filterByPhaseDropdown(phase) {
+      renderTablesGrid();
+    }
+
+    function handleGlobalSearch() {
+      if (currentMainView === "fases") {
+        renderPhasesTimeline();
+      } else if (currentMainView === "cards") {
+        renderTablesGrid();
+      }
+    }
+
+
+    // ====================================================================
+    // MODAL INSPECTOR
+    // ====================================================================
+    function openDetails(tableName) {
+      const table = TABLES_DATA.find(t => t.name === tableName);
+      if (!table) return;
+
+      document.getElementById("modalSchemaTag").innerText = table.schema;
+      document.getElementById("modalTableName").innerText = table.name;
+      document.getElementById("modalTableTitle").innerText = `${table.title} — (${table.aggregate})`;
+      document.getElementById("modalTableDesc").innerText = table.desc;
+      document.getElementById("modalColCount").innerText = `${table.columns.length} colunas mapeadas`;
+
+      // Phases chips
+      const phasesContainer = document.getElementById("modalPhasesChips");
+      phasesContainer.innerHTML = table.phases.map(ph => `
+        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-950/50 text-emerald-300 border border-emerald-800/50">
+          <i class="fa-solid fa-tag text-[10px] mr-1"></i> ${ph}
+        </span>
+      `).join('');
+
+      // Columns
+      const tbody = document.getElementById("modalColumnsBody");
+      tbody.innerHTML = table.columns.map(c => {
+        const isPK = c.flags.includes("PK");
+        const isFK = c.flags.some(f => f.includes("FK"));
+
+        return `
+          <tr class="hover:bg-slate-800/40 transition">
+            <td class="py-2.5 px-3 font-semibold ${isPK ? 'text-amber-400' : isFK ? 'text-cyan-400' : 'text-slate-200'}">
+              ${isPK ? '🔑 ' : ''}${isFK ? '🔗 ' : ''}${c.name}
+            </td>
+            <td class="py-2.5 px-3 text-slate-400">${c.type}</td>
+            <td class="py-2.5 px-3">
+              ${c.flags.map(f => `<span class="inline-block px-1.5 py-0.5 rounded text-[10px] mr-1 bg-slate-800 text-slate-300 border border-slate-700">${f}</span>`).join('')}
+            </td>
+            <td class="py-2.5 px-3 font-sans text-slate-300 text-[11px] leading-relaxed">${c.desc}</td>
+          </tr>
+        `;
+      }).join('');
+
+      // Invariants
+      document.getElementById("modalInvariants").innerHTML = `
+        <strong class="text-indigo-300 block mb-1 font-semibold flex items-center gap-1.5">
+          <i class="fa-solid fa-shield-halved"></i> Invariante & Regra de Domínio (DDD):
+        </strong>
+        ${table.invariants}
+      `;
+
+      document.getElementById("detailModal").classList.remove("hidden");
+    }
+
+    function closeDetails() {
+      document.getElementById("detailModal").classList.add("hidden");
+    }
+
+    // Close on escape key
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeDetails();
+    });
+
+
+    // ====================================================================
+    // RENDER VIEW 4: FLYWAY DDL SQL VIEWER
+    // ====================================================================
+    function renderSQLTabs() {
+      const container = document.getElementById("sqlTabsContainer");
+      container.innerHTML = "";
+
+      const keys = Object.keys(SQL_SCRIPTS);
+      keys.forEach((vKey, index) => {
+        const btn = document.createElement("button");
+        btn.id = "tabSQL" + vKey;
+        btn.onclick = () => selectSQLTab(vKey);
+        btn.className = (index === 0) 
+          ? "px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-medium transition"
+          : "px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition";
+        btn.innerText = vKey;
+        container.appendChild(btn);
+      });
+
+      loadSQLContent();
+    }
+
+    function selectSQLTab(vKey) {
+      activeSQLTab = vKey;
+      Object.keys(SQL_SCRIPTS).forEach(k => {
+        const el = document.getElementById("tabSQL" + k);
+        if (el) {
+          if (k === vKey) {
+            el.className = "px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-medium transition";
+          } else {
+            el.className = "px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition";
+          }
+        }
+      });
+      loadSQLContent();
+    }
+
+    function loadSQLContent() {
+      const sql = SQL_SCRIPTS[activeSQLTab] || "-- Nenhum SQL encontrado";
+      document.getElementById("sqlContent").innerText = sql;
+      
+      // Update file name header
+      const match = sql.match(/-- (V\d+__[a-z0-9_]+\.sql)/);
+      if (match) {
+        document.getElementById("migrationFileName").innerText = match[1];
+      } else {
+        document.getElementById("migrationFileName").innerText = activeSQLTab + ".sql";
+      }
+    }
+
+    function copyCurrentSQL() {
+      const sql = SQL_SCRIPTS[activeSQLTab];
+      navigator.clipboard.writeText(sql).then(() => {
+        alert(`Script SQL (${activeSQLTab}) copiado com sucesso!`);
+      });
+    }
+  </script>
+</body>
+</html>

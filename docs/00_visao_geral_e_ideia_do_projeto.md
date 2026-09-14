@@ -154,3 +154,4 @@ Para detalhes aprofundados sobre a engenharia, consulte os documentos dedicados 
 * [Frontend Angular e Extensão Chrome Manifest V3](file:///c:/projetos/estudo%20spring/govflow/docs/architecture/06_arquitetura_frontend_e_extensao.md)
 * [Validação da Arquitetura e Guia Pre-Mortem](file:///c:/projetos/estudo%20spring/govflow/docs/architecture/08_deep_research_validacao_arquitetura_e_pitfalls.md)
 * [Modelo de Domínio e Entidades (Prefeitura, Convênios, Contratos e Medições)](file:///c:/projetos/estudo%20spring/govflow/docs/architecture/09_modelo_de_dominio_e_entidades.md)
+* [Deep Research: Ciclo de Vida Integral de Convênios Federais (Transferegov)](file:///c:/projetos/estudo%20spring/govflow/docs/architecture/10_deep_research_ciclo_de_vida_convenios.md)
