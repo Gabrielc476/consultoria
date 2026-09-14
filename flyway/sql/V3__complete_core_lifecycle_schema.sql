@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS core_schema.tb_certidoes_cauc (
     data_emissao DATE NOT NULL,
     data_validade DATE NOT NULL,
     situacao VARCHAR(30) NOT NULL DEFAULT 'REGULAR', -- 'REGULAR', 'IRREGULAR', 'EM_RISCO'
-    dias_para_vencer INTEGER GENERATED ALWAYS AS (data_validade - CURRENT_DATE) STORED,
+    dias_para_vencer INTEGER,
     s3_key_comprovante VARCHAR(500),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,

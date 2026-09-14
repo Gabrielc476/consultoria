@@ -11,9 +11,9 @@ Este repositório possui uma infraestrutura local completa baseada em Docker Com
 | **`postgres`** | `postgres:16-alpine` | `5432` | Banco relacional com databases `govflow` (App) e `evolution` (Prisma). |
 | **`flyway`** | `flyway/flyway:10-alpine` | - | Aplicação automatizada de migrations versionadas nos schemas do GovFlow. |
 | **`minio`** | `minio/minio:RELEASE...` | `9000` (API) / `9001` (Console) | Object Storage S3 compatível para mídias do WhatsApp e notas fiscais. |
-| **`minio-init`** | `minio/mc:latest` | - | Provisionamento automático dos buckets (`evolution` e `govflow-documents`). |
+| **`minio-init`** | `minio/minio:latest` | - | Provisionamento automático dos buckets (`evolution` e `govflow-documents`). |
 | **`redis`** | `redis:7-alpine` | `6379` | Cache de sessão, filas e message buffering para a Evolution API. |
-| **`evolution-api`** | `evoai/evolution-api:v2.3.7` | `8084` | Gateway RESTful/WebSocket para conexão multi-instância com o WhatsApp. |
+| **`evolution-api`** | `evoapicloud/evolution-api:v2.3.7` | `8084` | Gateway RESTful/WebSocket para conexão multi-instância com o WhatsApp. |
 
 ---
 

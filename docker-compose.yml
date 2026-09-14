@@ -71,7 +71,7 @@ services:
   # 3. MinIO (Object Storage S3-Compatible para Mídias e Documentos)
   # ----------------------------------------------------------------------------
   minio:
-    image: minio/minio:RELEASE.2024-03-30T09-41-56Z
+    image: minio/minio:latest
     container_name: govflow-minio
     restart: unless-stopped
     ports:
@@ -84,7 +84,7 @@ services:
     volumes:
       - minio_data:/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -95,7 +95,7 @@ services:
   # 3.1 MinIO Bucket Initializer (Criação automática dos Buckets de Mídia)
   # ----------------------------------------------------------------------------
   minio-init:
-    image: minio/mc:latest
+    image: minio/minio:latest
     container_name: govflow-minio-init
     restart: "no"
     depends_on:
@@ -142,7 +142,7 @@ services:
   # 5. Evolution API v2 (Gateway WhatsApp Multi-Tenant)
   # ----------------------------------------------------------------------------
   evolution-api:
-    image: evoai/evolution-api:${EVOLUTION_IMAGE_TAG:-v2.3.7}
+    image: evoapicloud/evolution-api:${EVOLUTION_IMAGE_TAG:-v2.3.7}
     container_name: govflow-evolution-api
     restart: unless-stopped
     ports:
