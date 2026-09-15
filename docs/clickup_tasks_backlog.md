@@ -63,10 +63,10 @@ Serviço de borda reativo (Spring Cloud Gateway na porta 8080) estruturado em Cl
 Núcleo transacional do GovFlow responsável pelo cadastro de Consultorias (Tenants) e Prefeituras convenentes. Utiliza Arquitetura Hexagonal com domínio puro e persistência JPA com anotação `@TenantId` nativa do Hibernate 6, garantindo isolamento total de dados entre consultorias clientes.
 
 ### Critérios de Aceite
-- [ ] Endpoints REST protegidos para cadastro e consulta de Prefeituras (`/api/v1/prefeituras`).
-- [ ] TenantInterceptor captura o header `X-Tenant-Id` e configura o contexto da thread.
-- [ ] Teste automatizado comprova que consultas do Tenant A jamais retornam dados do Tenant B.
-- [ ] Validações de CNPJ municipal e código IBGE implementadas no modelo de domínio.
+- [x] Endpoints REST protegidos para cadastro e consulta de Prefeituras (`/api/v1/prefeituras`).
+- [x] TenantInterceptor captura o header `X-Tenant-Id` e configura o contexto da thread.
+- [x] Teste automatizado comprova que consultas do Tenant A jamais retornam dados do Tenant B.
+- [x] Validações de CNPJ municipal e código IBGE implementadas no modelo de domínio.
 
 ---
 

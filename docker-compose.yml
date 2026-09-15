@@ -196,14 +196,27 @@ services:
       - govflow-network
 
   # ----------------------------------------------------------------------------
-  # 6. Echo stubs (substituem microsserviços ainda não implementados)
+  # 6. Microsserviços e Echo stubs
   # ----------------------------------------------------------------------------
-  stub-core:
-    image: nginx:1.27-alpine
-    container_name: govflow-stub-core
+  core-service:
+    build:
+      context: ./services/core-service
+      dockerfile: Dockerfile
+    container_name: govflow-core-service
     restart: unless-stopped
-    volumes:
-      - ./docker/stubs/nginx-echo.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "${CORE_PORT:-8081}:8081"
+    environment:
+      SERVER_PORT: 8081
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-govflow}?currentSchema=core_schema
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+    depends_on:
+      postgres:
+        condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
     networks:
       govflow-network:
         aliases:
@@ -256,12 +269,12 @@ services:
     environment:
       GATEWAY_PORT: 8080
       JWT_SECRET: ${JWT_SECRET:-GovFlowLocalDevJwtSecretKeyChangeMe32b!}
-      CORE_SERVICE_URI: ${CORE_SERVICE_URI:-http://stub-core:80}
+      CORE_SERVICE_URI: ${CORE_SERVICE_URI:-http://core-service:8081}
       TRANSFEREGOV_SERVICE_URI: ${TRANSFEREGOV_SERVICE_URI:-http://stub-transferegov:80}
       WHATSAPP_SERVICE_URI: ${WHATSAPP_SERVICE_URI:-http://stub-whatsapp:80}
       AI_SERVICE_URI: ${AI_SERVICE_URI:-http://stub-ai:80}
     depends_on:
-      - stub-core
+      - core-service
       - stub-transferegov
       - stub-whatsapp
       - stub-ai

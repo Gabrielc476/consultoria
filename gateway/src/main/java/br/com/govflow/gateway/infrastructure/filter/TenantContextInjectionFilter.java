@@ -26,7 +26,7 @@ public class TenantContextInjectionFilter implements GlobalFilter, Ordered {
                         headers.set(GatewayHeaders.TENANT_ID, userAuth.tenant().tenantId().toString());
                         headers.set(GatewayHeaders.USER_ID, userAuth.userId().toString());
                         if (userAuth.roles() != null && !userAuth.roles().isEmpty()) {
-                            headers.set(GatewayHeaders.USER_ROLES, String.join(",", userAuth.roles()));
+                            headers.set(GatewayHeaders.USER_ROLES, String.join(",", userAuth.roles().stream().sorted().toList()));
                         }
                     }
                 })
