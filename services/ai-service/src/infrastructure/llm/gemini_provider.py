@@ -29,7 +29,7 @@ class GeminiProvider(BaseLLMProvider):
 
     @property
     def provider_name(self) -> str:
-        return "GEMINI"
+        return "GEMMA" if "gemma" in self._model_name.lower() else "GEMINI"
 
     @property
     def model_name(self) -> str:
@@ -44,7 +44,7 @@ class GeminiProvider(BaseLLMProvider):
         prompt = EXTRACTION_PROMPT.format(
             context=prompt_context.strip() or "Sem regras few-shot adicionais."
         )
-        response = self._client.models.generate_content(
+        response = await self._client.aio.models.generate_content(
             model=self._model_name,
             contents=[
                 types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
@@ -57,5 +57,7 @@ class GeminiProvider(BaseLLMProvider):
             ),
         )
         if not response.text:
-            raise RuntimeError("Gemini retornou resposta vazia na extração do documento.")
+            raise RuntimeError(
+                f"{self.provider_name} ({self._model_name}) retornou resposta vazia na extração do documento."
+            )
         return DocumentoHabilExtraction.model_validate_json(response.text)

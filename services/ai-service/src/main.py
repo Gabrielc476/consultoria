@@ -89,18 +89,16 @@ async def health() -> dict:
     return {
         "status": "ok",
         "service": "ai-service",
+        "primaryModel": settings.gemini_primary_model,
+        "fallbackModel": settings.gemini_fallback_model,
         "geminiConfigured": bool(settings.gemini_api_key.strip()),
     }
 
 
 @app.post("/api/v1/ai/extract")
-async def extract_document(request: ExtractRequest):
+async def extract_document(request: Dict[str, Any]):
     pipeline: DocumentPipeline = app.state.pipeline
-    event = DocumentoRecebidoEvent(
-        tenantId=request.tenant_id,
-        correlationId=request.correlation_id,
-        payload=request.payload,
-    )
+    event = DocumentoRecebidoEvent.parse_from_message(request)
     result = await pipeline.run(event)
 
     publisher: Optional[RabbitMQPublisher] = getattr(app.state, "publisher", None)

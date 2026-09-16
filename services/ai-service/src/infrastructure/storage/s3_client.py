@@ -1,11 +1,19 @@
-import boto3
-from botocore.client import BaseClient
+from typing import Any
+
+try:
+    import boto3
+    from botocore.client import BaseClient
+except ImportError:  # pragma: no cover
+    boto3 = None
+    BaseClient = Any
 
 from infrastructure.config.settings import Settings
 
 
 class S3DocumentClient:
     def __init__(self, settings: Settings) -> None:
+        if boto3 is None:
+            raise RuntimeError("boto3 não está instalado no ambiente.")
         self._bucket_default = settings.minio_documents_bucket
         self._client: BaseClient = boto3.client(
             "s3",

@@ -1,6 +1,6 @@
 # GovFlow AI Service
 
-Microsserviço Python (FastAPI) de **extração multimodal de Documento Hábil** com Gemini 3.x, schema Pydantic estrito, validação matemática determinística e integração RabbitMQ/MinIO.
+Microsserviço Python (FastAPI) de **extração multimodal de Documento Hábil** com Gemini 3.7 Flash (primário) e Gemma 4 31B/32B (fallback), schema Pydantic estrito, validação matemática determinística (tolerância R$ 0,02) e integração RabbitMQ/MinIO.
 
 Arquitetura: **Clean Pipeline + Strategy Pattern** ([docs/architecture/05_arquitetura_ai_service_clean_pipeline.md](../../docs/architecture/05_arquitetura_ai_service_clean_pipeline.md)).
 
@@ -8,15 +8,16 @@ Arquitetura: **Clean Pipeline + Strategy Pattern** ([docs/architecture/05_arquit
 
 | Método | Path | Descrição |
 | --- | --- | --- |
-| `GET` | `/health` | Liveness (não exige `GEMINI_API_KEY`) |
-| `POST` | `/api/v1/ai/extract` | Extração síncrona (mesmo pipeline do consumer) |
+| `GET` | `/health` | Liveness e modelos configurados (não exige `GEMINI_API_KEY`) |
+| `POST` | `/api/v1/ai/extract` | Extração síncrona (mesmo pipeline do consumer; aceita envelope canônico ou flat do WhatsApp) |
 
-## Filas
+## Filas e Mensageria (RabbitMQ `govflow.events`)
 
-| Fila | Evento | Direção |
-| --- | --- | --- |
-| `fila.documentos.extrair` | `DocumentoRecebidoEvent` | entrada |
-| `fila.documentos.processados` | `DocumentoExtraidoEvent` | saída |
+| Fila | Routing Key | Evento | Direção |
+| --- | --- | --- | --- |
+| `fila.documentos.extrair` | `whatsapp.documento.recebido` | `DocumentoRecebidoEvent` | entrada (do WhatsApp Service) |
+| `fila.documentos.processados` | `documento.extraido` | `DocumentoExtraidoEvent` | saída (para Core Service) |
+| `fila.documentos.extrair.dlq` | `whatsapp.documento.extrair.dlq` | N/A | Dead Letter Queue (`govflow.dlx`) |
 
 ## Variáveis
 

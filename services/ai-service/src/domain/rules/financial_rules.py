@@ -7,7 +7,7 @@ from domain.schemas.events import ValidacaoMatematicaResult
 
 MONETARY_CONFIDENCE_ON_INCONSISTENCY = 0.59
 ZERO = Decimal("0.00")
-TOLERANCE = Decimal("0.00")
+TOLERANCE = Decimal("0.02")
 
 
 def parse_money(raw: str | None) -> Decimal | None:
@@ -43,12 +43,12 @@ def validate_documento_fiscal(
         extraction.alertas_inconsistencia.append(alert)
         return ValidacaoMatematicaResult(
             valor_bruto=None,
-            total_retencoes=float(total_retencoes),
-            valor_liquido_informado=_float_or_none(valor_liquido_informado),
+            total_retencoes=total_retencoes,
+            valor_liquido_informado=valor_liquido_informado,
             valor_liquido_calculado=None,
             diferenca=None,
             consistente=False,
-            tolerancia=float(TOLERANCE),
+            tolerancia=TOLERANCE,
         )
 
     valor_liquido_calculado = (valor_bruto - total_retencoes).quantize(
@@ -66,13 +66,13 @@ def validate_documento_fiscal(
         extraction.alertas_inconsistencia.append(alert)
         _downgrade_monetary_confidence(extraction)
         return ValidacaoMatematicaResult(
-            valor_bruto=float(valor_bruto),
-            total_retencoes=float(total_retencoes),
+            valor_bruto=valor_bruto,
+            total_retencoes=total_retencoes,
             valor_liquido_informado=None,
-            valor_liquido_calculado=float(valor_liquido_calculado),
+            valor_liquido_calculado=valor_liquido_calculado,
             diferenca=None,
             consistente=False,
-            tolerancia=float(TOLERANCE),
+            tolerancia=TOLERANCE,
         )
 
     diferenca = (valor_liquido_informado - valor_liquido_calculado).quantize(
@@ -92,13 +92,13 @@ def validate_documento_fiscal(
         _downgrade_monetary_confidence(extraction)
 
     return ValidacaoMatematicaResult(
-        valor_bruto=float(valor_bruto),
-        total_retencoes=float(total_retencoes),
-        valor_liquido_informado=float(valor_liquido_informado),
-        valor_liquido_calculado=float(valor_liquido_calculado),
-        diferenca=float(diferenca),
+        valor_bruto=valor_bruto,
+        total_retencoes=total_retencoes,
+        valor_liquido_informado=valor_liquido_informado,
+        valor_liquido_calculado=valor_liquido_calculado,
+        diferenca=diferenca,
         consistente=consistente,
-        tolerancia=float(TOLERANCE),
+        tolerancia=TOLERANCE,
     )
 
 
@@ -109,10 +109,6 @@ def _downgrade_monetary_confidence(extraction: DocumentoHabilExtraction) -> None
     for retencao in extraction.retencoes:
         if retencao.confianca > MONETARY_CONFIDENCE_ON_INCONSISTENCY:
             retencao.confianca = MONETARY_CONFIDENCE_ON_INCONSISTENCY
-
-
-def _float_or_none(value: Decimal | None) -> float | None:
-    return None if value is None else float(value)
 
 
 def average_field_confidence(extraction: DocumentoHabilExtraction) -> float:
@@ -128,6 +124,8 @@ def average_field_confidence(extraction: DocumentoHabilExtraction) -> float:
     ]
     if extraction.numero_empenho is not None:
         scores.append(extraction.numero_empenho.confianca)
+    if extraction.chave_acesso_nfe is not None:
+        scores.append(extraction.chave_acesso_nfe.confianca)
     scores.extend(r.confianca for r in extraction.retencoes)
     if not scores:
         return 0.0

@@ -97,10 +97,10 @@ Módulo event-driven com Strategy Pattern para integração com provedores de Wh
 Serviço Python FastAPI com Clean Pipeline e Strategy Pattern de LLMs. Consome a fila do RabbitMQ, baixa o PDF do MinIO, invoca o Gemini 3.x Flash-Lite com schema estrito (`DocumentoHabilExtraction`), extrai campos fiscais oficiais do Transferegov com coordenadas de bounding box e roda validação matemática rígida (`Valor Bruto - Retenções == Valor Líquido`). Publica o resultado no RabbitMQ.
 
 ### Critérios de Aceite
-- [ ] Extração estruturada dos dados: Tipo de Documento, Número da NF, Data de Emissão, CNPJ/Razão Social do Credor, Valor Bruto e Retenções (INSS, ISS, IRRF).
-- [ ] Retorno de coordenadas normalizadas `[ymin, xmin, ymax, xmax]` para destaque visual no frontend.
-- [ ] Regra matemática determinística sinaliza alerta se as deduções não baterem com o valor total.
-- [ ] Resultado publicado no evento `DocumentoExtraidoEvent` para consumo do Core Service.
+- [x] Extração estruturada dos dados: Tipo de Documento, Número da NF, Data de Emissão, CNPJ/Razão Social do Credor, Valor Bruto e Retenções (INSS, ISS, IRRF).
+- [x] Retorno de coordenadas normalizadas `[ymin, xmin, ymax, xmax]` para destaque visual no frontend.
+- [x] Regra matemática determinística sinaliza alerta se as deduções não baterem com o valor total.
+- [x] Resultado publicado no evento `DocumentoExtraidoEvent` para consumo do Core Service.
 
 ---
 

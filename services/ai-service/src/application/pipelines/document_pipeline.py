@@ -1,5 +1,6 @@
 import logging
 import time
+from decimal import Decimal
 from typing import Callable
 
 from domain.rules.financial_rules import average_field_confidence, validate_documento_fiscal
@@ -134,12 +135,12 @@ class DocumentPipeline:
         fallback_usado = strategy.fallback_used if strategy is not None else False
         empty_validation = ValidacaoMatematicaResult(
             valorBruto=None,
-            totalRetencoes=0.0,
+            totalRetencoes=Decimal("0.00"),
             valorLiquidoInformado=None,
             valorLiquidoCalculado=None,
             diferenca=None,
             consistente=False,
-            tolerancia=0.0,
+            tolerancia=Decimal("0.02"),
         )
         return DocumentoExtraidoEvent(
             tenantId=event.tenant_id,

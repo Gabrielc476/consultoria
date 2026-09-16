@@ -45,10 +45,4 @@ class RabbitMQConsumer:
     def _parse_event(self, message: AbstractIncomingMessage) -> DocumentoRecebidoEvent:
         payload = json.loads(message.body.decode("utf-8"))
         headers = message.headers or {}
-        if "tenantId" not in payload and headers.get("X-Tenant-Id"):
-            payload["tenantId"] = headers["X-Tenant-Id"]
-        if "correlationId" not in payload and headers.get("X-Correlation-Id"):
-            payload["correlationId"] = headers["X-Correlation-Id"]
-        event = DocumentoRecebidoEvent.model_validate(payload)
-        _ = UUID(str(event.tenant_id))
-        return event
+        return DocumentoRecebidoEvent.parse_from_message(payload, headers)

@@ -29,7 +29,7 @@ async def declare_topology(channel: AbstractChannel, settings: Settings) -> None
         durable=True,
         arguments={
             "x-dead-letter-exchange": settings.exchange_documentos_dlx,
-            "x-dead-letter-routing-key": "documento.recebido.falha",
+            "x-dead-letter-routing-key": "whatsapp.documento.extrair.dlq",
         },
     )
     await queue_extrair.bind(exchange, routing_key=settings.routing_key_recebido)

@@ -1,3 +1,5 @@
+import asyncio
+from functools import wraps
 from uuid import uuid4
 
 import pytest
@@ -10,6 +12,14 @@ from domain.schemas.events import DocumentoOrigem, DocumentoRecebidoEvent, Docum
 from infrastructure.config.settings import GeminiApiKeyMissingError, Settings
 from infrastructure.llm.fallback_provider import LLMProviderStrategy
 from infrastructure.llm.base_provider import BaseLLMProvider
+
+
+def async_test(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        return asyncio.run(f(*args, **kwargs))
+
+    return wrapper
 
 
 class FakeStorage:
@@ -88,7 +98,7 @@ def _event(key: str = "docs/nf.pdf") -> DocumentoRecebidoEvent:
     )
 
 
-@pytest.mark.asyncio
+@async_test
 async def test_pipeline_sucesso_publicavel():
     settings = Settings(GEMINI_API_KEY="test-key")
     strategy = LLMProviderStrategy(
@@ -109,7 +119,7 @@ async def test_pipeline_sucesso_publicavel():
     assert result.payload.extracao["numero_documento"]["valor"] == "0001542"
 
 
-@pytest.mark.asyncio
+@async_test
 async def test_pipeline_alerta_matematico():
     bad = _good_extraction()
     bad.valor_liquido.valor = "50.00"
@@ -132,7 +142,7 @@ async def test_pipeline_alerta_matematico():
     )
 
 
-@pytest.mark.asyncio
+@async_test
 async def test_pipeline_sem_gemini_key():
     def boom():
         raise GeminiApiKeyMissingError("GEMINI_API_KEY não configurada")
@@ -147,7 +157,7 @@ async def test_pipeline_sem_gemini_key():
     assert result.payload.processamento.erro["codigo"] == "GEMINI_API_KEY_MISSING"
 
 
-@pytest.mark.asyncio
+@async_test
 async def test_pipeline_download_falha():
     strategy = LLMProviderStrategy(
         primary=FakeLLM(_good_extraction()),
@@ -162,7 +172,7 @@ async def test_pipeline_download_falha():
     assert result.payload.processamento.status == "FALHA_DOWNLOAD"
 
 
-@pytest.mark.asyncio
+@async_test
 async def test_strategy_fallback_on_gemini_503_unavailable():
     """Remainder from test_results.json notes: fallback must cover HTTP 503."""
     primary_error = RuntimeError(
@@ -170,8 +180,8 @@ async def test_strategy_fallback_on_gemini_503_unavailable():
         "'This model is currently experiencing high demand.', 'status': 'UNAVAILABLE'}}"
     )
     strategy = LLMProviderStrategy(
-        primary=FakeLLM(error=primary_error, model="gemini-3.1-flash-lite"),
-        fallback=FakeLLM(_good_extraction(), model="gemini-3.7-flash"),
+        primary=FakeLLM(error=primary_error, name="GEMINI", model="gemini-3.7-flash"),
+        fallback=FakeLLM(_good_extraction(), name="GEMMA", model="gemma-4-31b-it"),
     )
     pipeline = DocumentPipeline(
         settings=Settings(GEMINI_API_KEY="test-key"),
@@ -181,17 +191,17 @@ async def test_strategy_fallback_on_gemini_503_unavailable():
     result = await pipeline.run(_event())
     assert result.payload.processamento.status == "SUCESSO"
     assert result.payload.processamento.fallback_usado is True
-    assert result.payload.processamento.modelo == "gemini-3.7-flash"
+    assert result.payload.processamento.modelo == "gemma-4-31b-it"
 
 
-@pytest.mark.asyncio
+@async_test
 async def test_pipeline_reports_fallback_used_when_both_models_fail_with_503():
     err = RuntimeError(
         "503 UNAVAILABLE. {'error': {'code': 503, 'status': 'UNAVAILABLE'}}"
     )
     strategy = LLMProviderStrategy(
-        primary=FakeLLM(error=err, model="gemini-3.1-flash-lite"),
-        fallback=FakeLLM(error=err, model="gemini-3.7-flash"),
+        primary=FakeLLM(error=err, name="GEMINI", model="gemini-3.7-flash"),
+        fallback=FakeLLM(error=err, name="GEMMA", model="gemma-4-31b-it"),
     )
     pipeline = DocumentPipeline(
         settings=Settings(GEMINI_API_KEY="test-key"),
@@ -201,4 +211,41 @@ async def test_pipeline_reports_fallback_used_when_both_models_fail_with_503():
     result = await pipeline.run(_event())
     assert result.payload.processamento.status == "FALHA_LLM"
     assert result.payload.processamento.fallback_usado is True
+    assert result.payload.processamento.modelo == "gemma-4-31b-it"
+
+
+@async_test
+async def test_pipeline_consumes_real_whatsapp_service_flat_event():
+    raw_whatsapp_event = {
+        "tenantId": "c0a80101-0000-0000-0000-000000000001",
+        "prefeituraId": "c0a80101-0000-0000-0000-000000000002",
+        "mensagemInboundId": "c0a80101-0000-0000-0000-000000000003",
+        "s3Bucket": "govflow-documents",
+        "s3Key": "raw/whatsapp/unidentified/2026/09/nota.pdf",
+        "mediaMimetype": "application/pdf",
+        "fileName": "nota_fiscal_01.pdf",
+        "fileSizeBytes": 80874,
+        "senderPhone": "558387514931",
+        "senderName": "Secretário de Obras",
+        "timestamp": "2026-09-16T15:25:37Z",
+    }
+    event = DocumentoRecebidoEvent.parse_from_message(raw_whatsapp_event)
+    assert str(event.tenant_id) == "c0a80101-0000-0000-0000-000000000001"
+    assert str(event.correlation_id) == "c0a80101-0000-0000-0000-000000000003"
+    assert str(event.payload.documento_id) == "c0a80101-0000-0000-0000-000000000003"
+    assert event.payload.content_type == "application/pdf"
+    assert event.payload.origem.cnpj_prefeitura is None
+
+    strategy = LLMProviderStrategy(
+        primary=FakeLLM(_good_extraction(), name="GEMINI", model="gemini-3.7-flash"),
+        fallback=FakeLLM(_good_extraction(), name="GEMMA", model="gemma-4-31b-it"),
+    )
+    pipeline = DocumentPipeline(
+        settings=Settings(GEMINI_API_KEY="test-key"),
+        storage=FakeStorage(),
+        llm_strategy_factory=lambda: strategy,
+    )
+    result = await pipeline.run(event)
+    assert result.payload.processamento.status == "SUCESSO"
     assert result.payload.processamento.modelo == "gemini-3.7-flash"
+    assert result.payload.processamento.fallback_usado is False

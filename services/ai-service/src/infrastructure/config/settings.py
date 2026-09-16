@@ -14,11 +14,11 @@ class Settings(BaseSettings):
 
     gemini_api_key: str = Field(default="", alias="GEMINI_API_KEY")
     gemini_primary_model: str = Field(
-        default="gemini-3.1-flash-lite",
+        default="gemini-3.7-flash",
         alias="GEMINI_PRIMARY_MODEL",
     )
     gemini_fallback_model: str = Field(
-        default="gemini-3.7-flash",
+        default="gemma-4-31b-it",
         alias="GEMINI_FALLBACK_MODEL",
     )
     llm_confidence_threshold: float = Field(
@@ -41,12 +41,12 @@ class Settings(BaseSettings):
     rabbitmq_password: str = Field(default="govflow123", alias="RABBITMQ_PASSWORD")
     rabbitmq_vhost: str = Field(default="/", alias="RABBITMQ_VHOST")
 
-    exchange_documentos: str = "govflow.documentos"
-    exchange_documentos_dlx: str = "govflow.documentos.dlx"
+    exchange_documentos: str = "govflow.events"
+    exchange_documentos_dlx: str = "govflow.dlx"
     queue_extrair: str = "fila.documentos.extrair"
     queue_processados: str = "fila.documentos.processados"
-    queue_dlq: str = "fila.documentos.dlq"
-    routing_key_recebido: str = "documento.recebido"
+    queue_dlq: str = "fila.documentos.extrair.dlq"
+    routing_key_recebido: str = "whatsapp.documento.recebido"
     routing_key_extraido: str = "documento.extraido"
 
     ai_service_port: int = Field(default=8000, alias="AI_SERVICE_PORT")
