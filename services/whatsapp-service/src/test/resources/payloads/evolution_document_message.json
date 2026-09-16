@@ -1,0 +1,27 @@
+{
+  "event": "messages.upsert",
+  "instance": "govflow-consultoria",
+  "data": {
+    "key": {
+      "remoteJid": "5583999999999@s.whatsapp.net",
+      "fromMe": false,
+      "id": "EVO_MSG_DOC_12345"
+    },
+    "pushName": "Cícero Lucena (Prefeito)",
+    "message": {
+      "documentMessage": {
+        "url": "http://minio:9000/evolution/doc_nf_001.pdf",
+        "mimetype": "application/pdf",
+        "title": "NF_Medicao_Asfalto_04.pdf",
+        "fileLength": "2048576",
+        "pageCount": 3,
+        "fileName": "NF_Medicao_Asfalto_04.pdf",
+        "caption": "Segue a medição e nota fiscal da pavimentação"
+      }
+    },
+    "messageType": "documentMessage",
+    "messageTimestamp": 1715001234
+  },
+  "destination": "http://whatsapp-service:8083/api/v1/whatsapp/webhook",
+  "date_time": "2026-09-16T09:00:00.000Z"
+}

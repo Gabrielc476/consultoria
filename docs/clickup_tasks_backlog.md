@@ -80,10 +80,10 @@ Núcleo transacional do GovFlow responsável pelo cadastro de Consultorias (Tena
 Módulo event-driven com Strategy Pattern para integração com provedores de WhatsApp (iniciando com Evolution API self-hosted). Recebe o webhook de mensagens, áudios e anexos (PDFs/fotos de notas e medições), faz upload em streaming diretamente para o MinIO gerando chave segura e publica o evento assíncrono `DocumentoRecebidoEvent` no RabbitMQ em menos de 80ms.
 
 ### Critérios de Aceite
-- [ ] Endpoint `POST /api/v1/whatsapp/webhook` processa mensagens com arquivos em anexo.
-- [ ] Arquivo binário transferido via streaming para o MinIO sem acúmulo em disco local.
-- [ ] Evento `DocumentoRecebidoEvent` publicado na fila `fila.documentos.extrair` do RabbitMQ.
-- [ ] Número do remetente resolvido com sucesso para a prefeitura cadastrada no banco.
+- [x] Endpoint `POST /api/v1/whatsapp/webhook` processa mensagens com arquivos em anexo.
+- [x] Arquivo binário transferido via streaming para o MinIO sem acúmulo em disco local.
+- [x] Evento `DocumentoRecebidoEvent` publicado na fila `fila.documentos.extrair` do RabbitMQ.
+- [x] Número do remetente resolvido com sucesso para a prefeitura cadastrada no banco.
 
 ---
 

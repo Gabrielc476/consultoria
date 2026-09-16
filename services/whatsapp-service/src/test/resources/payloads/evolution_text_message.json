@@ -1,0 +1,19 @@
+{
+  "event": "messages.upsert",
+  "instance": "govflow-consultoria",
+  "data": {
+    "key": {
+      "remoteJid": "5583999999999@s.whatsapp.net",
+      "fromMe": false,
+      "id": "EVO_MSG_TEXT_11223"
+    },
+    "pushName": "Cícero Lucena (Prefeito)",
+    "message": {
+      "conversation": "Bom dia, já enviei os documentos da medição de João Pessoa."
+    },
+    "messageType": "conversation",
+    "messageTimestamp": 1715009999
+  },
+  "destination": "http://whatsapp-service:8083/api/v1/whatsapp/webhook",
+  "date_time": "2026-09-16T09:10:00.000Z"
+}

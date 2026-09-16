@@ -1,0 +1,63 @@
+server:
+  port: ${SERVER_PORT:8083}
+
+spring:
+  application:
+    name: whatsapp-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:govflow}?currentSchema=whatsapp_schema}
+    username: ${SPRING_DATASOURCE_USERNAME:${POSTGRES_USER:postgres}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${POSTGRES_PASSWORD:postgres123}}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:validate}
+    properties:
+      hibernate:
+        default_schema: whatsapp_schema
+        format_sql: true
+        jdbc:
+          lob:
+            non_contextual_creation: true
+    show-sql: ${SPRING_JPA_SHOW_SQL:false}
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:${RABBITMQ_HOST:localhost}}
+    port: ${SPRING_RABBITMQ_PORT:${RABBITMQ_PORT:5672}}
+    username: ${SPRING_RABBITMQ_USERNAME:${RABBITMQ_USER:govflow}}
+    password: ${SPRING_RABBITMQ_PASSWORD:${RABBITMQ_PASSWORD:govflow123}}
+
+govflow:
+  whatsapp:
+    active-provider: ${WHATSAPP_ACTIVE_PROVIDER:EVOLUTION}
+    evolution:
+      base-url: ${EVOLUTION_API_BASE_URL:http://localhost:8084}
+      api-key: ${EVOLUTION_API_KEY:GovFlowSuperSecretApiKey2026}
+      instance-name: ${EVOLUTION_INSTANCE_NAME:govflow-consultoria}
+    s3:
+      endpoint: ${AWS_S3_ENDPOINT:http://localhost:9000}
+      region: ${AWS_S3_REGION:us-east-1}
+      access-key: ${AWS_S3_ACCESS_KEY:minioadmin}
+      secret-key: ${AWS_S3_SECRET_KEY:minioadmin123}
+      bucket-documents: ${AWS_S3_BUCKET_DOCUMENTS:govflow-documents}
+      path-style-access: true
+    rabbitmq:
+      exchange: govflow.events
+      dlx: govflow.dlx
+      queue-documentos: fila.documentos.extrair
+      routing-key-documentos: whatsapp.documento.recebido
+      queue-audios: fila.audios.transcrever
+      routing-key-audios: whatsapp.audio.recebido
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+
+logging:
+  level:
+    root: INFO
+    br.com.govflow.whatsapp: DEBUG
+    org.hibernate.SQL: INFO
