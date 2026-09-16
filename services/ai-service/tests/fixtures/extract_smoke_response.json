@@ -1,0 +1,227 @@
+{
+  "eventId": "eb3be4d0-f27f-46ee-ac68-0adf3e127ecc",
+  "eventType": "DocumentoExtraidoEvent",
+  "eventVersion": "1.0.0",
+  "occurredAt": "2026-09-16T14:52:22.569743Z",
+  "tenantId": "3324c5d9-e522-4801-aa4f-ba9f3ad8b33c",
+  "correlationId": "d65e795a-7afd-4742-9290-02f82dd89e77",
+  "payload": {
+    "documentoId": "86532cda-e5db-4fd3-a09d-5767bfa73c79",
+    "s3Bucket": "govflow-documents",
+    "s3Key": "smoke/nf_smoke.pdf",
+    "processamento": {
+      "status": "SUCESSO",
+      "provider": "GEMINI",
+      "modelo": "gemini-3.1-flash-lite",
+      "fallbackUsado": false,
+      "latenciaMs": 51306,
+      "paginasProcessadas": 1,
+      "erro": null
+    },
+    "extracao": {
+      "tipo_documento": {
+        "valor": "NOTA_FISCAL_SERVICOS",
+        "confianca": 1.0,
+        "coordenadas": {
+          "ymin": 55,
+          "xmin": 81,
+          "ymax": 68,
+          "xmax": 351,
+          "page_number": 1
+        }
+      },
+      "numero_documento": {
+        "valor": "0001542",
+        "confianca": 1.0,
+        "coordenadas": {
+          "ymin": 79,
+          "xmin": 156,
+          "ymax": 92,
+          "xmax": 236,
+          "page_number": 1
+        }
+      },
+      "data_emissao": {
+        "valor": "2026-08-20",
+        "confianca": 1.0,
+        "coordenadas": {
+          "ymin": 103,
+          "xmin": 173,
+          "ymax": 116,
+          "xmax": 276,
+          "page_number": 1
+        }
+      },
+      "valor_bruto": {
+        "valor": "1000.00",
+        "confianca": 1.0,
+        "coordenadas": {
+          "ymin": 175,
+          "xmin": 173,
+          "ymax": 188,
+          "xmax": 243,
+          "page_number": 1
+        }
+      },
+      "valor_liquido": {
+        "valor": "840.00",
+        "confianca": 1.0,
+        "coordenadas": {
+          "ymin": 247,
+          "xmin": 173,
+          "ymax": 260,
+          "xmax": 236,
+          "page_number": 1
+        }
+      },
+      "cnpj_credor": {
+        "valor": "08123456000190",
+        "confianca": 1.0,
+        "coordenadas": {
+          "ymin": 127,
+          "xmin": 173,
+          "ymax": 140,
+          "xmax": 336,
+          "page_number": 1
+        }
+      },
+      "razao_social_credor": {
+        "valor": "CONSTRUTORA EXEMPLO LTDA",
+        "confianca": 1.0,
+        "coordenadas": {
+          "ymin": 151,
+          "xmin": 173,
+          "ymax": 164,
+          "xmax": 416,
+          "page_number": 1
+        }
+      },
+      "numero_empenho": null,
+      "descricao_servico": {
+        "valor": "Medicao 02 pavimentacao",
+        "confianca": 1.0,
+        "coordenadas": {
+          "ymin": 271,
+          "xmin": 173,
+          "ymax": 284,
+          "xmax": 356,
+          "page_number": 1
+        }
+      },
+      "chave_acesso_nfe": null,
+      "retencoes": [
+        {
+          "tipo": "INSS",
+          "aliquota": 11.0,
+          "valor": 110.0,
+          "confianca": 1.0,
+          "coordenadas": {
+            "ymin": 199,
+            "xmin": 173,
+            "ymax": 212,
+            "xmax": 243,
+            "page_number": 1
+          }
+        },
+        {
+          "tipo": "ISS",
+          "aliquota": 5.0,
+          "valor": 50.0,
+          "confianca": 1.0,
+          "coordenadas": {
+            "ymin": 223,
+            "xmin": 173,
+            "ymax": 236,
+            "xmax": 236,
+            "page_number": 1
+          }
+        }
+      ],
+      "alertas_inconsistencia": [
+        "O valor líquido calculado (1000.00 - 110.00 - 50.00 = 840.00) está correto."
+      ]
+    },
+    "validacaoMatematica": {
+      "valorBruto": 1000.0,
+      "totalRetencoes": 160.0,
+      "valorLiquidoInformado": 840.0,
+      "valorLiquidoCalculado": 840.0,
+      "diferenca": 0.0,
+      "consistente": true,
+      "tolerancia": 0.0
+    },
+    "confidenceScoreGeral": 1.0,
+    "boundingBoxes": {
+      "tipo_documento": {
+        "ymin": 55,
+        "xmin": 81,
+        "ymax": 68,
+        "xmax": 351,
+        "page_number": 1
+      },
+      "numero_documento": {
+        "ymin": 79,
+        "xmin": 156,
+        "ymax": 92,
+        "xmax": 236,
+        "page_number": 1
+      },
+      "data_emissao": {
+        "ymin": 103,
+        "xmin": 173,
+        "ymax": 116,
+        "xmax": 276,
+        "page_number": 1
+      },
+      "valor_bruto": {
+        "ymin": 175,
+        "xmin": 173,
+        "ymax": 188,
+        "xmax": 243,
+        "page_number": 1
+      },
+      "valor_liquido": {
+        "ymin": 247,
+        "xmin": 173,
+        "ymax": 260,
+        "xmax": 236,
+        "page_number": 1
+      },
+      "cnpj_credor": {
+        "ymin": 127,
+        "xmin": 173,
+        "ymax": 140,
+        "xmax": 336,
+        "page_number": 1
+      },
+      "razao_social_credor": {
+        "ymin": 151,
+        "xmin": 173,
+        "ymax": 164,
+        "xmax": 416,
+        "page_number": 1
+      },
+      "descricao_servico": {
+        "ymin": 271,
+        "xmin": 173,
+        "ymax": 284,
+        "xmax": 356,
+        "page_number": 1
+      },
+      "retencoes[0]": {
+        "ymin": 199,
+        "xmin": 173,
+        "ymax": 212,
+        "xmax": 243,
+        "page_number": 1
+      },
+      "retencoes[1]": {
+        "ymin": 223,
+        "xmin": 173,
+        "ymax": 236,
+        "xmax": 236,
+        "page_number": 1
+      }
+    }
+  }
+}

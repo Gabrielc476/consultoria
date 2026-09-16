@@ -63,6 +63,288 @@
           "remains": []
         }
       ]
+    },
+    {
+      "auditedAt": "2026-09-16T12:05:00-03:00",
+      "scope": "Plano TASK-05 AI Service (Extração Multimodal) — etapas 1–5 + critérios de aceite",
+      "summary": {
+        "done": 5,
+        "partial": 0,
+        "missing": 0,
+        "blocked": 0
+      },
+      "steps": [
+        {
+          "id": "1",
+          "name": "Infra e bootstrap (RabbitMQ, ai-service, Settings, /health)",
+          "verdict": "done",
+          "evidence": [
+            "Containers rabbitmq/minio/ai-service healthy; stub-ai removido do compose",
+            "GET /health → status=ok e geminiConfigured=true",
+            "Consumer ativo: fila.documentos.extrair consumers=1"
+          ],
+          "remains": []
+        },
+        {
+          "id": "2",
+          "name": "Domínio Pydantic + financial_rules + testes",
+          "verdict": "done",
+          "evidence": [
+            "pytest: 8 passed (suite completa)",
+            "test_financial_rules: 4/4 — consistente e inconsistente com alerta/downgrade de confiança"
+          ],
+          "remains": []
+        },
+        {
+          "id": "3",
+          "name": "Adaptadores MinIO, Gemini Strategy, RabbitMQ",
+          "verdict": "done",
+          "evidence": [
+            "Upload PDF smoke/nf_smoke.pdf no bucket govflow-documents via boto3",
+            "Gemini generateContent HTTP 200 (após retry; 1ª tentativa 503 high demand)",
+            "Headers AMQP: X-Tenant-Id, X-Correlation-Id, X-Event-Type, X-Event-Version=1.0.0"
+          ],
+          "remains": []
+        },
+        {
+          "id": "4",
+          "name": "DocumentPipeline + POST /api/v1/ai/extract + DocumentoExtraidoEvent",
+          "verdict": "done",
+          "evidence": [
+            "POST /api/v1/ai/extract → 200 SUCESSO; eventType=DocumentoExtraidoEvent",
+            "Extração: NOTA_FISCAL_SERVICOS, NF 0001542, data 2026-08-20, CNPJ 08123456000190, 2 retenções",
+            "validacaoMatematica consistente=true (1000-160=840); boundingBoxes count=10",
+            "Mensagem publicada em fila.documentos.processados; consumer assíncrono também SUCESSO (corr 08519a20-…)"
+          ],
+          "remains": []
+        },
+        {
+          "id": "5",
+          "name": "Docs + bateria E2E sem UI",
+          "verdict": "done",
+          "evidence": [
+            "README-DOCKER / services/ai-service/README / .env.example presentes",
+            "Bateria reexecutada: unit + health + MinIO + Gemini REST + peek/drain RabbitMQ",
+            "Critérios de aceite TASK-05 verificados por evidência runtime nesta sessão"
+          ],
+          "remains": []
+        }
+      ],
+      "acceptanceCriteria": [
+        {
+          "id": "AC-1",
+          "name": "Extração tipada de campos fiscais",
+          "verdict": "done",
+          "evidence": [
+            "tipo/NF/data/CNPJ/razão/bruto/retenções presentes na resposta e na fila"
+          ]
+        },
+        {
+          "id": "AC-2",
+          "name": "Bounding boxes normalizadas [ymin,xmin,ymax,xmax]",
+          "verdict": "done",
+          "evidence": [
+            "bboxCount=10 no REST e na fila processados"
+          ]
+        },
+        {
+          "id": "AC-3",
+          "name": "Validador matemático determinístico",
+          "verdict": "done",
+          "evidence": [
+            "consistente=true em E2E; testes de inconsistência unitários passed"
+          ]
+        },
+        {
+          "id": "AC-4",
+          "name": "Publicação DocumentoExtraidoEvent no RabbitMQ",
+          "verdict": "done",
+          "evidence": [
+            "REST e consumer assíncrono publicaram evento com headers canônicos"
+          ]
+        }
+      ],
+      "notes": [
+        "1ª tentativa Gemini retornou 503 UNAVAILABLE; retry passou",
+        "Atualizado: FALLBACK-503 corrigido no run fix-from-evidence de 2026-09-16T12:12:00-03:00"
+      ]
+    },
+    {
+      "auditedAt": "2026-09-16T12:12:00-03:00",
+      "scope": "Fix from evidence — TASK-05 FALLBACK-503 (Gemini 503/UNAVAILABLE)",
+      "summary": {
+        "done": 1,
+        "partial": 0,
+        "missing": 0,
+        "blocked": 0
+      },
+      "steps": [
+        {
+          "id": "FALLBACK-503",
+          "name": "Fallback automatico cobre HTTP 503 / UNAVAILABLE / high demand",
+          "verdict": "done",
+          "evidence": [
+            "pre-fix: test_strategy_fallback_on_gemini_503_unavailable FAILED (FALHA_LLM); logs matched=false despite has503=true",
+            "fix: _is_transient_provider_error inclui 503, unavailable, high demand em fallback_provider.py",
+            "post-fix: mesmo teste PASSED; logs matched=true, willFallback=true, fallback gemini-3.7-flash",
+            "suite completa: pytest -q → 9 passed"
+          ],
+          "remains": []
+        }
+      ],
+      "notes": [
+        "Remainder originado da note do run TASK-05 em 2026-09-16T12:05:00-03:00",
+        "Instrumentacao de debug removida apos verificacao"
+      ]
+    },
+    {
+      "auditedAt": "2026-09-16T12:27:00-03:00",
+      "scope": "Step audit pós-debug TASK-05 — revalidação FALLBACK-503 + bateria E2E",
+      "summary": {
+        "done": 3,
+        "partial": 2,
+        "missing": 0,
+        "blocked": 0
+      },
+      "steps": [
+        {
+          "id": "1",
+          "name": "Infra bootstrap (RabbitMQ, ai-service, /health)",
+          "verdict": "done",
+          "evidence": [
+            "Containers ai-service/rabbitmq/minio healthy",
+            "GET /health → status=ok, geminiConfigured=true",
+            "Consumer fila.documentos.extrair consumers=1"
+          ],
+          "remains": []
+        },
+        {
+          "id": "2",
+          "name": "Domínio + suite pytest",
+          "verdict": "done",
+          "evidence": [
+            "pytest -v → 9 passed (financial + pipeline + FALLBACK-503)"
+          ],
+          "remains": []
+        },
+        {
+          "id": "3",
+          "name": "FALLBACK-503 no código local",
+          "verdict": "done",
+          "evidence": [
+            "test_strategy_fallback_on_gemini_503_unavailable PASSED",
+            "Matcher local: RuntimeError 503 UNAVAILABLE → True (_is_transient_provider_error)"
+          ],
+          "remains": []
+        },
+        {
+          "id": "4",
+          "name": "FALLBACK-503 no container runtime",
+          "verdict": "partial",
+          "evidence": [
+            "Container ainda com _is_rate_limit antigo (sem 503)",
+            "container_503=False vs local_503=True",
+            "E2E: 3x 502 FALHA_LLM com fallbackUsado=false sob Gemini 503"
+          ],
+          "remains": [
+            "Rebuild/redeploy: docker compose up -d --build ai-service"
+          ]
+        },
+        {
+          "id": "5",
+          "name": "Aceite E2E REST + Gemini + fila",
+          "verdict": "partial",
+          "evidence": [
+            "3 tentativas POST /api/v1/ai/extract → 502 FALHA_LLM (Gemini 503 high demand)",
+            "fila.documentos.processados vazia nesta bateria",
+            "Critérios tipados/bbox/evento não revalidados no E2E desta rodada; matemática ok via unit tests"
+          ],
+          "remains": [
+            "Após rebuild do ai-service, reexecutar E2E; sob 503 o esperado é fallbackUsado=true ou SUCESSO via gemini-3.7-flash"
+          ]
+        }
+      ],
+      "notes": [
+        "Correção FALLBACK-503 confirmada em disco/pytest, mas não implantada no container govflow-ai-service",
+        "Unit tests: 9 passed nesta sessão"
+      ]
+    },
+    {
+      "auditedAt": "2026-09-16T13:26:00-03:00",
+      "scope": "Fix from evidence — rebuild ai-service + E2E pós FALLBACK-503",
+      "summary": {
+        "done": 2,
+        "partial": 0,
+        "missing": 0,
+        "blocked": 0
+      },
+      "steps": [
+        {
+          "id": "4",
+          "name": "FALLBACK-503 no container runtime",
+          "verdict": "done",
+          "evidence": [
+            "Antes: container_503=False (_is_rate_limit antigo)",
+            "Ação: docker compose up -d --build ai-service",
+            "Depois: container_503=True (_is_transient_provider_error); /health ok"
+          ],
+          "remains": []
+        },
+        {
+          "id": "5",
+          "name": "Aceite E2E REST + Gemini + fila",
+          "verdict": "done",
+          "evidence": [
+            "POST /api/v1/ai/extract → 200 SUCESSO (attempt 2; attempt 1 Gemini 503)",
+            "ACC1 tipado True; ACC2 bbox=10; ACC3 math consistente=true; ACC4 DocumentoExtraidoEvent",
+            "Mensagem em fila.documentos.processados com status SUCESSO",
+            "pytest -q → 10 passed (incl. regressão fallback e report fallbackUsado em falha dupla)"
+          ],
+          "remains": []
+        }
+      ],
+      "notes": [
+        "Remainders do run 2026-09-16T12:27:00-03:00 fechados nesta passagem",
+        "Ajuste adicional: document_pipeline reporta fallbackUsado/modelo reais no path de falha; _run_fallback seta modelo antes da chamada"
+      ]
+    },
+    {
+      "auditedAt": "2026-09-16T13:29:00-03:00",
+      "scope": "Step audit — revalidação pós-correção remainders 4–5",
+      "summary": {
+        "done": 2,
+        "partial": 0,
+        "missing": 0,
+        "blocked": 0
+      },
+      "steps": [
+        {
+          "id": "4",
+          "name": "FALLBACK-503 no container runtime",
+          "verdict": "done",
+          "evidence": [
+            "govflow-ai-service Up (healthy); GET /health → geminiConfigured=true",
+            "container_503=True; container_429=True (_is_transient_provider_error)",
+            "_run_fallback seta last_model_name antes da chamada; pipeline usa strategy.fallback_used no path de falha"
+          ],
+          "remains": []
+        },
+        {
+          "id": "5",
+          "name": "Aceite E2E REST + Gemini + fila",
+          "verdict": "done",
+          "evidence": [
+            "POST /api/v1/ai/extract → 200 SUCESSO (attempt 1; modelo gemini-3.1-flash-lite; fallbackUsado=false)",
+            "ACC1 tipado True; ACC2 bbox=10; ACC3 math consistente=true; ACC4 DocumentoExtraidoEvent",
+            "fila.documentos.processados: DocumentoExtraidoEvent SUCESSO bbox=10",
+            "pytest -v → 10 passed"
+          ],
+          "remains": []
+        }
+      ],
+      "notes": [
+        "Confirma em runtime as correções do run 2026-09-16T13:26:00-03:00; nesta passagem Gemini respondeu sem 503"
+      ]
     }
   ]
 }

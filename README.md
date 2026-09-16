@@ -77,17 +77,30 @@ O projeto segue as práticas de **Domain-Driven Design (DDD)** e arquitetura lim
 | `frontend` | Angular 19/20 Standalone / Signals | Feature-Sliced Design (FSD) | `4200` |
 | `extension` | TypeScript / Chrome Manifest V3 | Shadow DOM & DOM Injector Strategy | - |
 
-### Entrega atual (branch `delta`) — API Gateway
+### Entrega atual (branch `delta`) — API Gateway + AI Service (TASK-05)
 
-A etapa do **API Gateway** já está implementada neste repositório. Para o administrador avaliar merge, leia o relatório de entrega:
-
-* 📦 **[`gateway/README.md`](./gateway/README.md)** — o que foi feito, decisões, como validar e escopo fora desta etapa  
+* 📦 **[`gateway/README.md`](./gateway/README.md)** — API Gateway  
+* 🤖 **[`services/ai-service/README.md`](./services/ai-service/README.md)** — extração multimodal Documento Hábil  
 * ✅ Auditoria das etapas: [`docs/audits/test_results.json`](./docs/audits/test_results.json)
 
-Subir só o gateway + stubs:
+#### Mudanças desta etapa (TASK-05 — AI Service)
+
+| Área | O que entrou |
+| :--- | :--- |
+| `services/ai-service/` | FastAPI Clean Pipeline: schema Pydantic `DocumentoHabilExtraction`, regras financeiras determinísticas, bounding boxes, Gemini 3.1 Flash-Lite + fallback 3.7 |
+| Mensageria | Consumer `fila.documentos.extrair` (`DocumentoRecebidoEvent`) → publisher `fila.documentos.processados` (`DocumentoExtraidoEvent`) |
+| Storage | Download do PDF/imagem via MinIO/S3 (`s3Bucket` + `s3Key`) |
+| API | `GET /health`, `POST /api/v1/ai/extract` (mesmo pipeline do consumer) |
+| Resiliência | Fallback em erros transitórios Gemini (503 / UNAVAILABLE / high demand); `fallbackUsado` e `modelo` reportados também em falha |
+| Compose | Serviço `ai-service` (substitui stub-ai), RabbitMQ, variáveis Gemini em `.env.example` (sem chave real no git) |
+| Testes | Unitários (pipeline, math, fallback 503) + E2E REST/fila registrados em `docs/audits/test_results.json` |
+
+Credencial local (não versionada): copie `.env.example` → `.env` e preencha `GEMINI_API_KEY`.
+
+Subir gateway + stubs + AI + RabbitMQ + MinIO:
 
 ```powershell
-docker compose up -d stub-core stub-transferegov stub-whatsapp stub-ai api-gateway
+docker compose up -d rabbitmq minio minio-init stub-core stub-transferegov stub-whatsapp ai-service api-gateway
 ```
 
 ---

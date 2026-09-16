@@ -1,6 +1,6 @@
 # ==============================================================================
-# GovFlow Infrastructure Stack: PostgreSQL 16, MinIO, Evolution API, Redis,
-# Flyway, API Gateway & echo stubs (dev)
+# GovFlow Infrastructure Stack: PostgreSQL 16, MinIO, RabbitMQ, Evolution API,
+# Redis, Flyway, AI Service, API Gateway & echo stubs (dev)
 # ==============================================================================
 
 networks:
@@ -300,12 +300,42 @@ services:
         aliases:
           - whatsapp-service
 
-  stub-ai:
-    image: nginx:1.27-alpine
-    container_name: govflow-stub-ai
+  # ----------------------------------------------------------------------------
+  # 6.4 AI Service (Extração Multimodal de Documentos Hábeis com Gemini/Gemma)
+  # ----------------------------------------------------------------------------
+  ai-service:
+    build:
+      context: ./services/ai-service
+      dockerfile: Dockerfile
+    container_name: govflow-ai-service
     restart: unless-stopped
-    volumes:
-      - ./docker/stubs/nginx-echo.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "${AI_SERVICE_PORT:-8000}:8000"
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_PRIMARY_MODEL: ${GEMINI_PRIMARY_MODEL:-gemini-3.7-flash}
+      GEMINI_FALLBACK_MODEL: ${GEMINI_FALLBACK_MODEL:-gemma-4-31b-it}
+      LLM_CONFIDENCE_THRESHOLD: ${LLM_CONFIDENCE_THRESHOLD:-0.75}
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+      MINIO_DOCUMENTS_BUCKET: ${MINIO_DOCUMENTS_BUCKET:-govflow-documents}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-govflow}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-govflow123}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     networks:
       govflow-network:
         aliases:
@@ -328,11 +358,11 @@ services:
       CORE_SERVICE_URI: ${CORE_SERVICE_URI:-http://core-service:8081}
       TRANSFEREGOV_SERVICE_URI: ${TRANSFEREGOV_SERVICE_URI:-http://stub-transferegov:80}
       WHATSAPP_SERVICE_URI: ${WHATSAPP_SERVICE_URI:-http://whatsapp-service:8083}
-      AI_SERVICE_URI: ${AI_SERVICE_URI:-http://stub-ai:80}
+      AI_SERVICE_URI: ${AI_SERVICE_URI:-http://ai-service:8000}
     depends_on:
       - core-service
       - stub-transferegov
       - whatsapp-service
-      - stub-ai
+      - ai-service
     networks:
       - govflow-network

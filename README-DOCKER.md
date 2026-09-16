@@ -1,10 +1,10 @@
-# 🐳 Guia de Infraestrutura Docker: GovFlow + Evolution API + MinIO + Flyway
+# Guia de Infraestrutura Docker: GovFlow + Evolution API + MinIO + RabbitMQ + AI Service
 
-Este repositório possui uma infraestrutura local completa baseada em Docker Compose, projetada para suportar a arquitetura corporativa do **GovFlow** e seu microsserviço de WhatsApp (`whatsapp-service`).
+Este repositório possui uma infraestrutura local completa baseada em Docker Compose, projetada para suportar a arquitetura corporativa do **GovFlow**, o microsserviço de WhatsApp (`whatsapp-service`) e o **AI Service** de extração multimodal.
 
 ---
 
-## 📦 Serviços Orquestrados
+## Serviços Orquestrados
 
 | Serviço | Imagem | Porta Host | Finalidade |
 | :--- | :--- | :--- | :--- |
@@ -13,6 +13,8 @@ Este repositório possui uma infraestrutura local completa baseada em Docker Com
 | **`minio`** | `minio/minio:RELEASE...` | `9000` (API) / `9001` (Console) | Object Storage S3 compatível para mídias do WhatsApp e notas fiscais. |
 | **`minio-init`** | `minio/minio:latest` | - | Provisionamento automático dos buckets (`evolution` e `govflow-documents`). |
 | **`redis`** | `redis:7-alpine` | `6379` | Cache de sessão, filas e message buffering para a Evolution API. |
+| **`rabbitmq`** | `rabbitmq:3.13-management-alpine` | `5672` / `15672` | Broker AMQP para `DocumentoRecebidoEvent` / `DocumentoExtraidoEvent`. |
+| **`ai-service`** | build `services/ai-service` | `8000` | Extração multimodal Gemini 3.x + validação matemática + consumer RabbitMQ. |
 | **`evolution-api`** | `evoapicloud/evolution-api:v2.3.7` | `8084` | Gateway RESTful/WebSocket para conexão multi-instância com o WhatsApp. |
 
 ---
@@ -79,7 +81,36 @@ flyway/sql/
 
 ---
 
-## 📲 Utilizando a Evolution API v2
+## RabbitMQ (mensageria)
+
+* **AMQP:** `amqp://govflow:govflow123@localhost:5672/`
+* **Management UI:** [http://localhost:15672](http://localhost:15672) (user/pass: `govflow` / `govflow123`)
+* **Filas declaradas pelo AI Service no startup:**
+  * `fila.documentos.extrair` (routing key `documento.recebido`)
+  * `fila.documentos.processados` (routing key `documento.extraido`)
+  * `fila.documentos.dlq`
+
+---
+
+## AI Service (TASK-05)
+
+* **Health:** [http://localhost:8000/health](http://localhost:8000/health)
+* **Extração síncrona:** `POST http://localhost:8000/api/v1/ai/extract`
+* **Via Gateway:** `POST http://localhost:8080/api/v1/ai/extract` (JWT obrigatório)
+* **Variável obrigatória para inferência:** defina `GEMINI_API_KEY` no `.env` (copie de `.env.example`). Sem a key, `/health` sobe normalmente e a extração retorna `FALHA_LLM` / `GEMINI_API_KEY_MISSING`.
+
+### Smoke manual (com key preenchida)
+
+1. Suba o stack: `docker compose up -d rabbitmq minio minio-init ai-service`
+2. Envie um PDF para o bucket `govflow-documents` no MinIO.
+3. Publique um `DocumentoRecebidoEvent` na exchange `govflow.documentos` com routing key `documento.recebido`, **ou** chame `POST /api/v1/ai/extract`.
+4. Confira o resultado em `fila.documentos.processados` (`DocumentoExtraidoEvent`).
+
+Detalhes do serviço: [`services/ai-service/README.md`](services/ai-service/README.md).
+
+---
+
+## Utilizando a Evolution API v2
 
 * **Endereço da API / Swagger:** [http://localhost:8084](http://localhost:8084)
 * **Chave Mestra de Autenticação (`apikey`):** `GovFlowSuperSecretApiKey2026`
