@@ -14,12 +14,16 @@ class Settings(BaseSettings):
 
     gemini_api_key: str = Field(default="", alias="GEMINI_API_KEY")
     gemini_primary_model: str = Field(
-        default="gemini-3.7-flash",
+        default="gemma-4-31b-it",
         alias="GEMINI_PRIMARY_MODEL",
     )
     gemini_fallback_model: str = Field(
-        default="gemma-4-31b-it",
+        default="gemini-3.7-flash",
         alias="GEMINI_FALLBACK_MODEL",
+    )
+    gemini_tertiary_model: str = Field(
+        default="gemini-3.1-flash-lite",
+        alias="GEMINI_TERTIARY_MODEL",
     )
     llm_confidence_threshold: float = Field(
         default=0.75,

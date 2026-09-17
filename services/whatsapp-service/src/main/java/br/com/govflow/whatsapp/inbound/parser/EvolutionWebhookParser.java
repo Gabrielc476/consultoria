@@ -149,14 +149,27 @@ public class EvolutionWebhookParser implements WebhookParserStrategy {
     }
 
     private String extractMediaUrl(JsonNode specificMediaNode, JsonNode dataNode) {
-        if (specificMediaNode.hasNonNull("url") && !specificMediaNode.path("url").asText().isBlank()) {
-            return specificMediaNode.path("url").asText();
+        // 1. Se existir base64 decodificado (enviado pela Evolution API quando webhookBase64=true), prioriza o base64
+        // pois a URL original do WhatsApp (mmg.whatsapp.net) aponta para arquivo encriptado (.enc).
+        if (dataNode.path("message").hasNonNull("base64") && !dataNode.path("message").path("base64").asText().isBlank()) {
+            return dataNode.path("message").path("base64").asText();
         }
+        if (specificMediaNode.hasNonNull("base64") && !specificMediaNode.path("base64").asText().isBlank()) {
+            return specificMediaNode.path("base64").asText();
+        }
+        if (dataNode.hasNonNull("base64") && !dataNode.path("base64").asText().isBlank()) {
+            return dataNode.path("base64").asText();
+        }
+
+        // 2. URLs de provedores ou S3 direto (ex: MinIO)
         if (specificMediaNode.hasNonNull("mediaUrl") && !specificMediaNode.path("mediaUrl").asText().isBlank()) {
             return specificMediaNode.path("mediaUrl").asText();
         }
         if (dataNode.hasNonNull("mediaUrl") && !dataNode.path("mediaUrl").asText().isBlank()) {
             return dataNode.path("mediaUrl").asText();
+        }
+        if (specificMediaNode.hasNonNull("url") && !specificMediaNode.path("url").asText().isBlank()) {
+            return specificMediaNode.path("url").asText();
         }
         if (dataNode.hasNonNull("url") && !dataNode.path("url").asText().isBlank()) {
             return dataNode.path("url").asText();

@@ -64,7 +64,7 @@ public class MediaStorageHandler {
             } else if (mediaSource != null && mediaSource.startsWith("data:")) {
                 return streamFromBase64DataUri(mediaSource, bucket, s3Key, finalMimeType);
             } else if (mediaSource != null && isBase64(mediaSource)) {
-                byte[] decoded = Base64.getDecoder().decode(mediaSource);
+                byte[] decoded = Base64.getMimeDecoder().decode(mediaSource.trim());
                 return storeFromInputStream(new ByteArrayInputStream(decoded), decoded.length, bucket, s3Key, finalMimeType);
             } else {
                 // Caso não haja URL ou base64 válida, gera objeto vazio placeholder para não abortar auditoria
@@ -142,7 +142,7 @@ public class MediaStorageHandler {
             detectedMime = parts[0].substring(parts[0].indexOf(":") + 1, parts[0].indexOf(";"));
         }
 
-        byte[] decoded = Base64.getDecoder().decode(base64Data);
+        byte[] decoded = Base64.getMimeDecoder().decode(base64Data.trim());
         return storeFromInputStream(new ByteArrayInputStream(decoded), decoded.length, bucket, s3Key, detectedMime);
     }
 
@@ -165,7 +165,7 @@ public class MediaStorageHandler {
     private boolean isBase64(String str) {
         if (str == null || str.length() < 10) return false;
         try {
-            Base64.getDecoder().decode(str.substring(0, Math.min(100, str.length())));
+            Base64.getMimeDecoder().decode(str.substring(0, Math.min(100, str.length())).trim());
             return true;
         } catch (IllegalArgumentException e) {
             return false;

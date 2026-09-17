@@ -17,9 +17,17 @@ def create_fallback_provider(settings: Settings) -> GeminiProvider:
     )
 
 
+def create_tertiary_provider(settings: Settings) -> GeminiProvider:
+    return GeminiProvider(
+        api_key=settings.require_gemini_api_key(),
+        model_name=settings.gemini_tertiary_model,
+    )
+
+
 def create_llm_strategy(settings: Settings) -> LLMProviderStrategy:
     return LLMProviderStrategy(
         primary=create_primary_provider(settings),
         fallback=create_fallback_provider(settings),
+        tertiary=create_tertiary_provider(settings),
         confidence_threshold=settings.llm_confidence_threshold,
     )

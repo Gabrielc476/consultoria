@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>NFS-e 2026/0004921-X - Prefeitura Municipal</title>
+<style>
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+  * {
+    box-sizing: border-box;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  body {
+    font-family: "Courier New", Courier, monospace, Arial, sans-serif;
+    font-size: 8pt;
+    line-height: 1.15;
+    color: #1a1a1a;
+    background-color: #faf9f6;
+    margin: 0;
+    padding: 10px;
+  }
+  .nf-wrapper {
+    position: relative;
+    border: 2px solid #222;
+    background: #fff;
+    padding: 4px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    max-width: 800px;
+    margin: 0 auto;
+    overflow: hidden;
+  }
+  .watermark {
+    position: absolute;
+    top: 48%;
+    left: 10%;
+    transform: rotate(-32deg);
+    font-size: 42pt;
+    font-weight: 900;
+    color: rgba(180, 40, 40, 0.08);
+    border: 5px dashed rgba(180, 40, 40, 0.12);
+    padding: 12px 30px;
+    letter-spacing: 6px;
+    pointer-events: none;
+    z-index: 10;
+    text-transform: uppercase;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 3px;
+  }
+  td, th {
+    border: 1px solid #444;
+    padding: 2px 4px;
+    vertical-align: top;
+    font-size: 7.5pt;
+  }
+  .header-table td {
+    border: 1px solid #222;
+  }
+  .lbl {
+    display: block;
+    font-size: 6pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: #555;
+    margin-bottom: 1px;
+    letter-spacing: -0.2px;
+  }
+  .val {
+    font-weight: bold;
+    color: #000;
+    font-size: 8pt;
+  }
+  .val-highlight {
+    font-size: 9pt;
+    font-weight: 900;
+    color: #0a0a0a;
+  }
+  .val-danger {
+    color: #990000;
+  }
+  .bg-shaded {
+    background-color: #ededed;
+  }
+  .bg-subtle {
+    background-color: #f7f7f7;
+  }
+  .title-header {
+    text-align: center;
+    font-weight: 900;
+    font-size: 9pt;
+    text-transform: uppercase;
+    line-height: 1.2;
+    padding: 4px;
+  }
+  .text-right {
+    text-align: right;
+  }
+  .text-center {
+    text-align: center;
+  }
+  .stamp-box {
+    border: 2px dashed #888;
+    padding: 3px;
+    text-align: center;
+    background: #fdfae6;
+    font-size: 6.5pt;
+    font-weight: bold;
+  }
+  .micro-text {
+    font-size: 6pt;
+    color: #444;
+    line-height: 1.05;
+    text-align: justify;
+  }
+  .barcode-sim {
+    height: 22px;
+    background: repeating-linear-gradient(
+      90deg,
+      #000,
+      #000 2px,
+      #fff 2px,
+      #fff 4px,
+      #000 4px,
+      #000 5px,
+      #fff 5px,
+      #fff 7px,
+      #000 7px,
+      #000 10px,
+      #fff 10px,
+      #fff 11px,
+      #000 11px,
+      #000 14px
+    );
+    margin: 2px 0;
+  }
+  .dense-grid th {
+    background-color: #e2e2e2;
+    font-size: 6.5pt;
+    font-weight: bold;
+    text-align: center;
+    padding: 2px;
+  }
+  .dense-grid td {
+    padding: 2px 3px;
+    font-size: 7.5pt;
+  }
+</style>
+</head>
+<body>
+
+<div class="nf-wrapper">
+  <div class="watermark">RETENÇÃO NA FONTE - LC 116/03</div>
+
+  <!-- CABEÇALHO DA PREFEITURA E CONTROLE -->
+  <table class="header-table">
+    <tr>
+      <td style="width: 18%; text-align: center; vertical-align: middle; background: #f4f4f4;">
+        <!-- Brasão Heráldico SVG -->
+        <svg width="60" height="60" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="46" fill="#f0f0f0" stroke="#222" stroke-width="3"/>
+          <path d="M 50 15 L 75 35 L 75 68 L 50 85 L 25 68 L 25 35 Z" fill="#c49a45" stroke="#111" stroke-width="2"/>
+          <path d="M 50 22 L 68 38 L 68 64 L 50 78 L 32 64 L 32 38 Z" fill="#1b4d3e" stroke="#111" stroke-width="1.5"/>
+          <rect x="42" y="40" width="16" height="25" fill="#ffffff" stroke="#000" stroke-width="1"/>
+          <circle cx="50" cy="32" r="6" fill="#d9534f"/>
+        </svg>
+        <div style="font-size: 5.5pt; font-weight: bold; margin-top: 2px;">ESTADO DA PARAÍBA</div>
+      </td>
+      <td style="width: 54%; vertical-align: middle;">
+        <div class="title-header">
+          PREFEITURA MUNICIPAL DE ITAPORANGA<br>
+          <span style="font-size: 7.5pt; font-weight: normal;">SECRETARIA DE FINANÇAS E RECEITA TRIBUTÁRIA MUNICIPAL</span><br>
+          <span style="font-size: 8.5pt; font-weight: bold;">NOTA FISCAL ELETRÔNICA DE SERVIÇOS - NFS-e</span><br>
+          <span style="font-size: 6.5pt; font-weight: normal; color: #444;">SISTEMA PÚBLICO INTEGRADO DE ARRECADAÇÃO MUNICIPAL (LEI COMPL. Nº 116/2003)</span>
+        </div>
+      </td>
+      <td style="width: 28%; background: #f9f9f9; padding: 3px;">
+        <span class="lbl">NÚMERO DA NOTA / REG. FISCAL</span>
+        <span class="val-highlight" style="font-size: 11pt; color: #003366;">00004921</span>
+        <div style="margin-top: 2px;">
+          <span class="lbl">SÉRIE / TIPO OPERAÇÃO</span>
+          <span class="val">E-01 / TRIB. MUNICÍPIO</span>
+        </div>
+        <div style="margin-top: 2px;">
+          <span class="lbl">DATA/HORA EMISSÃO</span>
+          <span class="val">20/08/2026 16:42:19</span>
+        </div>
+        <div style="margin-top: 2px;">
+          <span class="lbl">CÓD. CONTROLE / VERIFICAÇÃO</span>
+          <span class="val" style="font-size: 7pt;">9A8B-7C6D-5E4F-3G2H</span>
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- PRESTADOR DE SERVIÇOS -->
+  <table>
+    <tr class="bg-shaded">
+      <td colspan="4" style="font-weight: bold; font-size: 7pt; text-transform: uppercase;">
+        DADOS DO PRESTADOR DO SERVIÇO / CREDOR CONTRATADO
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2" style="width: 60%;">
+        <span class="lbl">RAZÃO SOCIAL DO EMISSOR / PRESTADOR</span>
+        <span class="val-highlight">ENGESOLO CONSTRUÇÕES, LOCAÇÕES E TERRAPLENAGEM LTDA</span>
+        <div style="font-size: 6.5pt; color: #555;">NOME FANTASIA: ENGESOLO ENGENHARIA CIVIL E INFRAESTRUTURA</div>
+      </td>
+      <td style="width: 20%;">
+        <span class="lbl">CNPJ / CPF</span>
+        <span class="val-highlight" style="font-size: 9pt;">24.891.733/0001-45</span>
+      </td>
+      <td style="width: 20%;">
+        <span class="lbl">INSCRIÇÃO MUNICIPAL</span>
+        <span class="val">098.412-1</span>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <span class="lbl">ENDEREÇO COMERCIAL</span>
+        <span class="val" style="font-size: 7pt;">RODOVIA PB-073, KM 04, LOTE 12 - ZONA INDUSTRIAL - SAPÉ / PB - CEP: 58340-000</span>
+      </td>
+      <td>
+        <span class="lbl">MUNICÍPIO / UF</span>
+        <span class="val">SAPÉ - PB</span>
+      </td>
+      <td>
+        <span class="lbl">TELEFONE / CONTATO</span>
+        <span class="val" style="font-size: 7pt;">(83) 3283-1190</span>
+      </td>
+    </tr>
+  </table>
+
+  <!-- TOMADOR DE SERVIÇOS (PREFEITURA) -->
+  <table>
+    <tr class="bg-shaded">
+      <td colspan="4" style="font-weight: bold; font-size: 7pt; text-transform: uppercase;">
+        DADOS DO TOMADOR DE SERVIÇOS / PAGADOR
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2" style="width: 60%;">
+        <span class="lbl">NOME / RAZÃO SOCIAL</span>
+        <span class="val-highlight">MUNICÍPIO DE ITAPORANGA - PREFEITURA MUNICIPAL</span>
+      </td>
+      <td style="width: 20%;">
+        <span class="lbl">CNPJ DO TOMADOR</span>
+        <span class="val">08.999.123/0001-77</span>
+      </td>
+      <td style="width: 20%;">
+        <span class="lbl">INSCRIÇÃO MUNICIPAL</span>
+        <span class="val">ISENTO</span>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <span class="lbl">ENDEREÇO</span>
+        <span class="val" style="font-size: 7pt;">PRAÇA JOÃO PESSOA, S/N - CENTRO - CEP: 58780-000</span>
+      </td>
+      <td>
+        <span class="lbl">MUNICÍPIO / UF</span>
+        <span class="val">ITAPORANGA - PB</span>
+      </td>
+      <td>
+        <span class="lbl">REGIME TRIBUTÁRIO</span>
+        <span class="val" style="font-size: 7pt;">ÓRGÃO PÚBLICO DIRETO</span>
+      </td>
+    </tr>
+  </table>
+
+  <!-- DISCRIMINAÇÃO DOS SERVIÇOS E MEDIÇÃO -->
+  <table>
+    <tr class="bg-shaded">
+      <td style="font-weight: bold; font-size: 7pt; text-transform: uppercase;">
+        DISCRIMINAÇÃO DETALHADA DOS SERVIÇOS PRESTADOS E REGISTROS DE CONTRATO
+      </td>
+    </tr>
+    <tr>
+      <td style="height: 120px; vertical-align: top; background: #fff; padding: 5px;">
+        <div style="font-size: 7pt; font-family: 'Courier New', monospace; line-height: 1.25;">
+          PRESTAÇÃO DE SERVIÇOS DE ENGENHARIA REFERENTE À <strong>04ª (QUARTA) MEDIÇÃO PARCIAL</strong> DAS OBRAS DE RECAPEAMENTO ASFÁLTICO E DRENAGEM SUPERFICIAL DE VIAS PÚBLICAS NO MUNICÍPIO DE ITAPORANGA/PB.<br><br>
+          • <strong>CONTRATO ADMINISTRATIVO Nº:</strong> 0112/2025-SEINFRA<br>
+          • <strong>CONVÊNIO FEDERAL TRANSFEREGOV Nº:</strong> 941203/2023 - MINISTÉRIO DAS CIDADES<br>
+          • <strong>NOTA DE EMPENHO ESTIMATIVO Nº:</strong> 2026NE00388 | PROCESSO ADM: 2026.084/PMI<br>
+          • <strong>TRECHO EXECUTADO:</strong> RUA DEOCLECIANO PEREIRA DA SILVA (ESTACAS 0+00 A 34+15) E TRAVESSA CORONEL JOSÉ DUARTE.<br><br>
+          SUBITEM DA LISTA DE SERVIÇOS ANEXA À LEI COMPLEMENTAR 116/2003: <strong>07.02</strong> - EXECUÇÃO, POR ADMINISTRAÇÃO, EMPREITADA OU SUBEMPREITADA, DE OBRAS DE CONSTRUÇÃO CIVIL, HIDRÁULICA OU ELÉTRICA E DE OUTRAS OBRAS SEMELHANTES.<br>
+          CÓDIGO DE ATIVIDADE CNAE: 42.11-1-01 - CONSTRUÇÃO DE RODOVIAS E FERROVIAS.<br>
+          LOCAL DA PRESTAÇÃO DO SERVIÇO: ITAPORANGA - PB. ISSQN RETIDO NA FONTE PELO TOMADOR CONFORME CÓDIGO TRIBUTÁRIO MUNICIPAL.
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- QUADRO DE DETALHAMENTO DE VALORES TRIBUTÁRIOS E RETENÇÕES -->
+  <table class="dense-grid">
+    <tr class="bg-shaded">
+      <th colspan="6" style="text-align: left; font-size: 7pt; text-transform: uppercase; padding: 3px;">
+        APURAÇÃO DA BASE DE CÁLCULO, IMPOSTOS MUNICIPAIS E RETENÇÕES TRIBUTÁRIAS FEDERAIS
+      </th>
+    </tr>
+    <tr>
+      <td style="width: 16%; background: #fdfdfd;">
+        <span class="lbl">TOTAL BRUTO NOTA (R$)</span>
+        <span class="val-highlight" style="font-size: 10pt;">148.500,00</span>
+      </td>
+      <td style="width: 16%; background: #fdfdfd;">
+        <span class="lbl">DEDUÇÕES LEGAIS (R$)</span>
+        <span class="val" style="color: #666;">48.500,00</span>
+      </td>
+      <td style="width: 16%; background: #fdfdfd;">
+        <span class="lbl">DESC. INCONDIC. (R$)</span>
+        <span class="val">0,00</span>
+      </td>
+      <td style="width: 18%; background: #eef5ee;">
+        <span class="lbl">BASE CÁLCULO ISS (R$)</span>
+        <span class="val-highlight">100.000,00</span>
+      </td>
+      <td style="width: 14%; background: #fdfdfd;">
+        <span class="lbl">ALÍQ. ISSQN</span>
+        <span class="val">5,00%</span>
+      </td>
+      <td style="width: 20%; background: #ffebeb;">
+        <span class="lbl">VALOR DO ISS RETIDO</span>
+        <span class="val-highlight val-danger" style="font-size: 9.5pt;">5.000,00</span>
+      </td>
+    </tr>
+  </table>
+
+  <!-- RETENÇÕES DETALHADAS -->
+  <table class="dense-grid">
+    <tr style="background: #f0f0f0;">
+      <th style="width: 16%;">RETENÇÃO INSS (11%)</th>
+      <th style="width: 16%;">RETENÇÃO IRRF (1,5%)</th>
+      <th style="width: 16%;">RETENÇÃO PIS (0,65%)</th>
+      <th style="width: 16%;">RETENÇÃO COFINS (3%)</th>
+      <th style="width: 16%;">RETENÇÃO CSLL (1%)</th>
+      <th style="width: 20%; background: #ffdede;">OUTRAS RETENÇÕES</th>
+    </tr>
+    <tr class="text-center">
+      <td>
+        <div class="lbl">CÓD. 2631</div>
+        <span class="val val-danger">R$ 11.000,00</span>
+      </td>
+      <td>
+        <div class="lbl">CÓD. 1708</div>
+        <span class="val val-danger">R$ 2.227,50</span>
+      </td>
+      <td>
+        <div class="lbl">CÓD. 5952</div>
+        <span class="val val-danger">R$ 965,25</span>
+      </td>
+      <td>
+        <div class="lbl">CÓD. 5952</div>
+        <span class="val val-danger">R$ 4.455,00</span>
+      </td>
+      <td>
+        <div class="lbl">CÓD. 5952</div>
+        <span class="val val-danger">R$ 1.485,00</span>
+      </td>
+      <td style="background: #fff0f0;">
+        <div class="lbl">DIVERSOS</div>
+        <span class="val">R$ 0,00</span>
+      </td>
+    </tr>
+  </table>
+
+  <!-- TOTAIS FINAIS: BRUTO x TOTAL RETENÇÕES x VALOR LÍQUIDO A PAGAR -->
+  <table style="margin-top: 4px; border: 2px solid #003366;">
+    <tr style="background: #f0f4f8;">
+      <td style="width: 30%; padding: 6px; text-align: center; border-right: 1px solid #003366;">
+        <span class="lbl" style="font-size: 7.5pt; color: #003366;">VALOR BRUTO DA NOTA FISCAL</span>
+        <span class="val-highlight" style="font-size: 13pt; color: #002244;">R$ 148.500,00</span>
+      </td>
+      <td style="width: 35%; padding: 6px; text-align: center; border-right: 1px solid #003366; background: #fff5f5;">
+        <span class="lbl" style="font-size: 7.5pt; color: #990000;">(-) TOTAL DAS RETENÇÕES TRIBUTÁRIAS</span>
+        <span class="val-highlight val-danger" style="font-size: 13pt;">R$ 25.132,75</span>
+        <div style="font-size: 6pt; color: #777;">ISS (5.000,00) + FEDERAIS (20.132,75)</div>
+      </td>
+      <td style="width: 35%; padding: 6px; text-align: center; background: #eaf7ea;">
+        <span class="lbl" style="font-size: 7.5pt; color: #006600;">(=) VALOR LÍQUIDO A RECEBER</span>
+        <span class="val-highlight" style="font-size: 14pt; color: #006600;">R$ 123.367,25</span>
+        <div style="font-size: 6pt; color: #444;">DEPÓSITO EM CONTA VINCULADA AO CONVÊNIO</div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- DADOS BANCÁRIOS E INFORMAÇÕES COMPLEMENTARES -->
+  <table>
+    <tr>
+      <td style="width: 70%;">
+        <span class="lbl">INFORMAÇÕES COMPLEMENTARES / FISCAIS</span>
+        <div class="micro-text">
+          1. OBRIGAÇÃO DE RETENÇÃO DO ISSQN IMPOSTA AO TOMADOR CONFORME ART. 6º DA LEI COMPL. 116/2003 E LEGISLAÇÃO MUNICIPAL.<br>
+          2. RETENÇÕES FEDERAIS (IRRF, PIS, COFINS, CSLL) EFETUADAS DE ACORDO COM A INSTRUÇÃO NORMATIVA RFB Nº 1.234/2012 E ART. 64 DA LEI 9.430/1996.<br>
+          3. DADOS BANCÁRIOS PARA CRÉDITO: BANCO DO BRASIL S/A (001) - AGÊNCIA: 0142-2 - CONTA CORRENTE: 14.890-8 - TITULARIDADE DO PRESTADOR.<br>
+          4. DOCUMENTO EMITIDO POR MEIO ELETRÔNICO HOMOLOGADO. A AUTENTICIDADE PODERÁ SER CONFERIDA NO PORTAL DA PREFEITURA ATRAVÉS DO CÓDIGO DE CONTROLE.
+        </div>
+      </td>
+      <td style="width: 30%; vertical-align: middle; text-align: center; background: #fdfdfd;">
+        <div class="stamp-box">
+          CONTROLE DE PROTOCOLO E LIQUIDAÇÃO<br>
+          <div class="barcode-sim"></div>
+          <span style="font-size: 6pt;">*2026-0004921-148500-123367*</span><br>
+          <span style="font-size: 5.5pt; color: #555;">HOMOLOGADO SISTEMA TRIBUTÁRIO</span>
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- CANHOTO DE RECEBIMENTO -->
+  <table style="border-top: 2px dashed #666; margin-top: 6px;">
+    <tr>
+      <td style="width: 75%; font-size: 6pt; border: none; padding-top: 4px;">
+        RECEBI(EMOS) DE <strong>ENGESOLO CONSTRUÇÕES, LOCAÇÕES E TERRAPLENAGEM LTDA</strong> OS SERVIÇOS CONSTANTES NA NOTA FISCAL ELETRÔNICA INDICADA AO LADO, EXECUTADOS E ACEITOS A CONTENTO DA FISCALIZAÇÃO DO MUNICÍPIO DE ITAPORANGA.
+        <div style="margin-top: 10px; display: flex; justify-content: space-between;">
+          <span>DATA DO RECEBIMENTO: _____/_____/2026</span>
+          <span>ASSINATURA DO FISCAL DO CONTRATO: _____________________________________</span>
+        </div>
+      </td>
+      <td style="width: 25%; text-align: center; border: 1px solid #444; background: #f7f7f7;">
+        <span class="lbl">NFS-e Nº</span>
+        <span class="val-highlight" style="font-size: 10pt;">00004921</span>
+      </td>
+    </tr>
+  </table>
+
+</div>
+
+</body>
+</html>

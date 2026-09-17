@@ -1,6 +1,6 @@
 import logging
 from contextlib import asynccontextmanager
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
@@ -91,6 +91,7 @@ async def health() -> dict:
         "service": "ai-service",
         "primaryModel": settings.gemini_primary_model,
         "fallbackModel": settings.gemini_fallback_model,
+        "tertiaryModel": settings.gemini_tertiary_model,
         "geminiConfigured": bool(settings.gemini_api_key.strip()),
     }
 

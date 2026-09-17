@@ -215,6 +215,27 @@ async def test_pipeline_reports_fallback_used_when_both_models_fail_with_503():
 
 
 @async_test
+async def test_strategy_cascades_to_tertiary_when_primary_and_fallback_fail():
+    err = RuntimeError(
+        "503 UNAVAILABLE. {'error': {'code': 503, 'status': 'UNAVAILABLE'}}"
+    )
+    strategy = LLMProviderStrategy(
+        primary=FakeLLM(error=err, name="GEMMA", model="gemma-4-31b-it"),
+        fallback=FakeLLM(error=err, name="GEMINI", model="gemini-3.7-flash"),
+        tertiary=FakeLLM(_good_extraction(), name="GEMINI", model="gemini-3.1-flash-lite"),
+    )
+    pipeline = DocumentPipeline(
+        settings=Settings(GEMINI_API_KEY="test-key"),
+        storage=FakeStorage(),
+        llm_strategy_factory=lambda: strategy,
+    )
+    result = await pipeline.run(_event())
+    assert result.payload.processamento.status == "SUCESSO"
+    assert result.payload.processamento.fallback_usado is True
+    assert result.payload.processamento.modelo == "gemini-3.1-flash-lite"
+
+
+@async_test
 async def test_pipeline_consumes_real_whatsapp_service_flat_event():
     raw_whatsapp_event = {
         "tenantId": "c0a80101-0000-0000-0000-000000000001",
@@ -249,3 +270,77 @@ async def test_pipeline_consumes_real_whatsapp_service_flat_event():
     assert result.payload.processamento.status == "SUCESSO"
     assert result.payload.processamento.modelo == "gemini-3.7-flash"
     assert result.payload.processamento.fallback_usado is False
+
+
+def test_gemma_json_cleaner_resilient_to_conversational_text():
+    from infrastructure.llm.gemini_provider import GeminiProvider
+
+    noisy_output = """
+    Olá! Aqui está a extração fiscal da nota solicitada:
+    ```json
+    {
+      "tipo_documento": {"valor": "NOTA_FISCAL_SERVICOS", "confianca": 0.99, "coordenadas": null},
+      "numero_documento": {"valor": "0001542", "confianca": 0.99, "coordenadas": null},
+      "data_emissao": {"valor": "2026-08-20", "confianca": 0.99, "coordenadas": null},
+      "valor_bruto": {"valor": "1000.00", "confianca": 0.99, "coordenadas": null},
+      "valor_liquido": {"valor": "840.00", "confianca": 0.99, "coordenadas": null},
+      "cnpj_credor": {"valor": "08123456000190", "confianca": 0.99, "coordenadas": null},
+      "razao_social_credor": {"valor": "CONSTRUTORA EXEMPLO LTDA", "confianca": 0.99, "coordenadas": null},
+      "numero_empenho": null,
+      "descricao_servico": {"valor": "Serviços de medição", "confianca": 0.99, "coordenadas": null},
+      "chave_acesso_nfe": null,
+      "retencoes": [
+        {
+          "tipo": "INSS",
+          "aliquota": "11.0%",
+          "valor": "110,00",
+          "confianca": 0.99,
+          "coordenadas": null
+        },
+        {
+          "tipo": "ISS",
+          "aliquota": 5.0,
+          "valor": 50.00,
+          "confianca": 0.99,
+          "coordenadas": null
+        }
+      ],
+      "alertas_inconsistencia": []
+    }
+    ```
+    Espero ter ajudado! Se precisar de algo mais, estou à disposição.
+    """
+
+    cleaned = GeminiProvider._clean_json_text(noisy_output)
+    extraction = DocumentoHabilExtraction.model_validate_json(cleaned)
+
+    assert extraction.tipo_documento.valor == "NOTA_FISCAL_SERVICOS"
+    assert extraction.numero_documento.valor == "0001542"
+    assert len(extraction.retencoes) == 2
+    assert extraction.retencoes[0].aliquota == 11.0
+    assert extraction.retencoes[0].valor == 110.00
+    assert extraction.retencoes[1].aliquota == 5.0
+
+
+def test_schema_coercion_handles_null_retencoes_and_optional_fields():
+    raw_json = """
+    {
+      "tipo_documento": {"valor": "NOTA_FISCAL_SERVICOS", "confianca": 0.99, "coordenadas": null},
+      "numero_documento": {"valor": "123", "confianca": 0.99, "coordenadas": null},
+      "data_emissao": {"valor": "2026-09-01", "confianca": 0.99, "coordenadas": null},
+      "valor_bruto": {"valor": "500.00", "confianca": 0.99, "coordenadas": null},
+      "valor_liquido": {"valor": "500.00", "confianca": 0.99, "coordenadas": null},
+      "cnpj_credor": {"valor": "12345678000199", "confianca": 0.99, "coordenadas": null},
+      "razao_social_credor": {"valor": "Firma ABC", "confianca": 0.99, "coordenadas": null},
+      "numero_empenho": null,
+      "descricao_servico": {"valor": "Consultoria", "confianca": 0.99, "coordenadas": null},
+      "chave_acesso_nfe": null,
+      "retencoes": null,
+      "alertas_inconsistencia": []
+    }
+    """
+    extraction = DocumentoHabilExtraction.model_validate_json(raw_json)
+    assert extraction.retencoes == []
+    assert extraction.numero_empenho is None
+    assert extraction.valor_bruto.valor == "500.00"
+

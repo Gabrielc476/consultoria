@@ -116,6 +116,37 @@ class EvolutionWebhookParserTest {
         assertTrue(dtoOpt.isEmpty());
     }
 
+    @Test
+    @DisplayName("Deve priorizar base64 descriptografado quando presente no payload")
+    void devePriorizarBase64QuandoDisponivel() throws Exception {
+        String json = """
+                {
+                  "event": "messages.upsert",
+                  "instance": "govflow-consultoria",
+                  "data": {
+                    "key": {
+                      "remoteJid": "5583999999999@s.whatsapp.net",
+                      "fromMe": false,
+                      "id": "MSG_DOC_B64"
+                    },
+                    "message": {
+                      "base64": "JVBERi0xLjQK...",
+                      "documentMessage": {
+                        "url": "https://mmg.whatsapp.net/v/t62/encrypted.enc",
+                        "mimetype": "application/pdf",
+                        "title": "documento.pdf"
+                      }
+                    }
+                  }
+                }
+                """;
+        JsonNode rootNode = objectMapper.readTree(json);
+
+        Optional<InboundMessageDto> dtoOpt = parser.parse(rootNode);
+        assertTrue(dtoOpt.isPresent());
+        assertEquals("JVBERi0xLjQK...", dtoOpt.get().mediaUrl());
+    }
+
     private JsonNode loadJsonPayload(String resourcePath) throws Exception {
         try (InputStream is = getClass().getClassLoader().getResourceAsStream(resourcePath)) {
             assertNotNull(is, "Arquivo de payload de teste não encontrado: " + resourcePath);
