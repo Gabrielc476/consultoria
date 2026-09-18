@@ -19,6 +19,17 @@ spring:
         dialect: org.hibernate.dialect.H2Dialect
         format_sql: true
     show-sql: true
+  rabbitmq:
+    listener:
+      simple:
+        auto-startup: false
+
+govflow:
+  rabbitmq:
+    exchange: govflow.events
+    queue-documentos-processados: fila.documentos.processados
+    routing-key-documento-pronto: documento.pronto.transferegov
+    routing-key-documento-rejeitado: documento.rejeitado
 
 logging:
   level:

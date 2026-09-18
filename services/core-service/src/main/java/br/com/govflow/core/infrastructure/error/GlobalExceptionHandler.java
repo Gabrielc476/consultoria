@@ -2,7 +2,9 @@ package br.com.govflow.core.infrastructure.error;
 
 import br.com.govflow.core.domain.exception.ConsultoriaJaCadastradaException;
 import br.com.govflow.core.domain.exception.ConsultoriaNaoEncontradaException;
+import br.com.govflow.core.domain.exception.DocumentoNaoEncontradoException;
 import br.com.govflow.core.domain.exception.DomainException;
+import br.com.govflow.core.domain.exception.InconsistenciaMatematicaException;
 import br.com.govflow.core.domain.exception.LimitePrefeiturasExcedidoException;
 import br.com.govflow.core.domain.exception.PrefeituraJaCadastradaException;
 import br.com.govflow.core.domain.exception.PrefeituraNaoEncontradaException;
@@ -47,7 +49,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
     }
 
-    @ExceptionHandler({PrefeituraNaoEncontradaException.class, ConsultoriaNaoEncontradaException.class})
+    @ExceptionHandler({PrefeituraNaoEncontradaException.class, ConsultoriaNaoEncontradaException.class, DocumentoNaoEncontradoException.class})
     public ResponseEntity<ProblemDetail> handleNotFound(DomainException ex, HttpServletRequest request) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
         problem.setTitle("Recurso Não Encontrado");
@@ -78,6 +80,22 @@ public class GlobalExceptionHandler {
         problem.setProperty("errorCode", ex.getErrorCode());
         problem.setProperty("timestamp", Instant.now());
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(problem);
+    }
+
+    @ExceptionHandler(InconsistenciaMatematicaException.class)
+    public ResponseEntity<ProblemDetail> handleInconsistenciaMatematica(InconsistenciaMatematicaException ex, HttpServletRequest request) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+        problem.setTitle("Inconsistência Matemática Fiscal");
+        problem.setType(URI.create("https://govflow.com.br/errors/inconsistencia-matematica"));
+        problem.setInstance(URI.create(request.getRequestURI()));
+        problem.setProperty("errorCode", ex.getErrorCode());
+        problem.setProperty("valorBruto", ex.getValorBruto());
+        problem.setProperty("totalDeducoes", ex.getTotalDeducoes());
+        problem.setProperty("valorLiquido", ex.getValorLiquido());
+        problem.setProperty("diferenca", ex.getDiferenca());
+        problem.setProperty("tolerancia", "0.00");
+        problem.setProperty("timestamp", Instant.now());
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(problem);
     }
 
     @ExceptionHandler(DomainException.class)

@@ -1,0 +1,1119 @@
+{
+  "info": {
+    "_postman_id": "9b1d9c12-3456-4789-abcd-ef0123456789",
+    "name": "GovFlow - TASK-06 (Agregado Documento, Aprovação Auditada & Edge Cases)",
+    "description": "Coleção completa para validação ponta a ponta e testes de edge cases da TASK-06 do GovFlow (Core Service).\n\nCobre:\n- Onboarding de Tenants (Consultorias)\n- Ingestão AMQP via RabbitMQ Management API\n- Poison pills e roteamento para DLQ\n- Isolamento multi-tenant estrito (@TenantId)\n- Regras fiscais e tolerância matemática zero\n- Trilha de auditoria auditada com diff\n- Fluxo de rejeição fundamentada\n- Idempotência no consumo assíncrono",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8081",
+      "type": "string"
+    },
+    {
+      "key": "rabbitMqUrl",
+      "value": "http://localhost:15672",
+      "type": "string"
+    },
+    {
+      "key": "tenantId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tenantBId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "documentoId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "documentoRejeicaoId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "analistaId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01. Setup & Multi-Tenancy Onboarding",
+      "description": "Criação de tenants para teste de isolamento",
+      "item": [
+        {
+          "name": "01 - Cadastrar Consultoria A (Tenant Principal)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code é 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.collectionVariables.set('tenantId', json.id);",
+                  "console.log('Tenant A configurado:', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var randomSuffix = Math.floor(Math.random() * 8999 + 1000);",
+                  "pm.variables.set('cnpjA', '11.222.333/0001-' + (randomSuffix % 90 + 10));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cnpj\": \"12.345.678/0001-95\",\n  \"razaoSocial\": \"Consultoria Alpha Gestao Publica Ltda\",\n  \"nomeFantasia\": \"Alpha Gestao\",\n  \"emailContato\": \"contato@alphagestao.gov.br\",\n  \"telefoneContato\": \"83999990001\",\n  \"plano\": \"ENTERPRISE\",\n  \"limitePrefeituras\": 20\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/consultorias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "consultorias"
+              ]
+            }
+          }
+        },
+        {
+          "name": "02 - Cadastrar Consultoria B (Tenant Concorrente para Teste de Invasão)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code é 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.collectionVariables.set('tenantBId', json.id);",
+                  "console.log('Tenant B configurado:', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cnpj\": \"98.765.432/0001-98\",\n  \"razaoSocial\": \"Consultoria Beta Auditoria Publica S/A\",\n  \"nomeFantasia\": \"Beta Auditoria\",\n  \"emailContato\": \"contato@betaauditoria.gov.br\",\n  \"telefoneContato\": \"83988880002\",\n  \"plano\": \"PRO\",\n  \"limitePrefeituras\": 5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/consultorias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "consultorias"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02. Ingestão AMQP & Edge Cases de Mensageria",
+      "description": "Publicação via RabbitMQ Management API para validar listeners, idempotência e DLQ",
+      "item": [
+        {
+          "name": "03 - RabbitMQ: Publicar Documento Extraído Válido (Tenant A)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var docId = pm.variables.replaceIn('{{$guid}}');",
+                  "var eventId = pm.variables.replaceIn('{{$guid}}');",
+                  "pm.collectionVariables.set('documentoId', docId);",
+                  "pm.variables.set('tempDocId', docId);",
+                  "pm.variables.set('tempEventId', eventId);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Mensagem roteada com sucesso no RabbitMQ', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.routed).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "govflow",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "govflow123",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"properties\": {\n    \"delivery_mode\": 2\n  },\n  \"routing_key\": \"documento.extraido\",\n  \"payload\": \"{\\\"eventId\\\": \\\"{{tempEventId}}\\\", \\\"eventType\\\": \\\"DocumentoExtraidoEvent\\\", \\\"version\\\": \\\"1.0.0\\\", \\\"timestamp\\\": \\\"2026-09-17T20:00:00Z\\\", \\\"tenantId\\\": \\\"{{tenantId}}\\\", \\\"correlationId\\\": \\\"{{tempDocId}}\\\", \\\"payload\\\": {\\\"documentoId\\\": \\\"{{tempDocId}}\\\", \\\"s3Bucket\\\": \\\"govflow-bucket\\\", \\\"s3Key\\\": \\\"docs/nf000123.pdf\\\", \\\"nomeArquivoOriginal\\\": \\\"nota_fiscal_servico_000123.pdf\\\", \\\"contentType\\\": \\\"application/pdf\\\", \\\"tamanhoBytes\\\": 204800, \\\"extracao\\\": {\\\"tipo_documento\\\": {\\\"valor\\\": \\\"NOTA_FISCAL_SERVICOS\\\", \\\"confianca\\\": 0.99}, \\\"numero_documento\\\": {\\\"valor\\\": \\\"000123\\\", \\\"confianca\\\": 0.98}, \\\"serie_documento\\\": {\\\"valor\\\": \\\"1\\\", \\\"confianca\\\": 0.95}, \\\"data_emissao\\\": {\\\"valor\\\": \\\"2026-05-10\\\", \\\"confianca\\\": 0.97}, \\\"cnpj_credor\\\": {\\\"valor\\\": \\\"12345678000195\\\", \\\"confianca\\\": 0.99}, \\\"razao_social_credor\\\": {\\\"valor\\\": \\\"Construtora Progresso Ltda\\\", \\\"confianca\\\": 0.98}, \\\"descricao_servico\\\": {\\\"valor\\\": \\\"Reforma e pavimenta\\\\u00e7\\\\u00e3o asf\\\\u00e1ltica\\\", \\\"confianca\\\": 0.95}, \\\"valor_bruto\\\": {\\\"valor\\\": \\\"10000.00\\\", \\\"confianca\\\": 0.99}, \\\"valor_liquido\\\": {\\\"valor\\\": \\\"8900.00\\\", \\\"confianca\\\": 0.99}, \\\"retencoes\\\": [{\\\"tipo\\\": \\\"INSS\\\", \\\"aliquota\\\": 8.0, \\\"valor\\\": 800.0, \\\"confianca\\\": 0.98}, {\\\"tipo\\\": \\\"ISS\\\", \\\"aliquota\\\": 3.0, \\\"valor\\\": 300.0, \\\"confianca\\\": 0.98}]}, \\\"validacao\\\": {\\\"consistente\\\": true, \\\"totalRetencoes\\\": 1100.0, \\\"valorBruto\\\": 10000.0, \\\"valorLiquidoInformado\\\": 8900.0}, \\\"scoreConfianca\\\": 0.98, \\\"boundingBoxes\\\": {\\\"numero_documento\\\": [0.12, 0.45, 0.15, 0.6], \\\"valor_bruto\\\": [0.75, 0.7, 0.78, 0.88]}}}\",\n  \"payload_encoding\": \"string\"\n}"
+            },
+            "url": {
+              "raw": "{{rabbitMqUrl}}/api/exchanges/%2F/govflow.events/publish",
+              "host": [
+                "{{rabbitMqUrl}}"
+              ],
+              "path": [
+                "api",
+                "exchanges",
+                "%2F",
+                "govflow.events",
+                "publish"
+              ]
+            }
+          }
+        },
+        {
+          "name": "04 - RabbitMQ Edge Case: Mensagem sem TenantId (Poison Pill -> Desvio para DLQ)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "govflow",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "govflow123",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"properties\": {\n    \"delivery_mode\": 2\n  },\n  \"routing_key\": \"documento.extraido\",\n  \"payload\": \"{\\\"eventId\\\": \\\"11111111-2222-3333-4444-555555555555\\\", \\\"eventType\\\": \\\"DocumentoExtraidoEvent\\\", \\\"tenantId\\\": null, \\\"correlationId\\\": \\\"22222222-3333-4444-5555-666666666666\\\", \\\"payload\\\": {\\\"documentoId\\\": \\\"22222222-3333-4444-5555-666666666666\\\", \\\"s3Bucket\\\": \\\"govflow-bucket\\\", \\\"s3Key\\\": \\\"docs/corrompido.pdf\\\"}}\",\n  \"payload_encoding\": \"string\"\n}"
+            },
+            "url": {
+              "raw": "{{rabbitMqUrl}}/api/exchanges/%2F/govflow.events/publish",
+              "host": [
+                "{{rabbitMqUrl}}"
+              ],
+              "path": [
+                "api",
+                "exchanges",
+                "%2F",
+                "govflow.events",
+                "publish"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03. Consultas & Blindagem Multi-Tenancy",
+      "description": "Testes dos endpoints GET e verificação estrita do isolamento multi-tenant",
+      "item": [
+        {
+          "name": "05 - GET Documento por ID (Happy Path - Tenant A)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code é 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.test('Status é EM_CONFERENCIA e possui scores por campo', function () {",
+                  "    pm.expect(json.status).to.eql('EM_CONFERENCIA');",
+                  "    pm.expect(json.extracaoSugerida.scoresConfiancaCampos).to.be.an('object');",
+                  "    pm.expect(json.boundingBoxes).to.be.an('object');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/documentos/{{documentoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "documentos",
+                "{{documentoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "06 - GET Edge Case: Header X-Tenant-Id Ausente (400 Bad Request)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Retorna 400 Bad Request por ausência do Tenant', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.type).to.include('missing-tenant');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/documentos/{{documentoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "documentos",
+                "{{documentoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "07 - GET Edge Case: Header X-Tenant-Id com Formato Inválido (400 Bad Request)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Retorna 400 Bad Request por UUID malformado', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.type).to.include('invalid-tenant');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-Id",
+                "value": "uuid-invalido-12345"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/documentos/{{documentoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "documentos",
+                "{{documentoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "08 - GET Edge Case: Tentativa de Invasão Cross-Tenant (Tenant B tenta ler doc do Tenant A -> 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Retorna 404 Not Found garantindo blindagem de visibilidade multi-tenant', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.errorCode).to.eql('DOCUMENTO_NAO_ENCONTRADO');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantBId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/documentos/{{documentoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "documentos",
+                "{{documentoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "09 - GET Listar Documentos Paginado com Filtro de Status (Tenant A)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code é 200 OK com totalElements >= 1', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.totalElements).to.be.at.least(1);",
+                  "    pm.expect(json.content).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/documentos?page=0&size=10&status=EM_CONFERENCIA",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "documentos"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                },
+                {
+                  "key": "status",
+                  "value": "EM_CONFERENCIA"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "10 - GET Listar Documentos no Tenant B (Zero Leakage Garantido -> totalElements: 0)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Tenant B não enxerga nenhum documento do Tenant A', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.totalElements).to.eql(0);",
+                  "    pm.expect(json.content).to.be.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantBId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/documentos?page=0&size=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "documentos"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04. Ciclo de Aprovação Auditada & Edge Cases Fiscais",
+      "description": "Validação de tolerância zero, consistência de retenções, DV de CNPJ e transição de estado",
+      "item": [
+        {
+          "name": "11 - PUT Edge Case: Aprovação sem Analista (400 Bad Request)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Retorna 400 Bad Request por ausência do analista responsável', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"analistaId\": null,\n  \"revisao\": {\n    \"tipoDocumento\": \"NOTA_FISCAL_SERVICOS\",\n    \"numeroDocumento\": \"000123\",\n    \"dataEmissao\": \"2026-05-10\",\n    \"cnpjCredor\": \"12.345.678/0001-95\",\n    \"razaoSocialCredor\": \"Construtora Progresso Ltda\",\n    \"valorBruto\": 10000.0,\n    \"valorTotalDeducoes\": 0.0,\n    \"valorLiquido\": 10000.0,\n    \"retencoes\": []\n  },\n  \"observacao\": \"Tentando aprovar sem analista\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/documentos/{{documentoId}}/aprovar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "documentos",
+                "{{documentoId}}",
+                "aprovar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "12 - PUT Edge Case: CNPJ com Dígitos Verificadores Inválidos (422 Unprocessable)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var analistaId = pm.variables.replaceIn('{{$guid}}');",
+                  "pm.collectionVariables.set('analistaId', analistaId);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Retorna 422 Unprocessable Entity por CNPJ inválido', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.errorCode).to.eql('CAMPOS_OBRIGATORIOS_AUSENTES_OU_INVALIDOS');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"analistaId\": \"{{analistaId}}\",\n  \"revisao\": {\n    \"tipoDocumento\": \"NOTA_FISCAL_SERVICOS\",\n    \"numeroDocumento\": \"000123\",\n    \"serieDocumento\": \"1\",\n    \"dataEmissao\": \"2026-05-10\",\n    \"cnpjCredor\": \"12.345.678/0001-90\",\n    \"razaoSocialCredor\": \"Construtora Progresso Ltda\",\n    \"valorBruto\": 10000.0,\n    \"valorTotalDeducoes\": 0.0,\n    \"valorLiquido\": 10000.0,\n    \"retencoes\": []\n  },\n  \"observacao\": \"CNPJ com DV inv\\u00e1lido\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/documentos/{{documentoId}}/aprovar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "documentos",
+                "{{documentoId}}",
+                "aprovar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "13 - PUT Edge Case: Inconsistência Matemática (Bruto - Deduções != Líquido -> 422 com RFC 7807)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Retorna 422 com payload de diagnóstico da Inconsistência Matemática', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.errorCode).to.eql('INCONSISTENCIA_MATEMATICA_FISCAL');",
+                  "    pm.expect(json.tolerancia).to.eql('0.00');",
+                  "    pm.expect(json.diferenca).to.eql(500);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"analistaId\": \"{{analistaId}}\",\n  \"revisao\": {\n    \"tipoDocumento\": \"NOTA_FISCAL_SERVICOS\",\n    \"numeroDocumento\": \"000123\",\n    \"dataEmissao\": \"2026-05-10\",\n    \"cnpjCredor\": \"12.345.678/0001-95\",\n    \"razaoSocialCredor\": \"Construtora Progresso Ltda\",\n    \"valorBruto\": 10000.0,\n    \"valorTotalDeducoes\": 1000.0,\n    \"valorLiquido\": 8500.0,\n    \"retencoes\": []\n  },\n  \"observacao\": \"Bruto 10000 - Deducoes 1000 != Liquido 8500\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/documentos/{{documentoId}}/aprovar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "documentos",
+                "{{documentoId}}",
+                "aprovar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "14 - PUT Edge Case: Divergência entre Soma das Retenções e Deduções Declaradas (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Retorna 422 por divergência entre retenções e deduções', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.errorCode).to.eql('INCONSISTENCIA_MATEMATICA_FISCAL');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"analistaId\": \"{{analistaId}}\",\n  \"revisao\": {\n    \"tipoDocumento\": \"NOTA_FISCAL_SERVICOS\",\n    \"numeroDocumento\": \"000123\",\n    \"dataEmissao\": \"2026-05-10\",\n    \"cnpjCredor\": \"12.345.678/0001-95\",\n    \"razaoSocialCredor\": \"Construtora Progresso Ltda\",\n    \"valorBruto\": 10000.0,\n    \"valorTotalDeducoes\": 1100.0,\n    \"valorLiquido\": 8900.0,\n    \"retencoes\": [\n      {\n        \"tipo\": \"INSS\",\n        \"aliquota\": 8.0,\n        \"valor\": 800.0\n      }\n    ]\n  },\n  \"observacao\": \"Retencao soma 800 mas deducoes informadas sao 1100\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/documentos/{{documentoId}}/aprovar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "documentos",
+                "{{documentoId}}",
+                "aprovar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "15 - PUT Aprovar Documento com Sucesso (Happy Path - Tolerância Zero & Retenções Integradas)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code é 200 OK e transiciona para PRONTO_PARA_TRANSFEREGOV', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.status).to.eql('PRONTO_PARA_TRANSFEREGOV');",
+                  "    pm.expect(json.dadosRevisao.valorLiquido).to.eql(8900.0);",
+                  "    pm.expect(json.dadosRevisao.retencoes).to.have.lengthOf(2);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"analistaId\": \"{{analistaId}}\",\n  \"revisao\": {\n    \"tipoDocumento\": \"NOTA_FISCAL_SERVICOS\",\n    \"numeroDocumento\": \"000123\",\n    \"serieDocumento\": \"1\",\n    \"chaveAcessoNfe\": \"35240512345678000195550010000001231000001234\",\n    \"dataEmissao\": \"2026-05-10\",\n    \"cnpjCredor\": \"12.345.678/0001-95\",\n    \"razaoSocialCredor\": \"Construtora Progresso Ltda\",\n    \"descricaoServico\": \"Reforma e pavimenta\\u00e7\\u00e3o asf\\u00e1ltica (1\\u00aa Medi\\u00e7\\u00e3o)\",\n    \"numeroEmpenho\": \"2026NE00045\",\n    \"valorBruto\": 10000.0,\n    \"valorTotalDeducoes\": 1100.0,\n    \"valorLiquido\": 8900.0,\n    \"retencoes\": [\n      {\n        \"tipo\": \"INSS\",\n        \"aliquota\": 8.0,\n        \"valor\": 800.0\n      },\n      {\n        \"tipo\": \"ISS\",\n        \"aliquota\": 3.0,\n        \"valor\": 300.0\n      }\n    ],\n    \"observacao\": \"Valores conferidos e homologados conforme Boletim de Medi\\u00e7\\u00e3o 01.\"\n  },\n  \"observacao\": \"Aprova\\u00e7\\u00e3o auditada pronta para envio ao Transferegov\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/documentos/{{documentoId}}/aprovar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "documentos",
+                "{{documentoId}}",
+                "aprovar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "16 - PUT Edge Case: Transição de Estado Inválida (Aprovar documento já aprovado -> 422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Retorna 422 por estado inválido (documento já finalizado)', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.errorCode).to.eql('DOCUMENTO_ESTADO_INVALIDO');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"analistaId\": \"{{analistaId}}\",\n  \"revisao\": {\n    \"tipoDocumento\": \"NOTA_FISCAL_SERVICOS\",\n    \"numeroDocumento\": \"000123\",\n    \"dataEmissao\": \"2026-05-10\",\n    \"cnpjCredor\": \"12.345.678/0001-95\",\n    \"razaoSocialCredor\": \"Construtora Progresso Ltda\",\n    \"valorBruto\": 10000.0,\n    \"valorTotalDeducoes\": 1100.0,\n    \"valorLiquido\": 8900.0,\n    \"retencoes\": [\n      {\n        \"tipo\": \"INSS\",\n        \"aliquota\": 8.0,\n        \"valor\": 800.0\n      },\n      {\n        \"tipo\": \"ISS\",\n        \"aliquota\": 3.0,\n        \"valor\": 300.0\n      }\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/documentos/{{documentoId}}/aprovar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "documentos",
+                "{{documentoId}}",
+                "aprovar"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05. Trilha de Auditoria & Diff",
+      "description": "Verificação da persistência e do comparativo entre os dados da IA e as correções do analista",
+      "item": [
+        {
+          "name": "17 - GET Consultar Auditoria com Diff de Campos Alterados",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Retorna histórico com registro de APROVACAO e diff preenchido', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('array').that.is.not.empty;",
+                  "    var audit = json[0];",
+                  "    pm.expect(audit.acao).to.eql('APROVACAO');",
+                  "    pm.expect(audit.analistaId).to.eql(pm.collectionVariables.get('analistaId'));",
+                  "    pm.expect(audit.diff).to.be.an('object');",
+                  "    pm.expect(audit.valoresRevisados).to.be.an('object');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/documentos/{{documentoId}}/auditoria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "documentos",
+                "{{documentoId}}",
+                "auditoria"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06. Fluxo de Rejeição & Idempotência",
+      "description": "Testes do endpoint PUT /rejeitar e tolerância a redelivery do RabbitMQ",
+      "item": [
+        {
+          "name": "18 - RabbitMQ: Ingerir Segundo Documento para Teste de Rejeição",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var docRejId = pm.variables.replaceIn('{{$guid}}');",
+                  "var eventRejId = pm.variables.replaceIn('{{$guid}}');",
+                  "pm.collectionVariables.set('documentoRejeicaoId', docRejId);",
+                  "pm.variables.set('tempDocRejId', docRejId);",
+                  "pm.variables.set('tempEventRejId', eventRejId);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Segundo documento publicado com sucesso', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "govflow",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "govflow123",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"properties\": {\n    \"delivery_mode\": 2\n  },\n  \"routing_key\": \"documento.extraido\",\n  \"payload\": \"{\\\"eventId\\\": \\\"{{tempEventRejId}}\\\", \\\"eventType\\\": \\\"DocumentoExtraidoEvent\\\", \\\"version\\\": \\\"1.0.0\\\", \\\"timestamp\\\": \\\"2026-09-17T20:05:00Z\\\", \\\"tenantId\\\": \\\"{{tenantId}}\\\", \\\"correlationId\\\": \\\"{{tempDocRejId}}\\\", \\\"payload\\\": {\\\"documentoId\\\": \\\"{{tempDocRejId}}\\\", \\\"s3Bucket\\\": \\\"govflow-bucket\\\", \\\"s3Key\\\": \\\"docs/nf_rejeitar.pdf\\\", \\\"nomeArquivoOriginal\\\": \\\"nota_rasurada_errada.pdf\\\", \\\"contentType\\\": \\\"application/pdf\\\", \\\"tamanhoBytes\\\": 102400, \\\"extracao\\\": {\\\"tipo_documento\\\": {\\\"valor\\\": \\\"NOTA_FISCAL_SERVICOS\\\", \\\"confianca\\\": 0.5}, \\\"numero_documento\\\": {\\\"valor\\\": \\\"999999\\\", \\\"confianca\\\": 0.4}, \\\"data_emissao\\\": {\\\"valor\\\": \\\"2026-05-12\\\", \\\"confianca\\\": 0.6}, \\\"cnpj_credor\\\": {\\\"valor\\\": \\\"12345678000195\\\", \\\"confianca\\\": 0.55}, \\\"razao_social_credor\\\": {\\\"valor\\\": \\\"Fornecedor Fantasma\\\", \\\"confianca\\\": 0.45}, \\\"valor_bruto\\\": {\\\"valor\\\": \\\"50000.00\\\", \\\"confianca\\\": 0.5}, \\\"valor_liquido\\\": {\\\"valor\\\": \\\"50000.00\\\", \\\"confianca\\\": 0.5}, \\\"retencoes\\\": []}, \\\"scoreConfianca\\\": 0.5, \\\"boundingBoxes\\\": {}}}\",\n  \"payload_encoding\": \"string\"\n}"
+            },
+            "url": {
+              "raw": "{{rabbitMqUrl}}/api/exchanges/%2F/govflow.events/publish",
+              "host": [
+                "{{rabbitMqUrl}}"
+              ],
+              "path": [
+                "api",
+                "exchanges",
+                "%2F",
+                "govflow.events",
+                "publish"
+              ]
+            }
+          }
+        },
+        {
+          "name": "19 - PUT Edge Case: Rejeição com Motivo em Branco (400 Bad Request)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Retorna 400 por justificativa obrigatória ausente', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"analistaId\": \"{{analistaId}}\",\n  \"motivo\": \"   \"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/documentos/{{documentoRejeicaoId}}/rejeitar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "documentos",
+                "{{documentoRejeicaoId}}",
+                "rejeitar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "20 - PUT Rejeitar Documento com Sucesso (Happy Path)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code é 200 OK e transiciona para REJEITADO', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.status).to.eql('REJEITADO');",
+                  "    pm.expect(json.motivoRejeicao).to.include('rasurada');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-Tenant-Id",
+                "value": "{{tenantId}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"analistaId\": \"{{analistaId}}\",\n  \"motivo\": \"Documento reprovado: nota fiscal com rasura ileg\\u00edvel na descri\\u00e7\\u00e3o e CNPJ inconsistente com o contrato.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/documentos/{{documentoRejeicaoId}}/rejeitar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "documentos",
+                "{{documentoRejeicaoId}}",
+                "rejeitar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "21 - RabbitMQ Edge Case: Redelivery em Documento Finalizado (Garantia de Idempotência)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Mensagem redelivered aceita e ignorada de forma idempotente sem loop', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "govflow",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "govflow123",
+                  "type": "string"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"properties\": {\n    \"delivery_mode\": 2,\n    \"headers\": {\n      \"redelivered\": true\n    }\n  },\n  \"routing_key\": \"documento.extraido\",\n  \"payload\": \"{\\\"eventId\\\": \\\"99999999-8888-7777-6666-555555555555\\\", \\\"eventType\\\": \\\"DocumentoExtraidoEvent\\\", \\\"tenantId\\\": \\\"{{tenantId}}\\\", \\\"correlationId\\\": \\\"{{documentoRejeicaoId}}\\\", \\\"payload\\\": {\\\"documentoId\\\": \\\"{{documentoRejeicaoId}}\\\", \\\"s3Bucket\\\": \\\"govflow-bucket\\\", \\\"s3Key\\\": \\\"docs/nf_rejeitar.pdf\\\"}}\",\n  \"payload_encoding\": \"string\"\n}"
+            },
+            "url": {
+              "raw": "{{rabbitMqUrl}}/api/exchanges/%2F/govflow.events/publish",
+              "host": [
+                "{{rabbitMqUrl}}"
+              ],
+              "path": [
+                "api",
+                "exchanges",
+                "%2F",
+                "govflow.events",
+                "publish"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

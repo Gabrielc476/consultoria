@@ -21,6 +21,18 @@ spring:
           lob:
             non_contextual_creation: true
     show-sql: ${SPRING_JPA_SHOW_SQL:false}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:govflow}
+    password: ${RABBITMQ_PASSWORD:govflow123}
+
+govflow:
+  rabbitmq:
+    exchange: ${RABBITMQ_EXCHANGE:govflow.events}
+    queue-documentos-processados: ${RABBITMQ_QUEUE_DOCUMENTOS_PROCESSADOS:fila.documentos.processados}
+    routing-key-documento-pronto: ${RABBITMQ_ROUTING_KEY_DOCUMENTO_PRONTO:documento.pronto.transferegov}
+    routing-key-documento-rejeitado: ${RABBITMQ_ROUTING_KEY_DOCUMENTO_REJEITADO:documento.rejeitado}
 
 springdoc:
   api-docs:

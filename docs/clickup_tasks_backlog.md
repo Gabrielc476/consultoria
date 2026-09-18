@@ -114,10 +114,10 @@ Serviço Python FastAPI com Clean Pipeline e Strategy Pattern de LLMs. Consome a
 Recebe o evento de extração da IA e transiciona o Documento para o estado `EM_CONFERENCIA`. Disponibiliza endpoints para consulta dos dados extraídos com índices de confiança e para a aprovação/rejeição pelo analista da consultoria, persistindo a trilha de auditoria completa com comparativo (*diff*) de campos alterados manualmente.
 
 ### Critérios de Aceite
-- [ ] Listener RabbitMQ atualiza a entidade `Documento` com os campos sugeridos pela IA.
-- [ ] Endpoint `GET /api/v1/documentos/{id}` retorna o payload consolidado para a interface.
-- [ ] Endpoint `PUT /api/v1/documentos/{id}/aprovar` valida obrigatoriedades e altera status para `PRONTO_PARA_TRANSFEREGOV`.
-- [ ] Registro detalhado de auditoria salvo na tabela `tb_auditorias_revisao`.
+- [x] Listener RabbitMQ atualiza a entidade `Documento` com os campos sugeridos pela IA.
+- [x] Endpoint `GET /api/v1/documentos/{id}` retorna o payload consolidado para a interface.
+- [x] Endpoint `PUT /api/v1/documentos/{id}/aprovar` valida obrigatoriedades e altera status para `PRONTO_PARA_TRANSFEREGOV`.
+- [x] Registro detalhado de auditoria salvo na tabela `tb_auditorias_revisao`.
 
 ---
 

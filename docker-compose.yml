@@ -241,8 +241,14 @@ services:
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USER:-govflow}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-govflow123}
     depends_on:
       postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
       flyway:
         condition: service_completed_successfully
