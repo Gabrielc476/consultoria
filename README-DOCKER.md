@@ -15,6 +15,10 @@ Este repositório possui uma infraestrutura local completa baseada em Docker Com
 | **`redis`** | `redis:7-alpine` | `6379` | Cache de sessão, filas e message buffering para a Evolution API. |
 | **`rabbitmq`** | `rabbitmq:3.13-management-alpine` | `5672` / `15672` | Broker AMQP para `DocumentoRecebidoEvent` / `DocumentoExtraidoEvent`. |
 | **`ai-service`** | build `services/ai-service` | `8000` | Extração multimodal Gemini 3.x + validação matemática + consumer RabbitMQ. |
+| **`core-service`** | build `services/core-service` | `8081` | Agregado de documentos, revisão humana, auditoria e streaming S3. |
+| **`whatsapp-service`** | build `services/whatsapp-service` | `8083` | Webhook de mensagens, streaming para MinIO e eventos RabbitMQ. |
+| **`api-gateway`** | build `gateway` | `8080` | Ponto de entrada unificado, roteamento e autenticação JWT. |
+| **`frontend`** | build `frontend` (Nginx) | `4200` | SPA Angular 19/20 com tela de conferência lado a lado (FSD + Signals). |
 | **`evolution-api`** | `evoapicloud/evolution-api:v2.3.7` | `8084` | Gateway RESTful/WebSocket para conexão multi-instância com o WhatsApp. |
 
 ---
@@ -147,6 +151,20 @@ curl -X POST "http://localhost:8084/message/sendText/govflow-consultoria" `
     "text": "Olá! Teste de integração do GovFlow via Evolution API v2."
   }'
 ```
+
+---
+
+## 💻 Acesso ao Frontend Angular (TASK-07)
+
+* **URL de Acesso:** [http://localhost:4200](http://localhost:4200)
+* **Credenciais Demo:**
+  * **E-mail:** `analista@govflow.com.br`
+  * **Senha:** `govflow123`
+  * *(Ou utilize o botão de 1-clique "Preencher com Dados de Demonstração" na tela de login)*
+* **Recursos do Container:**
+  * Servido por **Nginx 1.27 Alpine** com roteamento SPA (`try_files $uri /index.html`).
+  * Proxy reverso transparente em `/api/` encaminhando requisições para o `api-gateway:8080`.
+  * Visualização lado a lado de PDFs e fotos de notas fiscais com destaque retangular das extrações da IA.
 
 ---
 

@@ -373,3 +373,20 @@ services:
       - ai-service
     networks:
       - govflow-network
+
+  # ----------------------------------------------------------------------------
+  # 8. Frontend SPA (Angular 19/20 - Tela de Conferência e Cockpit Fiscal)
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: govflow-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-4200}:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - govflow-network
+
