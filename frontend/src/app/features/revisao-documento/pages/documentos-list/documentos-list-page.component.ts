@@ -122,7 +122,8 @@ export class DocumentosListPageComponent implements OnInit {
     this.carregando.set(true);
     this.api.listarDocumentos(undefined, 0, 50).subscribe({
       next: (page) => {
-        this.documentos.set(page.items || []);
+        const lista = page.items || page.content || [];
+        this.documentos.set(lista);
         this.carregando.set(false);
       },
       error: () => {

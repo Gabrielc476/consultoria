@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
 import {
   Documento,
@@ -28,7 +28,21 @@ export class RevisaoApiService {
       params = params.set('status', status);
     }
 
-    return this.http.get<PageResponse<Documento>>(API_ENDPOINTS.DOCUMENTOS.BASE, { params });
+    return this.http.get<any>(API_ENDPOINTS.DOCUMENTOS.BASE, { params }).pipe(
+      map(res => {
+        const items = res?.content || res?.items || [];
+        return {
+          content: items,
+          items: items,
+          totalElements: res?.totalElements ?? items.length,
+          totalPages: res?.totalPages ?? 1,
+          pageNumber: res?.pageNumber ?? page,
+          pageSize: res?.pageSize ?? size,
+          page: res?.pageNumber ?? page,
+          size: res?.pageSize ?? size
+        };
+      })
+    );
   }
 
   public aprovarDocumento(id: string, payload: AprovarDocumentoPayload): Observable<Documento> {

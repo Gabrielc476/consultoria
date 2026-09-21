@@ -6,10 +6,13 @@ export interface BoundingBox {
 }
 
 export interface RetencaoItem {
-  tipoTributo: string;
+  tipoTributo?: string;
+  tipo?: string;
   aliquotaPercentual?: number | null;
+  aliquota?: number | null;
   baseCalculo?: number | null;
-  valorRetido: number;
+  valorRetido?: number;
+  valor?: number;
 }
 
 export interface ExtracaoSugerida {
@@ -79,9 +82,12 @@ export interface DocumentoResumo {
 }
 
 export interface PageResponse<T> {
-  items: T[];
-  page: number;
-  size: number;
+  content?: T[];
+  items?: T[];
+  pageNumber?: number;
+  pageSize?: number;
+  page?: number;
+  size?: number;
   totalElements: number;
   totalPages: number;
 }

@@ -98,7 +98,8 @@ export class RevisaoStateService {
   public carregarFila(): void {
     this.api.listarDocumentos('EM_CONFERENCIA', 0, 50).subscribe({
       next: (page) => {
-        const resumos: DocumentoResumo[] = (page.items || []).map(d => ({
+        const lista = page.items || page.content || [];
+        const resumos: DocumentoResumo[] = lista.map(d => ({
           id: d.id,
           nomeArquivoOriginal: d.nomeArquivoOriginal,
           status: d.status,
@@ -292,11 +293,11 @@ export class RevisaoStateService {
         valorBruto: Number(sugestao.valorBruto) || 0,
         valorTotalDeducoes: Number(sugestao.valorTotalDeducoes) || 0,
         valorLiquido: Number(sugestao.valorLiquido) || 0,
-        retencoes: (sugestao.retencoes || []).map(r => ({
-          tipoTributo: r.tipoTributo,
-          aliquotaPercentual: r.aliquotaPercentual,
+        retencoes: (sugestao.retencoes || []).map((r: any) => ({
+          tipoTributo: r.tipoTributo || r.tipo || 'OUTROS',
+          aliquotaPercentual: r.aliquotaPercentual ?? r.aliquota ?? 0,
           baseCalculo: r.baseCalculo,
-          valorRetido: Number(r.valorRetido) || 0
+          valorRetido: Number(r.valorRetido ?? r.valor) || 0
         })),
         memorizarRegraFornecedor: false
       });
