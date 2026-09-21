@@ -131,10 +131,10 @@ Recebe o evento de extração da IA e transiciona o Documento para o estado `EM_
 Interface web SPA em Angular 19/20 utilizando Feature-Sliced Design e Signals. Implementa a tela crítica de conferência lado a lado: 50% da tela para o visualizador de PDF (`ngx-extended-pdf-viewer`) com marcação retangular das bounding boxes onde a IA leu cada dado, e 50% para o formulário estruturado de campos com semáforo de confiança (verde, amarelo e vermelho). Permite aprovar ou editar campos em menos de 30 segundos.
 
 ### Critérios de Aceite
-- [ ] Visualização do documento original em PDF/imagem com zoom e navegação de páginas.
-- [ ] Coordenadas da IA destacam visualmente as caixas dos campos sobre o PDF.
-- [ ] Campos de formulário conectados com Signals e recálculo automático de retenções.
-- [ ] Botão de aprovação chama a API do Core Service e avança para o próximo documento pendente.
+- [x] Visualização do documento original em PDF/imagem com zoom e navegação de páginas.
+- [x] Coordenadas da IA destacam visualmente as caixas dos campos sobre o PDF.
+- [x] Campos de formulário conectados com Signals e recálculo automático de retenções.
+- [x] Botão de aprovação chama a API do Core Service e avança para o próximo documento pendente.
 
 ---
 

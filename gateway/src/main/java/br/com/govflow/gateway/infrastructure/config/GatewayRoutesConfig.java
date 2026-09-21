@@ -20,6 +20,9 @@ public class GatewayRoutesConfig {
                 .route("core-service", r -> r
                         .path("/api/v1/core/**")
                         .uri(routes.getCoreUri()))
+                .route("core-documentos", r -> r
+                        .path("/api/v1/documentos/**")
+                        .uri(routes.getCoreUri()))
                 .route("core-prefeituras", r -> r
                         .path("/api/v1/prefeituras/**")
                         .uri(routes.getCoreUri()))

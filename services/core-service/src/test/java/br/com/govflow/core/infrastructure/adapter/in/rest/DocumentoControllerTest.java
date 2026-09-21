@@ -52,6 +52,9 @@ class DocumentoControllerTest {
     @MockBean
     private RejeitarDocumentoUseCase rejeitarUseCase;
 
+    @MockBean
+    private br.com.govflow.core.application.port.in.ObterArquivoDocumentoUseCase obterArquivoUseCase;
+
     private UUID tenantId;
 
     @BeforeEach
@@ -357,5 +360,27 @@ class DocumentoControllerTest {
                 .andExpect(jsonPath("$.valorBruto").value(1000.00))
                 .andExpect(jsonPath("$.diferenca").value(200.00))
                 .andExpect(jsonPath("$.tolerancia").value("0.00"));
+    }
+
+    @Test
+    @DisplayName("Deve retornar streaming de arquivo PDF com sucesso")
+    void deveRetornarArquivoPdfComSucesso() throws Exception {
+        UUID docId = UUID.randomUUID();
+        byte[] conteudo = "%PDF-1.4 teste".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+
+        when(obterArquivoUseCase.obterArquivo(docId)).thenReturn(
+                new br.com.govflow.core.application.port.in.ObterArquivoDocumentoUseCase.ArquivoConteudo(
+                        new java.io.ByteArrayInputStream(conteudo),
+                        "application/pdf",
+                        "nota_fiscal.pdf",
+                        conteudo.length
+                )
+        );
+
+        mockMvc.perform(get("/api/v1/documentos/" + docId + "/arquivo")
+                        .header("X-Tenant-Id", tenantId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Content-Type", "application/pdf"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Content-Disposition", org.hamcrest.Matchers.containsString("nota_fiscal.pdf")));
     }
 }

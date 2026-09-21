@@ -16,6 +16,11 @@ import br.com.govflow.core.infrastructure.adapter.in.rest.dto.response.PageRespo
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import br.com.govflow.core.application.port.in.ObterArquivoDocumentoUseCase;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,15 +35,18 @@ public class DocumentoController {
     private final ConsultarDocumentoUseCase consultarUseCase;
     private final AprovarDocumentoUseCase aprovarUseCase;
     private final RejeitarDocumentoUseCase rejeitarUseCase;
+    private final ObterArquivoDocumentoUseCase obterArquivoUseCase;
     private final DocumentoRestMapper mapper;
 
     public DocumentoController(ConsultarDocumentoUseCase consultarUseCase,
                                AprovarDocumentoUseCase aprovarUseCase,
                                RejeitarDocumentoUseCase rejeitarUseCase,
+                               ObterArquivoDocumentoUseCase obterArquivoUseCase,
                                DocumentoRestMapper mapper) {
         this.consultarUseCase = consultarUseCase;
         this.aprovarUseCase = aprovarUseCase;
         this.rejeitarUseCase = rejeitarUseCase;
+        this.obterArquivoUseCase = obterArquivoUseCase;
         this.mapper = mapper;
     }
 
@@ -48,6 +56,34 @@ public class DocumentoController {
         Documento doc = consultarUseCase.buscarPorId(id)
                 .orElseThrow(() -> new DocumentoNaoEncontradoException(id));
         return ResponseEntity.ok(mapper.toResponse(doc));
+    }
+
+    @GetMapping("/{id}/arquivo")
+    @Operation(summary = "Obter arquivo original do documento", description = "Retorna o arquivo binário (PDF ou imagem) para visualização lado a lado")
+    public ResponseEntity<InputStreamResource> obterArquivo(@PathVariable UUID id) {
+        ObterArquivoDocumentoUseCase.ArquivoConteudo arquivo = obterArquivoUseCase.obterArquivo(id);
+
+        MediaType mediaType = MediaType.APPLICATION_PDF;
+        try {
+            if (arquivo.contentType() != null && !arquivo.contentType().isBlank()) {
+                mediaType = MediaType.parseMediaType(arquivo.contentType());
+            }
+        } catch (Exception e) {
+            mediaType = MediaType.APPLICATION_OCTET_STREAM;
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(mediaType);
+        headers.setContentDisposition(ContentDisposition.inline()
+                .filename(arquivo.nomeArquivoOriginal())
+                .build());
+        if (arquivo.tamanhoBytes() > 0) {
+            headers.setContentLength(arquivo.tamanhoBytes());
+        }
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(new InputStreamResource(arquivo.inputStream()));
     }
 
     @GetMapping

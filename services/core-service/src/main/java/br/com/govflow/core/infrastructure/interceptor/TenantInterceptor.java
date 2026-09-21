@@ -56,6 +56,7 @@ public class TenantInterceptor implements HandlerInterceptor {
                 || uri.startsWith("/v3/api-docs")
                 || uri.startsWith("/actuator")
                 || uri.startsWith("/error")
+                || uri.startsWith("/api/v1/auth")
                 || (uri.startsWith("/api/v1/consultorias") && "POST".equalsIgnoreCase(method));
     }
 }
