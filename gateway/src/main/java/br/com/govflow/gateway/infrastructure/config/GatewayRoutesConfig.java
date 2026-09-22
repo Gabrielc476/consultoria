@@ -38,6 +38,9 @@ public class GatewayRoutesConfig {
                 .route("transferegov-service", r -> r
                         .path("/api/v1/transferegov/**")
                         .uri(routes.getTransferegovUri()))
+                .route("swagger-ui", r -> r
+                        .path("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**")
+                        .uri(routes.getCoreUri()))
                 .build();
     }
 }

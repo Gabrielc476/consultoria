@@ -14,6 +14,9 @@ import br.com.govflow.core.infrastructure.adapter.in.rest.dto.response.Auditoria
 import br.com.govflow.core.infrastructure.adapter.in.rest.dto.response.DocumentoResponse;
 import br.com.govflow.core.infrastructure.adapter.in.rest.dto.response.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import br.com.govflow.core.application.port.in.ObterArquivoDocumentoUseCase;
@@ -58,9 +61,30 @@ public class DocumentoController {
         return ResponseEntity.ok(mapper.toResponse(doc));
     }
 
-    @GetMapping("/{id}/arquivo")
-    @Operation(summary = "Obter arquivo original do documento", description = "Retorna o arquivo binário (PDF ou imagem) para visualização lado a lado")
-    public ResponseEntity<InputStreamResource> obterArquivo(@PathVariable UUID id) {
+    @GetMapping(value = "/{id}/arquivo", produces = {
+            MediaType.APPLICATION_PDF_VALUE,
+            MediaType.IMAGE_JPEG_VALUE,
+            MediaType.IMAGE_PNG_VALUE,
+            MediaType.APPLICATION_OCTET_STREAM_VALUE
+    })
+    @Operation(
+            summary = "Obter arquivo original do documento (PDF / Imagem)",
+            description = "Retorna o arquivo binário armazenado no MinIO (S3) para visualização lado a lado no visualizador de documentos",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Arquivo binário recuperado do MinIO com sucesso",
+                            content = {
+                                    @Content(mediaType = "application/pdf", schema = @Schema(type = "string", format = "binary")),
+                                    @Content(mediaType = "image/jpeg", schema = @Schema(type = "string", format = "binary")),
+                                    @Content(mediaType = "image/png", schema = @Schema(type = "string", format = "binary")),
+                                    @Content(mediaType = "application/octet-stream", schema = @Schema(type = "string", format = "binary"))
+                            }
+                    ),
+                    @ApiResponse(responseCode = "404", description = "Documento não encontrado")
+            }
+    )
+    public ResponseEntity<byte[]> obterArquivo(@PathVariable UUID id) {
         ObterArquivoDocumentoUseCase.ArquivoConteudo arquivo = obterArquivoUseCase.obterArquivo(id);
 
         MediaType mediaType = MediaType.APPLICATION_PDF;
@@ -72,18 +96,23 @@ public class DocumentoController {
             mediaType = MediaType.APPLICATION_OCTET_STREAM;
         }
 
+        byte[] bytes;
+        try (var in = arquivo.inputStream()) {
+            bytes = in.readAllBytes();
+        } catch (Exception e) {
+            throw new RuntimeException("Falha ao ler conteúdo binário do documento " + id, e);
+        }
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(mediaType);
         headers.setContentDisposition(ContentDisposition.inline()
                 .filename(arquivo.nomeArquivoOriginal())
                 .build());
-        if (arquivo.tamanhoBytes() > 0) {
-            headers.setContentLength(arquivo.tamanhoBytes());
-        }
+        headers.setContentLength(bytes.length);
 
         return ResponseEntity.ok()
                 .headers(headers)
-                .body(new InputStreamResource(arquivo.inputStream()));
+                .body(bytes);
     }
 
     @GetMapping

@@ -41,6 +41,12 @@ public class AuthenticationGlobalFilter implements GlobalFilter, Ordered {
         }
 
         String authHeader = exchange.getRequest().getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+        if (authHeader == null || authHeader.isBlank()) {
+            String tokenParam = exchange.getRequest().getQueryParams().getFirst("token");
+            if (tokenParam != null && !tokenParam.isBlank()) {
+                authHeader = "Bearer " + tokenParam;
+            }
+        }
 
         return authenticateRequestUseCase.execute(authHeader)
                 .flatMap(userAuth -> {

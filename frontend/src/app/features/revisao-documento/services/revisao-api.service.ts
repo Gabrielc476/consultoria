@@ -56,4 +56,10 @@ export class RevisaoApiService {
   public getUrlArquivo(id: string): string {
     return API_ENDPOINTS.DOCUMENTOS.ARQUIVO(id);
   }
+
+  public baixarArquivo(id: string): Observable<Blob> {
+    return this.http.get(API_ENDPOINTS.DOCUMENTOS.ARQUIVO(id), {
+      responseType: 'blob'
+    });
+  }
 }

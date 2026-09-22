@@ -21,6 +21,14 @@ class RoutePolicyTest {
     }
 
     @Test
+    void publicSwaggerPathsAreOpen() {
+        assertTrue(RoutePolicy.isPublicPath("/swagger-ui.html"));
+        assertTrue(RoutePolicy.isPublicPath("/swagger-ui/index.html"));
+        assertTrue(RoutePolicy.isPublicPath("/v3/api-docs"));
+        assertTrue(RoutePolicy.isPublicPath("/v3/api-docs/swagger-config"));
+    }
+
+    @Test
     void protectedPathsRequireAuth() {
         assertFalse(RoutePolicy.isPublicPath("/api/v1/core/prefeituras"));
         assertFalse(RoutePolicy.isPublicPath("/api/v1/whatsapp/messages"));

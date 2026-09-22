@@ -38,6 +38,8 @@ export class RevisaoStateService {
 
   // Sinais de Estado
   public readonly documentoAtual = signal<Documento | null>(null);
+  public readonly arquivoBlobUrl = signal<string | null>(null);
+  public readonly carregandoArquivo = signal<boolean>(false);
   public readonly filaPendentes = signal<DocumentoResumo[]>([]);
   public readonly campoEmFoco = signal<string | null>(null);
   public readonly formulario = signal<DadosRevisaoAnalista>(FORMULARIO_INICIAL);
@@ -82,6 +84,7 @@ export class RevisaoStateService {
 
   public carregarDocumento(id: string): void {
     this.carregando.set(true);
+    this.carregarArquivoBinario(id);
     this.api.getDocumento(id).subscribe({
       next: (doc) => {
         this.documentoAtual.set(doc);
@@ -91,6 +94,26 @@ export class RevisaoStateService {
       error: (err) => {
         this.toast.erro('Falha ao Carregar Documento', 'Não foi possível buscar os dados do documento.');
         this.carregando.set(false);
+      }
+    });
+  }
+
+  public carregarArquivoBinario(id: string): void {
+    if (this.arquivoBlobUrl()) {
+      URL.revokeObjectURL(this.arquivoBlobUrl()!);
+      this.arquivoBlobUrl.set(null);
+    }
+    this.carregandoArquivo.set(true);
+    this.api.baixarArquivo(id).subscribe({
+      next: (blob) => {
+        const pdfBlob = blob.type === 'application/pdf' ? blob : new Blob([blob], { type: 'application/pdf' });
+        const objectUrl = URL.createObjectURL(pdfBlob);
+        this.arquivoBlobUrl.set(objectUrl);
+        this.carregandoArquivo.set(false);
+      },
+      error: (err) => {
+        console.error('Falha ao baixar arquivo binário:', err);
+        this.carregandoArquivo.set(false);
       }
     });
   }
@@ -191,11 +214,19 @@ export class RevisaoStateService {
 
     this.salvando.set(true);
 
+    const retencoesMapeadas = (this.formulario().retencoes || []).map(r => ({
+      tipo: r.tipoTributo || (r as any).tipo || 'OUTROS',
+      valor: Number(r.valorRetido ?? (r as any).valor) || 0,
+      aliquota: Number(r.aliquotaPercentual ?? (r as any).aliquota) || 0
+    }));
+
     const payload = {
       analistaId,
       revisao: {
         ...this.formulario(),
-        valorTotalDeducoes: this.valorTotalDeducoes()
+        cnpjCredor: this.formulario().cnpjCredor?.trim() || '',
+        valorTotalDeducoes: this.valorTotalDeducoes(),
+        retencoes: retencoesMapeadas
       },
       observacao: 'Aprovado via interface de conferência lado a lado GovFlow'
     };

@@ -17,7 +17,13 @@ export const problemDetailsInterceptor: HttpInterceptorFn = (req, next) => {
         }
       } else if (error.status === 422 || error.status === 400) {
         const problem = error.error;
-        const msg = problem?.detail || problem?.message || 'Dados inválidos na requisição.';
+        let msg = problem?.detail || problem?.message || 'Dados inválidos na requisição.';
+        if (problem?.invalidParams && typeof problem.invalidParams === 'object') {
+          const fieldMsgs = Object.entries(problem.invalidParams).map(([k, v]) => `${v}`).join('; ');
+          if (fieldMsgs) {
+            msg = fieldMsgs;
+          }
+        }
         toastService.erro('Erro de Validação', msg);
       } else if (error.status >= 500) {
         toastService.erro('Falha no Servidor', 'Ocorreu um erro interno de processamento.');

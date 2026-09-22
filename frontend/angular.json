@@ -36,7 +36,7 @@
               {
                 "glob": "**/*",
                 "input": "node_modules/ngx-extended-pdf-viewer/assets",
-                "output": "/assets"
+                "output": "assets"
               }
             ],
             "styles": [

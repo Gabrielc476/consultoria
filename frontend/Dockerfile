@@ -19,6 +19,10 @@ RUN npm run build -- --configuration production
 # ==============================================================================
 FROM nginx:1.27-alpine
 
+# Habilita MIME types corretos para módulos .mjs e templates .ftl (pdf.js / ngx-extended-pdf-viewer)
+RUN sed -i 's/application\/javascript                           js;/text\/javascript                                  js mjs;\n    application\/javascript                           js mjs;/' /etc/nginx/mime.types && \
+    sed -i 's/text\/plain                                       txt;/text\/plain                                       txt ftl;/' /etc/nginx/mime.types
+
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist/frontend/browser /usr/share/nginx/html
 

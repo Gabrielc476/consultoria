@@ -32,7 +32,8 @@ import { ToastContainerComponent } from '../../../../shared/ui/toast/toast-conta
         <!-- Lado Esquerdo: Visualizador de PDF / Imagem com Bounding Boxes (50%) -->
         <section class="w-1/2 h-full border-r border-gov-slate-800 flex flex-col relative overflow-hidden">
           <app-media-workspace
-            [url]="urlArquivo()"
+            class="flex flex-col flex-1 h-full min-h-0 w-full overflow-hidden"
+            [url]="state.arquivoBlobUrl() || ''"
             [mimeType]="state.documentoAtual()?.contentType"
             [filename]="state.documentoAtual()?.nomeArquivoOriginal"
             [boxes]="state.boundingBoxes()"
@@ -45,7 +46,7 @@ import { ToastContainerComponent } from '../../../../shared/ui/toast/toast-conta
 
         <!-- Lado Direito: Formulário Estruturado e Retenções (50%) -->
         <section class="w-1/2 h-full flex flex-col relative overflow-hidden">
-          <app-extraction-form></app-extraction-form>
+          <app-extraction-form class="flex flex-col flex-1 h-full min-h-0 w-full overflow-hidden"></app-extraction-form>
         </section>
 
         <!-- Loading Overlay -->
@@ -85,8 +86,7 @@ export class RevisaoDetalhePageComponent implements OnInit {
   }
 
   public urlArquivo(): string {
-    const doc = this.state.documentoAtual();
-    return doc ? this.api.getUrlArquivo(doc.id) : '';
+    return this.state.arquivoBlobUrl() || '';
   }
 
   public onCaixaSelecionadaNoPdf(campo: string): void {
@@ -103,6 +103,23 @@ export class RevisaoDetalhePageComponent implements OnInit {
 
   @HostListener('window:keydown', ['$event'])
   public handleKeyboardShortcuts(event: KeyboardEvent): void {
+    const target = event.target as HTMLElement | null;
+    const isEditingText = target && (
+      target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.tagName === 'SELECT' ||
+      target.isContentEditable
+    );
+
+    // Barra de Espaço: Aprovação Expressa (apenas se não estiver digitando em campo de texto)
+    if ((event.code === 'Space' || event.key === ' ') && !isEditingText) {
+      if (!this.state.salvando() && !this.state.modalRejeicaoAberto() && !this.state.drawerFilaAberto()) {
+        event.preventDefault();
+        this.state.aprovar();
+        return;
+      }
+    }
+
     // Ctrl + Enter: Aprovar
     if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
       event.preventDefault();

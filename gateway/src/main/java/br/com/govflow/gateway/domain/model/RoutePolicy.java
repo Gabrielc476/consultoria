@@ -9,7 +9,9 @@ public final class RoutePolicy {
 
     private static final List<String> PUBLIC_PREFIXES = List.of(
             "/api/v1/auth/",
-            "/api/v1/whatsapp/webhook/"
+            "/api/v1/whatsapp/webhook/",
+            "/swagger-ui/",
+            "/v3/api-docs/"
     );
 
     private RoutePolicy() {
@@ -21,7 +23,10 @@ public final class RoutePolicy {
         }
         String normalized = path.endsWith("/") ? path : path + "/";
         // Exact match without trailing slash variants
-        if ("/api/v1/auth".equals(path) || "/api/v1/whatsapp/webhook".equals(path)) {
+        if ("/api/v1/auth".equals(path)
+                || "/api/v1/whatsapp/webhook".equals(path)
+                || "/swagger-ui.html".equals(path)
+                || "/v3/api-docs".equals(path)) {
             return true;
         }
         for (String prefix : PUBLIC_PREFIXES) {
