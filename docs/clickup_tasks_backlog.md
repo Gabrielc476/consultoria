@@ -167,9 +167,9 @@ Extensão oficial do Chrome (Manifest V3 em TypeScript). Detecta automaticamente
 Job agendado matinal (`@Scheduled`) no `transferegov-service` que consome em streaming os 65 arquivos ZIP/CSV públicos disponibilizados diariamente no Azure Blob Storage do governo. Descompacta em memória e filtra exclusivamente os convênios da Paraíba (`UF = 'PB'`) ou dos CNPJs convenentes cadastrados, atualizando o `transferegov_schema` em menos de 1 minuto sem gargalos de memória.
 
 ### Critérios de Aceite
-- [ ] Download e descompactação em streaming em memória sem gravação de arquivos intermediários no disco.
-- [ ] Filtragem em voo por UF/CNPJ durante o processamento do CSV.
-- [ ] Persistência de convênios, vigências e valores na tabela `tb_sincronizacao_convenio`.
+- [x] Download e descompactação em streaming em memória sem gravação de arquivos intermediários no disco.
+- [x] Filtragem em voo por UF/CNPJ durante o processamento do CSV.
+- [x] Persistência de convênios, vigências e valores na tabela `tb_sincronizacao_convenio`.
 
 ---
 

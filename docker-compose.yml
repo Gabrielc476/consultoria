@@ -264,12 +264,31 @@ services:
         aliases:
           - core-service
 
-  stub-transferegov:
-    image: nginx:1.27-alpine
-    container_name: govflow-stub-transferegov
+  transferegov-service:
+    build:
+      context: ./services/transferegov-service
+      dockerfile: Dockerfile
+    container_name: govflow-transferegov-service
     restart: unless-stopped
-    volumes:
-      - ./docker/stubs/nginx-echo.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "${TRANSFEREGOV_PORT:-8082}:8082"
+    environment:
+      SERVER_PORT: 8082
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-govflow}?currentSchema=transferegov_schema
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-govflow}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-govflow123}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      flyway:
+        condition: service_completed_successfully
     networks:
       govflow-network:
         aliases:
@@ -370,12 +389,12 @@ services:
       GATEWAY_PORT: 8080
       JWT_SECRET: ${JWT_SECRET:-GovFlowLocalDevJwtSecretKeyChangeMe32b!}
       CORE_SERVICE_URI: ${CORE_SERVICE_URI:-http://core-service:8081}
-      TRANSFEREGOV_SERVICE_URI: ${TRANSFEREGOV_SERVICE_URI:-http://stub-transferegov:80}
+      TRANSFEREGOV_SERVICE_URI: ${TRANSFEREGOV_SERVICE_URI:-http://transferegov-service:8082}
       WHATSAPP_SERVICE_URI: ${WHATSAPP_SERVICE_URI:-http://whatsapp-service:8083}
       AI_SERVICE_URI: ${AI_SERVICE_URI:-http://ai-service:8000}
     depends_on:
       - core-service
-      - stub-transferegov
+      - transferegov-service
       - whatsapp-service
       - ai-service
     networks:

@@ -3,6 +3,7 @@ package br.com.govflow.core.infrastructure.adapter.out.persistence.mapper;
 import br.com.govflow.core.domain.model.Cnpj;
 import br.com.govflow.core.domain.model.CodigoIbge;
 import br.com.govflow.core.domain.model.Cpf;
+import br.com.govflow.core.domain.model.MandatoGestor;
 import br.com.govflow.core.domain.model.PorteMunicipio;
 import br.com.govflow.core.domain.model.Prefeitura;
 import br.com.govflow.core.domain.model.StatusCauc;
@@ -28,6 +29,11 @@ public class PrefeituraPersistenceMapper {
                 ? new Cpf(entity.getCpfPrefeito())
                 : null;
 
+        MandatoGestor mandato = (entity.getNomePrefeito() != null || cpfPrefeito != null
+                || entity.getInicioMandato() != null || entity.getFimMandato() != null)
+                ? new MandatoGestor(entity.getNomePrefeito(), cpfPrefeito, entity.getInicioMandato(), entity.getFimMandato())
+                : null;
+
         return new Prefeitura(
                 entity.getId(),
                 entity.getTenantId(),
@@ -37,10 +43,7 @@ public class PrefeituraPersistenceMapper {
                 uf,
                 codigoIbge,
                 porte,
-                entity.getNomePrefeito(),
-                cpfPrefeito,
-                entity.getInicioMandato(),
-                entity.getFimMandato(),
+                mandato,
                 statusCauc,
                 entity.isAtivo(),
                 entity.getCreatedAt(),

@@ -18,14 +18,41 @@ public class Prefeitura {
     private final Uf uf;
     private final CodigoIbge codigoIbge;
     private PorteMunicipio porteMunicipio;
-    private String nomePrefeito;
-    private Cpf cpfPrefeito;
-    private LocalDate inicioMandato;
-    private LocalDate fimMandato;
+    private MandatoGestor mandato;
     private StatusCauc statusCauc;
     private boolean ativo;
     private final Instant createdAt;
     private Instant updatedAt;
+
+    public Prefeitura(UUID id,
+                      UUID tenantId,
+                      Cnpj cnpj,
+                      String razaoSocial,
+                      String nomeMunicipio,
+                      Uf uf,
+                      CodigoIbge codigoIbge,
+                      PorteMunicipio porteMunicipio,
+                      MandatoGestor mandato,
+                      StatusCauc statusCauc,
+                      boolean ativo,
+                      Instant createdAt,
+                      Instant updatedAt) {
+        this.id = id != null ? id : UUID.randomUUID();
+        this.tenantId = Objects.requireNonNull(tenantId, "TenantId é obrigatório para Prefeitura.");
+        this.cnpj = Objects.requireNonNull(cnpj, "CNPJ é obrigatório para Prefeitura.");
+        this.razaoSocial = requireNonBlank(razaoSocial, "Razão Social não pode ser vazia.");
+        this.nomeMunicipio = requireNonBlank(nomeMunicipio, "Nome do Município não pode ser vazio.");
+        this.uf = Objects.requireNonNull(uf, "UF é obrigatória para Prefeitura.");
+        this.codigoIbge = Objects.requireNonNull(codigoIbge, "Código IBGE é obrigatório para Prefeitura.");
+        this.porteMunicipio = porteMunicipio != null ? porteMunicipio : PorteMunicipio.PEQUENO_PORTE_1;
+        this.mandato = mandato;
+        this.statusCauc = statusCauc != null ? statusCauc : StatusCauc.ADIMPLENTE;
+        this.ativo = ativo;
+        this.createdAt = createdAt != null ? createdAt : Instant.now();
+        this.updatedAt = updatedAt != null ? updatedAt : this.createdAt;
+
+        validarInvariantes();
+    }
 
     public Prefeitura(UUID id,
                       UUID tenantId,
@@ -43,24 +70,23 @@ public class Prefeitura {
                       boolean ativo,
                       Instant createdAt,
                       Instant updatedAt) {
-        this.id = id != null ? id : UUID.randomUUID();
-        this.tenantId = Objects.requireNonNull(tenantId, "TenantId é obrigatório para Prefeitura.");
-        this.cnpj = Objects.requireNonNull(cnpj, "CNPJ é obrigatório para Prefeitura.");
-        this.razaoSocial = requireNonBlank(razaoSocial, "Razão Social não pode ser vazia.");
-        this.nomeMunicipio = requireNonBlank(nomeMunicipio, "Nome do Município não pode ser vazio.");
-        this.uf = Objects.requireNonNull(uf, "UF é obrigatória para Prefeitura.");
-        this.codigoIbge = Objects.requireNonNull(codigoIbge, "Código IBGE é obrigatório para Prefeitura.");
-        this.porteMunicipio = porteMunicipio != null ? porteMunicipio : PorteMunicipio.PEQUENO_PORTE_1;
-        this.nomePrefeito = nomePrefeito;
-        this.cpfPrefeito = cpfPrefeito;
-        this.inicioMandato = inicioMandato;
-        this.fimMandato = fimMandato;
-        this.statusCauc = statusCauc != null ? statusCauc : StatusCauc.ADIMPLENTE;
-        this.ativo = ativo;
-        this.createdAt = createdAt != null ? createdAt : Instant.now();
-        this.updatedAt = updatedAt != null ? updatedAt : this.createdAt;
-
-        validarInvariantes();
+        this(
+                id,
+                tenantId,
+                cnpj,
+                razaoSocial,
+                nomeMunicipio,
+                uf,
+                codigoIbge,
+                porteMunicipio,
+                (nomePrefeito != null || cpfPrefeito != null || inicioMandato != null || fimMandato != null)
+                        ? new MandatoGestor(nomePrefeito, cpfPrefeito, inicioMandato, fimMandato)
+                        : null,
+                statusCauc,
+                ativo,
+                createdAt,
+                updatedAt
+        );
     }
 
     public static Prefeitura criarNova(UUID tenantId,
@@ -83,10 +109,9 @@ public class Prefeitura {
                 uf,
                 codigoIbge,
                 porteMunicipio,
-                nomePrefeito,
-                cpfPrefeito,
-                inicioMandato,
-                fimMandato,
+                (nomePrefeito != null || cpfPrefeito != null || inicioMandato != null || fimMandato != null)
+                        ? new MandatoGestor(nomePrefeito, cpfPrefeito, inicioMandato, fimMandato)
+                        : null,
                 StatusCauc.ADIMPLENTE,
                 true,
                 Instant.now(),
@@ -99,10 +124,24 @@ public class Prefeitura {
             throw new TenantInvalidoException("Tenant ID da prefeitura não pode ser nulo.");
         }
         codigoIbge.validarCompatibilidadeUf(uf);
+    }
 
-        if (inicioMandato != null && fimMandato != null && fimMandato.isBefore(inicioMandato)) {
-            throw new IllegalArgumentException("A data final do mandato não pode ser anterior à data inicial.");
+    public void atualizarDadosCadastrais(String razaoSocial,
+                                        String nomeMunicipio,
+                                        PorteMunicipio porteMunicipio,
+                                        MandatoGestor mandato,
+                                        StatusCauc statusCauc) {
+        this.razaoSocial = requireNonBlank(razaoSocial, "Razão Social não pode ser vazia.");
+        this.nomeMunicipio = requireNonBlank(nomeMunicipio, "Nome do Município não pode ser vazio.");
+        if (porteMunicipio != null) {
+            this.porteMunicipio = porteMunicipio;
         }
+        this.mandato = mandato;
+        if (statusCauc != null) {
+            this.statusCauc = statusCauc;
+        }
+        this.updatedAt = Instant.now();
+        validarInvariantes();
     }
 
     public void atualizarDadosCadastrais(String razaoSocial,
@@ -113,20 +152,15 @@ public class Prefeitura {
                                         LocalDate inicioMandato,
                                         LocalDate fimMandato,
                                         StatusCauc statusCauc) {
-        this.razaoSocial = requireNonBlank(razaoSocial, "Razão Social não pode ser vazia.");
-        this.nomeMunicipio = requireNonBlank(nomeMunicipio, "Nome do Município não pode ser vazio.");
-        if (porteMunicipio != null) {
-            this.porteMunicipio = porteMunicipio;
-        }
-        this.nomePrefeito = nomePrefeito;
-        this.cpfPrefeito = cpfPrefeito;
-        this.inicioMandato = inicioMandato;
-        this.fimMandato = fimMandato;
-        if (statusCauc != null) {
-            this.statusCauc = statusCauc;
-        }
-        this.updatedAt = Instant.now();
-        validarInvariantes();
+        atualizarDadosCadastrais(
+                razaoSocial,
+                nomeMunicipio,
+                porteMunicipio,
+                (nomePrefeito != null || cpfPrefeito != null || inicioMandato != null || fimMandato != null)
+                        ? new MandatoGestor(nomePrefeito, cpfPrefeito, inicioMandato, fimMandato)
+                        : null,
+                statusCauc
+        );
     }
 
     public void inativar() {
@@ -141,6 +175,12 @@ public class Prefeitura {
 
     public void atualizarStatusCauc(StatusCauc novoStatus) {
         this.statusCauc = Objects.requireNonNull(novoStatus, "Status CAUC não pode ser nulo.");
+        this.updatedAt = Instant.now();
+    }
+
+    public void atualizarSituacaoFiscal(SituacaoRegularidadeFiscal novaSituacao) {
+        Objects.requireNonNull(novaSituacao, "Situação de regularidade fiscal não pode ser nula.");
+        this.statusCauc = novaSituacao.toStatusCauc();
         this.updatedAt = Instant.now();
     }
 
@@ -183,24 +223,32 @@ public class Prefeitura {
         return porteMunicipio;
     }
 
+    public MandatoGestor getMandato() {
+        return mandato;
+    }
+
     public String getNomePrefeito() {
-        return nomePrefeito;
+        return mandato != null ? mandato.nomePrefeito() : null;
     }
 
     public Cpf getCpfPrefeito() {
-        return cpfPrefeito;
+        return mandato != null ? mandato.cpfPrefeito() : null;
     }
 
     public LocalDate getInicioMandato() {
-        return inicioMandato;
+        return mandato != null ? mandato.inicioMandato() : null;
     }
 
     public LocalDate getFimMandato() {
-        return fimMandato;
+        return mandato != null ? mandato.fimMandato() : null;
     }
 
     public StatusCauc getStatusCauc() {
         return statusCauc;
+    }
+
+    public SituacaoRegularidadeFiscal getSituacaoRegularidadeFiscal() {
+        return SituacaoRegularidadeFiscal.fromStatusCauc(statusCauc);
     }
 
     public boolean isAtivo() {

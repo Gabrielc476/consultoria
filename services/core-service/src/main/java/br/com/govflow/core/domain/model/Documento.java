@@ -1,23 +1,15 @@
 package br.com.govflow.core.domain.model;
 
-import br.com.govflow.core.domain.exception.CamposObrigatoriosAusentesException;
 import br.com.govflow.core.domain.exception.DocumentoEstadoInvalidoException;
-import br.com.govflow.core.domain.exception.InconsistenciaMatematicaException;
 import br.com.govflow.core.domain.exception.JustificativaObrigatoriaException;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
 public class Documento {
-
-    private static final BigDecimal TOLERANCIA_MATEMATICA = BigDecimal.ZERO;
 
     private final UUID id;
     private final UUID tenantId;
@@ -25,11 +17,7 @@ public class Documento {
     private UUID convenioId;
     private UUID contratoId;
     private UUID medicaoId;
-    private String s3Bucket;
-    private String s3Key;
-    private String nomeArquivoOriginal;
-    private String contentType;
-    private Long tamanhoBytes;
+    private ArmazenamentoArquivo armazenamento;
     private StatusDocumento status;
     private ExtracaoSugerida extracaoSugerida;
     private BoundingBoxesData boundingBoxes;
@@ -37,6 +25,36 @@ public class Documento {
     private String motivoRejeicao;
     private final Instant createdAt;
     private Instant updatedAt;
+
+    public Documento(UUID id,
+                     UUID tenantId,
+                     UUID prefeituraId,
+                     UUID convenioId,
+                     UUID contratoId,
+                     UUID medicaoId,
+                     ArmazenamentoArquivo armazenamento,
+                     StatusDocumento status,
+                     ExtracaoSugerida extracaoSugerida,
+                     BoundingBoxesData boundingBoxes,
+                     DadosRevisaoAnalista dadosRevisao,
+                     String motivoRejeicao,
+                     Instant createdAt,
+                     Instant updatedAt) {
+        this.id = id != null ? id : UUID.randomUUID();
+        this.tenantId = Objects.requireNonNull(tenantId, "TenantId é obrigatório para Documento.");
+        this.prefeituraId = prefeituraId;
+        this.convenioId = convenioId;
+        this.contratoId = contratoId;
+        this.medicaoId = medicaoId;
+        this.armazenamento = armazenamento;
+        this.status = status != null ? status : StatusDocumento.RECEBIDO;
+        this.extracaoSugerida = extracaoSugerida;
+        this.boundingBoxes = boundingBoxes != null ? boundingBoxes : BoundingBoxesData.empty();
+        this.dadosRevisao = dadosRevisao;
+        this.motivoRejeicao = motivoRejeicao;
+        this.createdAt = createdAt != null ? createdAt : Instant.now();
+        this.updatedAt = updatedAt != null ? updatedAt : this.createdAt;
+    }
 
     public Documento(UUID id,
                      UUID tenantId,
@@ -56,24 +74,22 @@ public class Documento {
                      String motivoRejeicao,
                      Instant createdAt,
                      Instant updatedAt) {
-        this.id = id != null ? id : UUID.randomUUID();
-        this.tenantId = Objects.requireNonNull(tenantId, "TenantId é obrigatório para Documento.");
-        this.prefeituraId = prefeituraId;
-        this.convenioId = convenioId;
-        this.contratoId = contratoId;
-        this.medicaoId = medicaoId;
-        this.s3Bucket = s3Bucket;
-        this.s3Key = s3Key;
-        this.nomeArquivoOriginal = nomeArquivoOriginal;
-        this.contentType = contentType;
-        this.tamanhoBytes = tamanhoBytes;
-        this.status = status != null ? status : StatusDocumento.RECEBIDO;
-        this.extracaoSugerida = extracaoSugerida;
-        this.boundingBoxes = boundingBoxes != null ? boundingBoxes : BoundingBoxesData.empty();
-        this.dadosRevisao = dadosRevisao;
-        this.motivoRejeicao = motivoRejeicao;
-        this.createdAt = createdAt != null ? createdAt : Instant.now();
-        this.updatedAt = updatedAt != null ? updatedAt : this.createdAt;
+        this(
+                id,
+                tenantId,
+                prefeituraId,
+                convenioId,
+                contratoId,
+                medicaoId,
+                new ArmazenamentoArquivo(s3Bucket, s3Key, nomeArquivoOriginal, contentType, tamanhoBytes),
+                status,
+                extracaoSugerida,
+                boundingBoxes,
+                dadosRevisao,
+                motivoRejeicao,
+                createdAt,
+                updatedAt
+        );
     }
 
     /**
@@ -102,11 +118,7 @@ public class Documento {
                 convenioId,
                 null,
                 null,
-                s3Bucket,
-                s3Key,
-                nomeArquivoOriginal,
-                contentType,
-                tamanhoBytes,
+                new ArmazenamentoArquivo(s3Bucket, s3Key, nomeArquivoOriginal, contentType, tamanhoBytes),
                 status,
                 extracaoSugerida,
                 BoundingBoxesData.of(boundingBoxes),
@@ -121,11 +133,7 @@ public class Documento {
                                           UUID tenantId,
                                           UUID prefeituraId,
                                           UUID convenioId,
-                                          String s3Bucket,
-                                          String s3Key,
-                                          String nomeArquivoOriginal,
-                                          String contentType,
-                                          Long tamanhoBytes) {
+                                          ArmazenamentoArquivo armazenamento) {
         return new Documento(
                 id != null ? id : UUID.randomUUID(),
                 tenantId,
@@ -133,11 +141,7 @@ public class Documento {
                 convenioId,
                 null,
                 null,
-                s3Bucket,
-                s3Key,
-                nomeArquivoOriginal,
-                contentType,
-                tamanhoBytes,
+                armazenamento,
                 StatusDocumento.RECEBIDO,
                 null,
                 BoundingBoxesData.empty(),
@@ -145,6 +149,24 @@ public class Documento {
                 null,
                 Instant.now(),
                 Instant.now()
+        );
+    }
+
+    public static Documento criarRecebido(UUID id,
+                                          UUID tenantId,
+                                          UUID prefeituraId,
+                                          UUID convenioId,
+                                          String s3Bucket,
+                                          String s3Key,
+                                          String nomeArquivoOriginal,
+                                          String contentType,
+                                          Long tamanhoBytes) {
+        return criarRecebido(
+                id,
+                tenantId,
+                prefeituraId,
+                convenioId,
+                new ArmazenamentoArquivo(s3Bucket, s3Key, nomeArquivoOriginal, contentType, tamanhoBytes)
         );
     }
 
@@ -189,8 +211,7 @@ public class Documento {
             throw new DocumentoEstadoInvalidoException(this.status, "Aprovação do Documento");
         }
 
-        validarCamposObrigatorios(revisao);
-        validarConsistenciaMatematica(revisao);
+        revisao.validarConsistencia();
 
         DiffRevisao diff = DiffRevisao.comparar(this.extracaoSugerida, revisao);
         Map<String, Object> snapshotOriginal = this.extracaoSugerida != null ? this.extracaoSugerida.gerarSnapshot() : Collections.emptyMap();
@@ -241,75 +262,6 @@ public class Documento {
         return auditoria;
     }
 
-    private void validarCamposObrigatorios(DadosRevisaoAnalista revisao) {
-        List<String> faltantes = new ArrayList<>();
-
-        if (revisao.tipoDocumento() == null) {
-            faltantes.add("tipoDocumento");
-        }
-        if (revisao.numeroDocumento() == null || revisao.numeroDocumento().trim().isEmpty()) {
-            faltantes.add("numeroDocumento");
-        }
-        if (revisao.dataEmissao() == null) {
-            faltantes.add("dataEmissao");
-        }
-        if (revisao.cnpjCredor() == null || revisao.cnpjCredor().trim().isEmpty()) {
-            faltantes.add("cnpjCredor");
-        } else {
-            try {
-                new Cnpj(revisao.cnpjCredor());
-            } catch (Exception e) {
-                faltantes.add("cnpjCredor (CNPJ inválido: " + e.getMessage() + ")");
-            }
-        }
-        if (revisao.razaoSocialCredor() == null || revisao.razaoSocialCredor().trim().isEmpty()) {
-            faltantes.add("razaoSocialCredor");
-        }
-        if (revisao.valorBruto() == null || revisao.valorBruto().compareTo(BigDecimal.ZERO) <= 0) {
-            faltantes.add("valorBruto (deve ser maior que zero)");
-        }
-        if (revisao.valorLiquido() == null || revisao.valorLiquido().compareTo(BigDecimal.ZERO) < 0) {
-            faltantes.add("valorLiquido (não pode ser negativo)");
-        }
-
-        if (!faltantes.isEmpty()) {
-            throw new CamposObrigatoriosAusentesException(faltantes);
-        }
-    }
-
-    private void validarConsistenciaMatematica(DadosRevisaoAnalista revisao) {
-        BigDecimal valorBruto = revisao.valorBruto();
-        BigDecimal valorLiquido = revisao.valorLiquido();
-
-        BigDecimal somaRetencoes = revisao.retencoes().stream()
-                .map(RetencaoTributaria::valor)
-                .filter(Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal totalDeducoes = revisao.valorTotalDeducoes();
-
-        // Se retenções forem informadas, sua soma deve ser estritamente igual a valorTotalDeducoes
-        if (!revisao.retencoes().isEmpty() && totalDeducoes != null && totalDeducoes.compareTo(BigDecimal.ZERO) > 0) {
-            if (somaRetencoes.compareTo(totalDeducoes) != 0) {
-                throw new InconsistenciaMatematicaException(
-                        String.format("A soma das retenções tributárias discriminadas (%s) difere do valor total de deduções informado (%s).",
-                                somaRetencoes, totalDeducoes)
-                );
-            }
-        }
-
-        if (totalDeducoes == null || totalDeducoes.compareTo(BigDecimal.ZERO) == 0) {
-            totalDeducoes = somaRetencoes;
-        }
-
-        BigDecimal valorLiquidoEsperado = valorBruto.subtract(totalDeducoes);
-        BigDecimal diferenca = valorLiquidoEsperado.subtract(valorLiquido).abs().setScale(2, RoundingMode.HALF_UP);
-
-        if (diferenca.compareTo(TOLERANCIA_MATEMATICA) > 0) {
-            throw new InconsistenciaMatematicaException(valorBruto, totalDeducoes, valorLiquido, diferenca);
-        }
-    }
-
     public UUID getId() {
         return id;
     }
@@ -354,24 +306,28 @@ public class Documento {
         this.updatedAt = Instant.now();
     }
 
+    public ArmazenamentoArquivo getArmazenamento() {
+        return armazenamento;
+    }
+
     public String getS3Bucket() {
-        return s3Bucket;
+        return armazenamento != null ? armazenamento.s3Bucket() : null;
     }
 
     public String getS3Key() {
-        return s3Key;
+        return armazenamento != null ? armazenamento.s3Key() : null;
     }
 
     public String getNomeArquivoOriginal() {
-        return nomeArquivoOriginal;
+        return armazenamento != null ? armazenamento.nomeArquivoOriginal() : null;
     }
 
     public String getContentType() {
-        return contentType;
+        return armazenamento != null ? armazenamento.contentType() : null;
     }
 
     public Long getTamanhoBytes() {
-        return tamanhoBytes;
+        return armazenamento != null ? armazenamento.tamanhoBytes() : null;
     }
 
     public StatusDocumento getStatus() {

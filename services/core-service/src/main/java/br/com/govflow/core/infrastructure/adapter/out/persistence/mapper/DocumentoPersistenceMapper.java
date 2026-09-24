@@ -82,6 +82,14 @@ public class DocumentoPersistenceMapper {
             );
         }
 
+        ArmazenamentoArquivo armazenamento = new ArmazenamentoArquivo(
+                entity.getS3Bucket(),
+                entity.getS3Key(),
+                entity.getNomeArquivoOriginal(),
+                entity.getContentType(),
+                entity.getTamanhoBytes()
+        );
+
         return new Documento(
                 entity.getId(),
                 entity.getTenantId(),
@@ -89,11 +97,7 @@ public class DocumentoPersistenceMapper {
                 entity.getConvenioId(),
                 entity.getContratoId(),
                 entity.getMedicaoId(),
-                entity.getS3Bucket(),
-                entity.getS3Key(),
-                entity.getNomeArquivoOriginal(),
-                entity.getContentType(),
-                entity.getTamanhoBytes(),
+                armazenamento,
                 status,
                 extracao,
                 BoundingBoxesData.of(boxes),

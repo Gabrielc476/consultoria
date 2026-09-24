@@ -118,4 +118,14 @@ public record DadosRevisaoAnalista(
         snapshot.put("observacao", observacao);
         return snapshot;
     }
+
+    /**
+     * Valida a consistência fiscal e aritmética dos dados revisados pelo analista.
+     */
+    public void validarConsistencia() {
+        if (dadosFiscais == null) {
+            throw new br.com.govflow.core.domain.exception.CamposObrigatoriosAusentesException(List.of("dadosFiscais"));
+        }
+        dadosFiscais.validarConsistencia();
+    }
 }

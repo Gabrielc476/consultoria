@@ -51,4 +51,87 @@ public record DadosFiscais(
         snapshot.put("retencoes", retencoes);
         return snapshot;
     }
+
+    /**
+     * Valida o preenchimento de campos obrigatórios conforme as regras fiscais de liquidação.
+     */
+    public void validarCamposObrigatorios() {
+        List<String> faltantes = new ArrayList<>();
+
+        if (tipoDocumento == null) {
+            faltantes.add("tipoDocumento");
+        }
+        if (numeroDocumento == null || numeroDocumento.trim().isEmpty()) {
+            faltantes.add("numeroDocumento");
+        }
+        if (dataEmissao == null) {
+            faltantes.add("dataEmissao");
+        }
+        if (cnpjCredor == null || cnpjCredor.trim().isEmpty()) {
+            faltantes.add("cnpjCredor");
+        } else {
+            try {
+                new Cnpj(cnpjCredor);
+            } catch (Exception e) {
+                faltantes.add("cnpjCredor (CNPJ inválido: " + e.getMessage() + ")");
+            }
+        }
+        if (razaoSocialCredor == null || razaoSocialCredor.trim().isEmpty()) {
+            faltantes.add("razaoSocialCredor");
+        }
+        if (valorBruto == null || valorBruto.compareTo(BigDecimal.ZERO) <= 0) {
+            faltantes.add("valorBruto (deve ser maior que zero)");
+        }
+        if (valorLiquido == null || valorLiquido.compareTo(BigDecimal.ZERO) < 0) {
+            faltantes.add("valorLiquido (não pode ser negativo)");
+        }
+
+        if (!faltantes.isEmpty()) {
+            throw new br.com.govflow.core.domain.exception.CamposObrigatoriosAusentesException(faltantes);
+        }
+    }
+
+    /**
+     * Valida a integridade aritmética entre valor bruto, deduções/retenções e valor líquido.
+     */
+    public void validarConsistenciaMatematica() {
+        if (valorBruto == null || valorLiquido == null) {
+            return;
+        }
+
+        BigDecimal somaRetencoes = retencoes.stream()
+                .map(RetencaoTributaria::valor)
+                .filter(java.util.Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal deducoes = valorTotalDeducoes;
+
+        if (!retencoes.isEmpty() && deducoes != null && deducoes.compareTo(BigDecimal.ZERO) > 0) {
+            if (somaRetencoes.compareTo(deducoes) != 0) {
+                throw new br.com.govflow.core.domain.exception.InconsistenciaMatematicaException(
+                        String.format("A soma das retenções tributárias discriminadas (%s) difere do valor total de deduções informado (%s).",
+                                somaRetencoes, deducoes)
+                );
+            }
+        }
+
+        if (deducoes == null || deducoes.compareTo(BigDecimal.ZERO) == 0) {
+            deducoes = somaRetencoes;
+        }
+
+        BigDecimal valorLiquidoEsperado = valorBruto.subtract(deducoes);
+        BigDecimal diferenca = valorLiquidoEsperado.subtract(valorLiquido).abs().setScale(2, java.math.RoundingMode.HALF_UP);
+
+        if (diferenca.compareTo(BigDecimal.ZERO) > 0) {
+            throw new br.com.govflow.core.domain.exception.InconsistenciaMatematicaException(valorBruto, deducoes, valorLiquido, diferenca);
+        }
+    }
+
+    /**
+     * Valida consistência completa (campos obrigatórios e aritmética).
+     */
+    public void validarConsistencia() {
+        validarCamposObrigatorios();
+        validarConsistenciaMatematica();
+    }
 }

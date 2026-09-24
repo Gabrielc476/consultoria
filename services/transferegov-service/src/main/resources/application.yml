@@ -1,0 +1,55 @@
+server:
+  port: ${SERVER_PORT:8082}
+
+spring:
+  application:
+    name: transferegov-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:govflow}?currentSchema=transferegov_schema}
+    username: ${SPRING_DATASOURCE_USERNAME:${POSTGRES_USER:postgres}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${POSTGRES_PASSWORD:postgres123}}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:validate}
+    properties:
+      hibernate:
+        default_schema: transferegov_schema
+        format_sql: true
+        jdbc:
+          lob:
+            non_contextual_creation: true
+          batch_size: 100
+    show-sql: ${SPRING_JPA_SHOW_SQL:false}
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:${RABBITMQ_HOST:localhost}}
+    port: ${SPRING_RABBITMQ_PORT:${RABBITMQ_PORT:5672}}
+    username: ${SPRING_RABBITMQ_USERNAME:${RABBITMQ_USER:govflow}}
+    password: ${SPRING_RABBITMQ_PASSWORD:${RABBITMQ_PASSWORD:govflow123}}
+
+govflow:
+  transferegov:
+    siconv:
+      base-url: ${SICONV_BASE_URL:https://api-publica.transferegov.gestao.gov.br/downloads/dadosgov}
+      uf-filter: ${SICONV_UF_FILTER:PB}
+      connect-timeout-ms: ${SICONV_CONNECT_TIMEOUT:15000}
+      read-timeout-ms: ${SICONV_READ_TIMEOUT:60000}
+      cron: ${SICONV_SYNC_CRON:0 0 7 * * *}
+      batch-size: ${SICONV_BATCH_SIZE:200}
+    rabbitmq:
+      exchange: govflow.events
+      routing-key-alerta-prazo: transferegov.prazo.alerta
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+
+logging:
+  level:
+    root: INFO
+    br.com.govflow.transferegov: INFO
+    org.hibernate.SQL: WARN

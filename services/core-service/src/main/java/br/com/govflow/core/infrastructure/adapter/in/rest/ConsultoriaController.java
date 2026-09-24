@@ -35,7 +35,7 @@ public class ConsultoriaController {
     }
 
     @PostMapping
-    @Operation(summary = "Cadastrar nova Consultoria (Tenant)", description = "Cadastro inicial de empresa de consultoria cliente")
+    @Operation(summary = "Cadastrar nova Consultoria (Tenant)", description = "Cadastro inicial de empresa de consultoria privada detentora da assinatura (Tenant)")
     public ResponseEntity<ConsultoriaResponse> cadastrar(@Valid @RequestBody CadastrarConsultoriaRequest request) {
         CadastrarConsultoriaUseCase.CadastrarConsultoriaCommand command =
                 new CadastrarConsultoriaUseCase.CadastrarConsultoriaCommand(
