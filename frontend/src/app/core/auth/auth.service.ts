@@ -45,6 +45,19 @@ export class AuthService {
     );
   }
 
+  public entrarModoDemo(): void {
+    const demoResponse: LoginResponse = {
+      token: 'demo-token-govflow-jwt-expert',
+      tokenType: 'Bearer',
+      analistaId: 'analista-demo-01',
+      nome: 'Gabriel Especialista',
+      email: 'analista@govflow.com.br',
+      tenantId: 'consultoria-alianca-pb'
+    };
+    this.salvarSessao(demoResponse);
+    this.router.navigate(['/convenios']);
+  }
+
   public logout(): void {
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);

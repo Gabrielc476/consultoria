@@ -8,56 +8,81 @@
 
 ## 1. Frontend Angular: Feature-Sliced Design (FSD) com Signals
 
-O frontend é projetado para máxima reatividade, carregamento instantâneo e manutenibilidade por módulos isolados:
+O frontend é projetado para máxima reatividade, densidade operacional e carregamento instantâneo por meio de **Standalone Components**, **Angular Signals** e padrão **Feature-Sliced Design**:
 
 ```
 frontend/
 ├── angular.json
 ├── package.json
+├── tailwind.config.js                                # Tokens Obsidian Dark (#0A0E17, #111827, #1E293B)
 └── src/
+    ├── index.html                                    # Pré-carregamento Google Fonts: Inter & JetBrains Mono
+    ├── styles.scss                                   # Scrollbars de alta densidade e bounding boxes
     └── app/
         ├── core/                                     # NÚCLEO TRANSVERSAL (SINGLETONS)
-        │   ├── auth/                                 # AuthService (Signals), AuthGuard
+        │   ├── api/api-endpoints.ts                  # URLs centralizadas dos microsserviços
+        │   ├── auth/                                 # AuthService (Signals), AuthGuard, Modo Demo
+        │   ├── context/                              # SELETOR GLOBAL DE MUNICÍPIO
+        │   │   ├── municipio-context.service.ts      # Context Switcher (Patos, Sousa, etc.) com Signals
+        │   │   └── municipio.model.ts
         │   ├── interceptors/
         │   │   ├── auth.interceptor.ts               # Injeta Authorization: Bearer <token>
-        │   │   └── error.interceptor.ts              # Trata RFC 7807 (Problem Details)
-        │   └── state/
-        │       └── tenant.state.ts                   # Signal com a Consultoria e Usuário logados
+        │   │   └── problem-details.interceptor.ts    # Trata RFC 7807 (Problem Details)
+        │   └── layout/                               # MISSION CONTROL APPSHELL UNIFICADO
+        │       ├── app-shell/app-shell.component.ts  # Sidebar + Header + RouterOutlet
+        │       ├── sidebar/sidebar.component.ts      # Navegação: Cockpit, Lista, WhatsApp, Docs, CAUC
+        │       └── header/header.component.ts        # Alternador de Prefeitura, Atalho de Convênio, Busca ⌘K
         │
         ├── shared/                                   # COMPONENTES E UTILITÁRIOS REUTILIZÁVEIS
-        │   ├── components/
-        │   │   ├── status-badge/                     # Semáforo verde, amarelo, vermelho
-        │   │   ├── confidence-indicator/             # Indicador de score de confiança da IA
-        │   │   └── pdf-viewer-wrapper/               # Encapsulamento do ngx-extended-pdf-viewer
-        │   └── pipes/
-        │       └── currency-brl.pipe.ts
+        │   ├── pipes/
+        │   │   ├── currency-brl.pipe.ts              # Formatação R$ brasileira
+        │   │   └── cnpj.pipe.ts                      # Máscara 00.000.000/0001-00
+        │   └── ui/
+        │       ├── confidence-badge/                 # Semáforo de confiança da IA (verde, amarelo, vermelho)
+        │       └── status-pill/                      # Badges de status operacional
         │
         └── features/                                 # MÓDULOS DE NEGÓCIO ISOLADOS
-            ├── auth/                                 # Login e seleção de tenant
-            │   └── pages/login/
+            ├── auth/                                 # Login e Modo Preview Cockpit Instantâneo
+            │   └── pages/login/login-page.component.ts
             │
-            ├── revisao-documento/                    # TELA CRÍTICA: CONFERÊNCIA LADO A LADO
-            │   ├── components/
-            │   │   ├── pdf-canvas-viewer/            # Visualizador com bounding boxes
-            │   │   ├── extraction-form/              # Formulário de conferência auditada
-            │   │   └── audit-trail-dialog/           # Histórico de quem aprovou/alterou
+            ├── convenios/                            # COCKPIT OPERACIONAL & EXPLORER
+            │   ├── model/convenio-fase.model.ts      # Modelo integral das 10 Fases (Fases 0 a 9)
             │   ├── services/
-            │   │   └── revisao.service.ts
-            │   └── pages/revisao-detalhe/
-            │
-            ├── convenios-dashboard/                  # GESTÃO DE CONVÊNIOS E TIMELINE
+            │   │   └── convenio-context.service.ts   # Estado reativo do convênio ativo por município
             │   ├── components/
-            │   │   ├── convenio-card/
-            │   │   ├── deadline-alerts-banner/       # Alertas de cláusula suspensiva
-            │   │   └── checklist-tree/
-            │   └── pages/convenios-list/
+            │   │   ├── phase-stepper/                # Stepper linear com 10 círculos e linhas conectoras
+            │   │   ├── convenio-kpis/                # KPIs: Repasse, RAE Caixa, Saldo Op 006, Vigência
+            │   │   ├── convenio-documents-list/      # Documentos recebidos via WhatsApp
+            │   │   └── convenio-timeline/            # Régua de prazos e criticidade
+            │   └── pages/
+            │       ├── convenio-cockpit/             # Cockpit com Quick-Switcher no topo e dossiê de fase
+            │       └── convenios-list/               # Catálogo `/convenios/lista` com filtros de fases e busca
             │
-            └── whatsapp-inbox/                       # CENTRAL DE MENSAGENS POR MUNICÍPIO
+            ├── whatsapp/                             # CENTRAL DE MENSAGERIA & FISCAIS (/whatsapp)
+            │   ├── model/whatsapp.model.ts           # Contatos, mensagens, anexos fiscais e vínculos
+            │   ├── services/
+            │   │   └── whatsapp.service.ts           # Chat threads, macros de prazos e Evolution API mock
+            │   └── pages/
+            │       └── whatsapp-hub/                 # Layout 3 colunas: Lista, Thread com OCR e Dossiê
+            │
+            ├── revisao-documento/                    # BANCADA LADO A LADO (MODO FOCO 100% VIEWPORT)
+            │   ├── components/
+            │   │   ├── media-workspace/              # Visualizador PDF/imagem com zoom
+            │   │   ├── bounding-box-overlay/         # Caixas retangulares onde a IA leu cada dado
+            │   │   ├── extraction-form/              # Formulário de conferência com auto-cálculo
+            │   │   └── audit-checklist/              # Checklist de consistência fiscal
+            │   ├── services/
+            │   │   └── revisao-state.service.ts
+            │   └── pages/
+            │       ├── documentos-list/              # Esteira geral de documentos
+            │       └── revisao-detalhe/              # Tela Zen Mode em `/documentos/:id/revisar`
+            │
+            └── radar-cauc/                           # MATRIZ DE REGULARIDADE FISCAL (LRF 25)
+                ├── model/cauc.model.ts               # As 16 certidões da IN STN nº 1/2021
                 ├── components/
-                │   ├── chat-thread/
-                │   ├── audio-player-transcription/   # Player de voz com texto transcrito
-                │   └── suggested-reply-bar/          # Resposta pronta da IA com 1 clique
-                └── pages/inbox/
+                │   └── cauc-health-matrix/           # Matriz em 4 grupos: Tributário, Financeiro, Contas, Limites
+                └── pages/
+                    └── radar-cauc-page/              # Dashboard de certidões e ações preventivas
 ```
 
 ---

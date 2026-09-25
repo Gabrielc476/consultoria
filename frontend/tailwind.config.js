@@ -6,6 +6,11 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        'gov-obsidian': '#0A0E17',
+        'gov-card': '#111827',
+        'gov-surface-hover': '#1A2234',
+        'gov-elevated': '#1E293B',
+        'gov-border': 'rgba(255, 255, 255, 0.08)',
         'gov-slate': {
           50: '#F8FAFC',
           100: '#F1F5F9',

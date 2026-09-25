@@ -7,7 +7,7 @@
     height: 100%;
     margin: 0;
     padding: 0;
-    background-color: #0F172A;
+    background-color: #0A0E17;
     color: #F8FAFC;
     font-family: 'Inter', 'Plus Jakarta Sans', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -16,18 +16,18 @@
 
   /* Scrollbars estilizadas para cockpit de alta densidade */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
   ::-webkit-scrollbar-track {
-    background: #0F172A;
+    background: #0A0E17;
   }
   ::-webkit-scrollbar-thumb {
-    background: #334155;
-    border-radius: 3px;
+    background: #1E293B;
+    border-radius: 4px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #475569;
+    background: #334155;
   }
 }
 

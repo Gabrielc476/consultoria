@@ -14,5 +14,12 @@ export const API_ENDPOINTS = {
   },
   PREFEITURAS: {
     BASE: `${API_BASE_URL}/prefeituras`,
+  },
+  TRANSFEREGOV: {
+    BASE: `${API_BASE_URL}/transferegov`,
+    CONVENIOS: `${API_BASE_URL}/transferegov/convenios`,
+    RADAR_PRAZOS: `${API_BASE_URL}/transferegov/radar-prazos`,
+    AVALIAR_PRAZOS: `${API_BASE_URL}/transferegov/radar-prazos/avaliar`,
   }
 };
+
