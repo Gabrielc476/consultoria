@@ -34,4 +34,17 @@ public interface SincronizacaoConvenioRepository extends JpaRepository<Sincroniz
             @Param("situacao") String situacao,
             Pageable pageable
     );
+
+    @Query("SELECT c FROM SincronizacaoConvenioEntity c WHERE " +
+           "c.instrumentoAtivo = true AND " +
+           "(:uf IS NULL OR c.uf = :uf) AND " +
+           "(:cnpj IS NULL OR c.cnpjProponente = :cnpj) AND " +
+           "(:municipio IS NULL OR LOWER(c.municipio) LIKE LOWER(CONCAT('%', :municipio, '%')))")
+    java.util.List<SincronizacaoConvenioEntity> findAtivosPorFiltros(
+            @Param("uf") String uf,
+            @Param("cnpj") String cnpj,
+            @Param("municipio") String municipio
+    );
+
+    java.util.List<SincronizacaoConvenioEntity> findByInstrumentoAtivoTrue();
 }

@@ -42,7 +42,8 @@ public class SincronizacaoLogEntity {
     @Column(name = "tempo_execucao_ms")
     private Long tempoExecucaoMs;
 
-    @Column(name = "detalhes_execucao_json", columnDefinition = "TEXT")
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(name = "detalhes_execucao_json", columnDefinition = "jsonb")
     private String detalhesExecucaoJson;
 
     @Column(name = "mensagem_erro", columnDefinition = "TEXT")

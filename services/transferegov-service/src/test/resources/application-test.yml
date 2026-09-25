@@ -32,9 +32,21 @@ govflow:
       read-timeout-ms: 5000
       cron: "-"
       batch-size: 50
+    especiais:
+      base-url: http://localhost:8089/especiais
+      uf-filter: PB
+      connect-timeout-ms: 1000
+      read-timeout-ms: 2000
+      page-size: 10
+      max-pages-per-sync: 5
+      rate-limit-delay-ms: 0
+      max-retries: 2
+      cron: "-"
+      scheduler-enabled: false
     rabbitmq:
       exchange: govflow.events
       routing-key-alerta-prazo: transferegov.prazo.alerta
+      routing-key-alerta-adpf854: transferegov.emenda.adpf854.alerta
 
 logging:
   level:

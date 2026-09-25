@@ -27,10 +27,10 @@ Você pode usar este documento de três maneiras no ClickUp:
 Subida completa do ambiente local multi-serviço via Docker Compose. Configura a instância única de PostgreSQL 16 com os 3 schemas lógicos isolados (`core_schema`, `transferegov_schema`, `whatsapp_schema`), o broker RabbitMQ com console de gestão e o MinIO (compatível com S3) criando os buckets de armazenamento de mídias e documentos. Executa os scripts Flyway de migração V1 a V13.
 
 ### Critérios de Aceite
-- [ ] O comando `docker-compose up -d` inicializa Postgres, RabbitMQ e MinIO sem falhas.
-- [ ] Execução das migrações Flyway V1 a V13 cria todas as tabelas e índices em seus respectivos schemas.
-- [ ] Console de gerenciamento do RabbitMQ acessível em `http://localhost:15672`.
-- [ ] Bucket `govflow-documents` criado e funcional no MinIO (`http://localhost:9000`).
+- [x] O comando `docker-compose up -d` inicializa Postgres, RabbitMQ e MinIO sem falhas.
+- [x] Execução das migrações Flyway V1 a V13 cria todas as tabelas e índices em seus respectivos schemas.
+- [x] Console de gerenciamento do RabbitMQ acessível em `http://localhost:15672`.
+- [x] Bucket `govflow-documents` criado e funcional no MinIO (`http://localhost:9000`).
 
 ---
 
@@ -44,10 +44,10 @@ Subida completa do ambiente local multi-serviço via Docker Compose. Configura a
 Serviço de borda reativo (Spring Cloud Gateway na porta 8080) estruturado em Clean Architecture. Centraliza o roteamento reativo para todos os microsserviços internos, valida tokens JWT, extrai a claim `tenant_id` da consultoria e propaga os cabeçalhos imutáveis `X-Tenant-Id`, `X-User-Id` e `X-Correlation-Id`. Trata requisições não autenticadas no padrão RFC 7807 (Problem Details).
 
 ### Critérios de Aceite
-- [ ] Rotas configuradas para `/api/v1/core/**`, `/api/v1/whatsapp/**`, `/api/v1/ai/**` e `/api/v1/transferegov/**`.
-- [ ] Rotas públicas (`/api/v1/auth/**`, webhook do WhatsApp) liberadas sem exigência de Bearer token.
-- [ ] Requisições não autorizadas respondem com HTTP 401 padronizado em JSON RFC 7807.
-- [ ] Headers `X-Tenant-Id`, `X-User-Id` e `X-Correlation-Id` sanitizados e propagados para os serviços downstream.
+- [x] Rotas configuradas para `/api/v1/core/**`, `/api/v1/whatsapp/**`, `/api/v1/ai/**` e `/api/v1/transferegov/**`.
+- [x] Rotas públicas (`/api/v1/auth/**`, webhook do WhatsApp) liberadas sem exigência de Bearer token.
+- [x] Requisições não autorizadas respondem com HTTP 401 padronizado em JSON RFC 7807.
+- [x] Headers `X-Tenant-Id`, `X-User-Id` e `X-Correlation-Id` sanitizados e propagados para os serviços downstream.
 
 ---
 
@@ -155,6 +155,110 @@ Extensão oficial do Chrome (Manifest V3 em TypeScript). Detecta automaticamente
 
 ---
 
+# 📁 PASTA 2.1: Frontend Cockpit, Seleção de Convênios & Central WhatsApp (FSD & Signals)
+
+## [TASK-FE-01] AppShell, Design System Obsidian & Dark Matte Tokens (Tailwind + Google Fonts)
+* **Lista:** `02.1. Frontend Cockpit & WhatsApp`
+* **Prioridade:** Alta (Laranja)
+* **Dependência (Blocked by):** *Nenhuma*
+* **Tags:** `#frontend`, `#angular`, `#tailwind`, `#design-system`, `#obsidian-dark`
+
+### Descrição & O Que Entrega
+Arquitetura de casca visual unificada (`AppShellComponent`, `SidebarComponent`, `HeaderComponent`) com paleta Obsidian Dark (`#0A0E17`, `#111827`, `#1E293B`, bordas `border-white/10`) e fontes oficiais `Inter` (leitura densa) e `JetBrains Mono` (valores financeiros e numerais SICONV). Elimina fragmentação de layouts e unifica rotas autenticadas sob uma barra de navegação com status da Evolution API e badge do usuário.
+
+### Critérios de Aceite
+- [x] Shell responsivo com Sidebar expansível/colapsável e Header global contextual.
+- [x] Fontes `Inter` e `JetBrains Mono` pré-carregadas via Google Fonts no `index.html`.
+- [x] Modo Preview Imediato no login para testes sem bloqueio de gateway offline.
+- [x] Roteamento estruturado em SPA preservando o layout base.
+
+---
+
+## [TASK-FE-02] Context Switcher Reativo (Municípios da Paraíba & Persistência em Signals)
+* **Lista:** `02.1. Frontend Cockpit & WhatsApp`
+* **Prioridade:** Alta (Laranja)
+* **Dependência (Blocked by):** `[TASK-FE-01]`
+* **Tags:** `#frontend`, `#signals`, `#multi-tenant`, `#municipio-context`
+
+### Descrição & O Que Entrega
+Serviço transversal com Angular Signals (`MunicipioContextService`) que gerencia a prefeitura ativa da consultoria (ex: Patos, Sousa, Pombal, Monteiro, Cajazeiras). Integração com `GET /api/v1/prefeituras` e fallback resiliente em memória, persistindo o ID no `localStorage` e reagindo instantaneamente em todos os componentes filhos.
+
+### Critérios de Aceite
+- [x] Menu dropdown flutuante no topo permitindo alternar prefeituras em 1 clique.
+- [x] Signals reativos `municipioAtivo()` e `nomeMunicipioAtivoFormatado()`.
+- [x] Persistência transparente no navegador sem reload de página.
+- [x] Suporte à lista de prefeituras da Paraíba com contadores de convênios.
+
+---
+
+## [TASK-FE-03] Cockpit do Convênio — Esteira Linear de 10 Fases (Fases 0 a 9) e Saldo Op 006
+* **Lista:** `02.1. Frontend Cockpit & WhatsApp`
+* **Prioridade:** Urgente (Vermelho)
+* **Dependência (Blocked by):** `[TASK-FE-02]`
+* **Tags:** `#frontend`, `#cockpit`, `#10-fases`, `#stepper`, `#kpis-financeiros`
+
+### Descrição & O Que Entrega
+Painel central do convênio federal (`/convenios` ou `/convenios/:id`). Exibe o ciclo de vida completo em 10 Fases cronológicas (Fase 00 CAUC até Fase 09 Blindagem TCU/SELIC) com círculos numerados, linhas conectoras dinâmicas e modal de dossiê de fase ao clicar. Inclui 4 KPI cards financeiros de alta precisão: Repasse Federal, Execução Física RAE Caixa, Saldo em Conta Vinculada Op 006 e Prazo Fatal de Vigência.
+
+### Critérios de Aceite
+- [x] Stepper horizontal interativo das 10 fases com semáforo de status (Concluída, Em Andamento, Pendente).
+- [x] Modal contextual ao clicar em qualquer fase exibindo condicionantes legais e responsáveis.
+- [x] Cards financeiros com tipografia mono e barras de progresso percentuais.
+- [x] Painel dividido integrando documentos recebidos e cronograma de prazos.
+
+---
+
+## [TASK-FE-04] Gestão e Seleção de Convênios (Quick-Switcher no Cockpit & Explorer Geral)
+* **Lista:** `02.1. Frontend Cockpit & WhatsApp`
+* **Prioridade:** Alta (Laranja)
+* **Dependência (Blocked by):** `[TASK-FE-03]`
+* **Tags:** `#frontend`, `#convenio-selector`, `#convenios-list`, `#signals`
+
+### Descrição & O Que Entrega
+Soluciona o fluxo de trabalho do funcionário para alternar e explorar múltiplos convênios. Implementa o `ConvenioContextService` com base reativa de convênios por município, o botão Quick-Switcher no topo do Cockpit com dropdown de busca instantânea, e a página completa de catálogo `/convenios/lista` com filtros por estágio de obras, busca por número SICONV/objeto e atalho para o Cockpit correspondente.
+
+### Critérios de Aceite
+- [x] Quick-Switcher no cabeçalho do Cockpit para troca instantânea de convênio sem sair da tela.
+- [x] Página de Catálogo `/convenios/lista` com resumo executivo de saldos e convênios ativos.
+- [x] Filtros por grupos de fase: Planejamento (0 a 3), Obras & OBTV (4 e 5), Prestação (6 a 9) e Críticos.
+- [x] Sincronização automática entre o convênio selecionado e a prefeitura proprietária.
+
+---
+
+## [TASK-FE-05] Central WhatsApp & Mensageria de Fiscais de Obra (/whatsapp) com IA OCR
+* **Lista:** `02.1. Frontend Cockpit & WhatsApp`
+* **Prioridade:** Alta (Laranja)
+* **Dependência (Blocked by):** `[TASK-04]`, `[TASK-FE-01]`
+* **Tags:** `#frontend`, `#whatsapp-hub`, `#mensageria`, `#evolution-api`, `#ocr-preview`
+
+### Descrição & O Que Entrega
+Interface dedicada de comunicação em 3 colunas inspirada no WhatsApp Web e Linear. Permite ao analista interagir com fiscais de obra, secretários e construtoras, visualizar arquivos fiscais recebidos com score do OCR da IA, disparar macros de cobrança de prazo e ART em 1 clique, e abrir diretamente a bancada de conferência lado a lado pelo anexo da mensagem.
+
+### Critérios de Aceite
+- [x] Lista de conversas com filtro por categoria (Fiscais, Finanças, Jurídico) e status online.
+- [x] Thread de mensagens com balões de remetente, mensagens do bot IA e cards de anexo PDF.
+- [x] Botão no anexo "Revisar Lado a Lado" que navega para `/documentos/:id/revisar`.
+- [x] Barra de disparos rápidos (Macro de Prazo 18 dias, Solicitação de ART, Confirmação de OBTV).
+- [x] Painel lateral direito com dossiê do fiscal e link direto para o Cockpit do convênio vinculado.
+
+---
+
+## [TASK-FE-06] Radar CAUC e Matriz de Saúde Fiscal (16 Exigências LRF 25)
+* **Lista:** `02.1. Frontend Cockpit & WhatsApp`
+* **Prioridade:** Alta (Laranja)
+* **Dependência (Blocked by):** `[TASK-12]`, `[TASK-FE-01]`
+* **Tags:** `#frontend`, `#radar-cauc`, `#lrf-25`, `#matriz-fiscal`
+
+### Descrição & O Que Entrega
+Painel analítico `/radar-cauc` com a matriz das 16 certidões oficiais do CAUC/SIAFI agrupadas em 4 grupos legais: Obrigações Tributárias/Previdenciárias, Adimplência Financeira, Prestação de Contas de Convênios e Cumprimento de Limites Constitucionais (Saúde/Educação/LRF). Exibe semáforo de regularidade e alertas preventivos de vencimento.
+
+### Critérios de Aceite
+- [x] Grid estruturado com os 4 grupos e as 16 certidões da IN STN nº 1/2021.
+- [x] Indicador de validade em dias com cores de semáforo (Regular, Alerta, Irregular).
+- [x] Painel de ações corretivas rápidas para renovação de certidões.
+
+---
+
 # 📁 PASTA 3: 03. Sincronização & Inteligência Transferegov
 
 ## [TASK-09] Transferegov Service: Pipeline de Streaming e Ingestão de Dumps CSV/ZIP
@@ -183,10 +287,10 @@ Job agendado matinal (`@Scheduled`) no `transferegov-service` que consome em str
 Motor de monitoramento de risco e prazos de transferências federais. Avalia diariamente as datas de vencimento de vigência, cláusulas suspensivas e limites de prestação de contas, classificando convênios em réguas de criticidade (60, 30, 15 dias e vencidos) e exibindo um dashboard de alerta com semáforo visual para a consultoria.
 
 ### Critérios de Aceite
-- [ ] Rotina diária que calcula os dias restantes para expiração de cada convênio monitorado.
-- [ ] Classificação em níveis de risco: Crítico (vermelho), Atenção (amarelo) e Regular (verde).
-- [ ] Endpoint `GET /api/v1/transferegov/radar-prazos` entregando o panorama consolidado por município.
-- [ ] Componente de Dashboard no Angular com filtros por gravidade de prazo.
+- [x] Rotina diária que calcula os dias restantes para expiração de cada convênio monitorado.
+- [x] Classificação em níveis de risco: Crítico (vermelho), Atenção (amarelo) e Regular (verde).
+- [x] Endpoint `GET /api/v1/transferegov/radar-prazos` entregando o panorama consolidado por município.
+- [x] Componente de Dashboard no Angular com filtros por gravidade de prazo.
 
 ---
 
@@ -200,9 +304,10 @@ Motor de monitoramento de risco e prazos de transferências federais. Avalia dia
 Integração com o endpoint REST `/especiais` da API aberta do Transferegov para captura e acompanhamento de planos de trabalho e relatórios de gestão de Emendas Parlamentares Especiais (Emendas Pix), garantindo conformidade com as regras de transparência e auditoria do STF (ADPF 854).
 
 ### Critérios de Aceite
-- [ ] Consumo paginado da API de transferências especiais do governo federal.
-- [ ] Mapeamento e persistência dos dados de planos de trabalho e destinações declaradas.
-- [ ] Identificação de inconsistências ou ausência de relatórios de gestão nos prazos regulamentares.
+- [x] Consumo paginado da API de transferências especiais do governo federal (`/especiais`).
+- [x] Mapeamento e persistência dos dados de planos de trabalho, destinações declaradas e contas correntes.
+- [x] Identificação de inconsistências ou ausência de relatórios de gestão nos prazos regulamentares (ADPF 854 / Portaria MGI nº 33/2023) com disparo de alertas via RabbitMQ.
+- [x] Camada de consulta CQRS-Light com endpoints REST `/api/v1/transferegov/emendas-especiais/**` e trigger de sincronização sob demanda.
 
 ---
 
@@ -338,24 +443,30 @@ Módulo de proteção jurídica municipal contra bloqueios federais e instauraç
 
 ## 📊 Matriz Consolidada de Tarefas (Visão Rápida)
 
-| ID | Nome da Tarefa | Lista / Pasta | Prioridade | Bloqueado por | Componente Principal |
+| ID | Nome da Tarefa | Lista / Pasta | Prioridade | Status | Componente Principal |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **TASK-01** | Orquestração Local de Infraestrutura e Schemas PostgreSQL | 01. Fundação | Urgente 🔴 | *Nenhum* | Docker / Postgres / RabbitMQ / MinIO |
-| **TASK-02** | API Gateway Reativo com Autenticação JWT e Multi-Tenant | 01. Fundação | Alta 🟠 | TASK-01 | Spring Cloud Gateway (Java 21) |
-| **TASK-03** | Core Service: Gestão de Consultorias e Multi-Tenancy | 02. MVP Pipeline | Urgente 🔴 | TASK-02 | Core Service (Spring Boot 3) |
-| **TASK-04** | WhatsApp Service: Webhook Inbound e Download MinIO | 02. MVP Pipeline | Alta 🟠 | TASK-01, TASK-03 | WhatsApp Service (Evolution API) |
-| **TASK-05** | AI Service: Extração Multimodal com Gemini 3.x e Bounding Boxes | 02. MVP Pipeline | Urgente 🔴 | TASK-01 | AI Service (FastAPI / Gemini) |
-| **TASK-06** | Core Service: Agregado Documento e Ciclo de Aprovação | 02. MVP Pipeline | Alta 🟠 | TASK-03, TASK-05 | Core Service (Hexagonal) |
-| **TASK-07** | Frontend Angular: Tela de Conferência Lado a Lado | 02. MVP Pipeline | Alta 🟠 | TASK-06 | Frontend Angular 19/20 (Signals) |
-| **TASK-08** | Extensão Chrome: Detecção do Transferegov e Injeção no DOM | 02. MVP Pipeline | Alta 🟠 | TASK-06 | Extensão Chrome (Manifest V3) |
-| **TASK-09** | Transferegov Service: Streaming e Ingestão Dumps CSV/ZIP | 03. Sincronização | Média 🟡 | TASK-01 | Transferegov Service (Spring Boot) |
-| **TASK-10** | Radar Proativo de Prazos Críticos e Alertas de Vigência | 03. Sincronização | Média 🟡 | TASK-09, TASK-07 | Transferegov Service / Frontend |
-| **TASK-11** | Ingestão da API REST de Emendas Especiais (Emendas Pix) | 03. Sincronização | Média 🟡 | TASK-09 | Transferegov Service (RestClient) |
-| **TASK-12** | Radar CAUC: Monitoramento das 16 Exigências Fiscais (Fase 0) | 04. Ciclo de Vida | Alta 🟠 | TASK-03, Flyway V5 | Core Service |
-| **TASK-13** | Gestão de Cláusula Suspensiva: Três Pilares da Caixa (Fase 2) | 04. Ciclo de Vida | Alta 🟠 | TASK-03, Flyway V7 | Core Service / Frontend |
-| **TASK-14** | Licitações 1:N, Homologação VRPL e Emissão de AIO (Fase 3) | 04. Ciclo de Vida | Alta 🟠 | TASK-03, Flyway V4/V8 | Core Service |
-| **TASK-15** | Boletins de Medição de Obras e Relatório RAE Caixa (Fase 4) | 04. Ciclo de Vida | Alta 🟠 | TASK-14, Flyway V9 | Core Service / Frontend |
-| **TASK-16** | Liquidação Financeira via OBTV em Duplo Comando (Fase 5) | 04. Ciclo de Vida | Alta 🟠 | TASK-06, TASK-15, Flyway V10 | Core Service / Extensão Chrome |
-| **TASK-17** | Termos Aditivos de Prorrogação e Reequilíbrio (Fase 6) | 04. Ciclo de Vida | Média 🟡 | TASK-14, Flyway V11 | Core Service |
-| **TASK-18** | Prestação de Contas Final (RCO) e Encerramento (Fases 7 e 8) | 04. Ciclo de Vida | Média 🟡 | TASK-16, Flyway V12 | Core Service / Frontend |
-| **TASK-19** | Passivo, Notificações SELIC e Súmula 230/TCU (Fase 9) | 04. Ciclo de Vida | Média 🟡 | TASK-18, Flyway V13 | Core Service |
+| **TASK-01** | Orquestração Local de Infraestrutura e Schemas PostgreSQL | 01. Fundação | Urgente 🔴 | Concluído ✅ | Docker / Postgres / RabbitMQ / MinIO |
+| **TASK-02** | API Gateway Reativo com Autenticação JWT e Multi-Tenant | 01. Fundação | Alta 🟠 | Concluído ✅ | Spring Cloud Gateway (Java 21) |
+| **TASK-03** | Core Service: Gestão de Consultorias e Multi-Tenancy | 02. MVP Pipeline | Urgente 🔴 | Concluído ✅ | Core Service (Spring Boot 3) |
+| **TASK-04** | WhatsApp Service: Webhook Inbound e Download MinIO | 02. MVP Pipeline | Alta 🟠 | Concluído ✅ | WhatsApp Service (Evolution API) |
+| **TASK-05** | AI Service: Extração Multimodal com Gemini 3.x e Bounding Boxes | 02. MVP Pipeline | Urgente 🔴 | Concluído ✅ | AI Service (FastAPI / Gemini) |
+| **TASK-06** | Core Service: Agregado Documento e Ciclo de Aprovação | 02. MVP Pipeline | Alta 🟠 | Concluído ✅ | Core Service (Hexagonal) |
+| **TASK-07** | Frontend Angular: Tela de Conferência Lado a Lado | 02. MVP Pipeline | Alta 🟠 | Concluído ✅ | Frontend Angular 19/20 (Signals) |
+| **TASK-08** | Extensão Chrome: Detecção do Transferegov e Injeção no DOM | 02. MVP Pipeline | Alta 🟠 | Backlog ⏳ | Extensão Chrome (Manifest V3) |
+| **TASK-FE-01** | AppShell, Design System Obsidian & Dark Matte Tokens | 02.1. Frontend Cockpit | Alta 🟠 | Concluído ✅ | Angular / Tailwind / Fonts Inter & Mono |
+| **TASK-FE-02** | Context Switcher Reativo (Municípios da Paraíba & Signals) | 02.1. Frontend Cockpit | Alta 🟠 | Concluído ✅ | MunicipioContextService |
+| **TASK-FE-03** | Cockpit do Convênio — Esteira 10 Fases e Saldo Op 006 | 02.1. Frontend Cockpit | Urgente 🔴 | Concluído ✅ | ConvenioCockpit / PhaseStepper / KPIs |
+| **TASK-FE-04** | Gestão & Seleção de Convênios (Quick-Switcher & /convenios/lista) | 02.1. Frontend Cockpit | Alta 🟠 | Concluído ✅ | ConvenioContext / ConveniosListPage |
+| **TASK-FE-05** | Central WhatsApp & Mensageria de Fiscais (/whatsapp) | 02.1. Frontend Cockpit | Alta 🟠 | Concluído ✅ | WhatsAppHub / Evolution API Mock |
+| **TASK-FE-06** | Radar CAUC e Matriz de Saúde Fiscal (16 Exigências LRF 25) | 02.1. Frontend Cockpit | Alta 🟠 | Concluído ✅ | RadarCauc / CaucHealthMatrix |
+| **TASK-09** | Transferegov Service: Streaming e Ingestão Dumps CSV/ZIP | 03. Sincronização | Média 🟡 | Concluído ✅ | Transferegov Service (Spring Boot) |
+| **TASK-10** | Radar Proativo de Prazos Críticos e Alertas de Vigência | 03. Sincronização | Média 🟡 | Concluído ✅ | Transferegov Service / Frontend |
+| **TASK-11** | Ingestão da API REST de Emendas Especiais (Emendas Pix) | 03. Sincronização | Média 🟡 | Concluído ✅ | Transferegov Service (RestClient) |
+| **TASK-12** | Radar CAUC: Monitoramento das 16 Exigências Fiscais (Fase 0) | 04. Ciclo de Vida | Alta 🟠 | Backlog ⏳ | Core Service |
+| **TASK-13** | Gestão de Cláusula Suspensiva: Três Pilares da Caixa (Fase 2) | 04. Ciclo de Vida | Alta 🟠 | Backlog ⏳ | Core Service / Frontend |
+| **TASK-14** | Licitações 1:N, Homologação VRPL e Emissão de AIO (Fase 3) | 04. Ciclo de Vida | Alta 🟠 | Backlog ⏳ | Core Service |
+| **TASK-15** | Boletins de Medição de Obras e Relatório RAE Caixa (Fase 4) | 04. Ciclo de Vida | Alta 🟠 | Backlog ⏳ | Core Service / Frontend |
+| **TASK-16** | Liquidação Financeira via OBTV em Duplo Comando (Fase 5) | 04. Ciclo de Vida | Alta 🟠 | Backlog ⏳ | Core Service / Extensão Chrome |
+| **TASK-17** | Termos Aditivos de Prorrogação e Reequilíbrio (Fase 6) | 04. Ciclo de Vida | Média 🟡 | Backlog ⏳ | Core Service |
+| **TASK-18** | Prestação de Contas Final (RCO) e Encerramento (Fases 7 e 8) | 04. Ciclo de Vida | Média 🟡 | Backlog ⏳ | Core Service / Frontend |
+| **TASK-19** | Passivo, Notificações SELIC e Súmula 230/TCU (Fase 9) | 04. Ciclo de Vida | Média 🟡 | Backlog ⏳ | Core Service |

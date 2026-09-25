@@ -37,9 +37,21 @@ govflow:
       read-timeout-ms: ${SICONV_READ_TIMEOUT:60000}
       cron: ${SICONV_SYNC_CRON:0 0 7 * * *}
       batch-size: ${SICONV_BATCH_SIZE:200}
+    especiais:
+      base-url: ${ESPECIAIS_BASE_URL:https://api-publica.transferegov.gestao.gov.br/especiais}
+      uf-filter: ${ESPECIAIS_UF_FILTER:PB}
+      connect-timeout-ms: ${ESPECIAIS_CONNECT_TIMEOUT:10000}
+      read-timeout-ms: ${ESPECIAIS_READ_TIMEOUT:30000}
+      page-size: ${ESPECIAIS_PAGE_SIZE:50}
+      max-pages-per-sync: ${ESPECIAIS_MAX_PAGES:100}
+      rate-limit-delay-ms: ${ESPECIAIS_RATE_LIMIT_DELAY_MS:100}
+      max-retries: ${ESPECIAIS_MAX_RETRIES:3}
+      cron: ${ESPECIAIS_SYNC_CRON:0 30 7 * * *}
+      scheduler-enabled: ${ESPECIAIS_SCHEDULER_ENABLED:true}
     rabbitmq:
       exchange: govflow.events
       routing-key-alerta-prazo: transferegov.prazo.alerta
+      routing-key-alerta-adpf854: transferegov.emenda.adpf854.alerta
 
 springdoc:
   api-docs:
