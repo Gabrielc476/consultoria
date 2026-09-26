@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RadarCaucPageComponent } from './radar-cauc-page.component';
 import { provideRouter } from '@angular/router';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 describe('RadarCaucPageComponent', () => {
   let component: RadarCaucPageComponent;
@@ -8,7 +9,7 @@ describe('RadarCaucPageComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [RadarCaucPageComponent],
+      imports: [RadarCaucPageComponent, HttpClientTestingModule],
       providers: [provideRouter([])]
     }).compileComponents();
 

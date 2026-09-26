@@ -101,13 +101,13 @@ export class MunicipioContextService {
         if (dados && Array.isArray(dados) && dados.length > 0) {
           const mapeados: Municipio[] = dados.map(item => ({
             id: item.id || item.codigoIbge,
-            nome: item.nome || item.razaoSocial,
+            nome: item.nomeMunicipio || item.nome || item.razaoSocial,
             uf: item.uf || 'PB',
             codigoIbge: item.codigoIbge || '',
             cnpj: item.cnpj || '',
             conveniosAtivos: item.conveniosAtivos ?? 3,
             prazosCriticos: item.prazosCriticos ?? 0,
-            situacaoCauc: (item.situacaoCauc as SituacaoCauc) || 'REGULAR'
+            situacaoCauc: (item.statusCauc as SituacaoCauc) || (item.situacaoCauc as SituacaoCauc) || 'REGULAR'
           }));
           this.municipios.set(mapeados);
         }

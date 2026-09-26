@@ -323,9 +323,9 @@ Integração com o endpoint REST `/especiais` da API aberta do Transferegov para
 Módulo de acompanhamento da regularidade fiscal do município conforme art. 25 da Lei de Responsabilidade Fiscal (LRF). Monitora individualmente a validade das 16 certidões fiscais e orçamentárias (Receita/PGFN, FGTS, CNDT, RREO, RGF, SICONFI, limites constitucionais de saúde e educação) e emite alertas antes do vencimento para evitar bloqueio de celebração de convênios.
 
 ### Critérios de Aceite
-- [ ] Estrutura `tb_certidoes_cauc` vinculada à Prefeitura contendo as 16 certidões oficiais.
-- [ ] Alertas visuais e disparos programados de proximidade de expiração (10 e 5 dias de antecedência).
-- [ ] Badge de status de regularidade fiscal visível na listagem de municípios.
+- [x] Estrutura `tb_certidoes_cauc` vinculada à Prefeitura contendo as 16 certidões oficiais.
+- [x] Alertas visuais e disparos programados de proximidade de expiração (10 e 5 dias de antecedência).
+- [x] Badge de status de regularidade fiscal visível na listagem de municípios.
 
 ---
 

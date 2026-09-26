@@ -20,6 +20,13 @@ export const API_ENDPOINTS = {
     CONVENIOS: `${API_BASE_URL}/transferegov/convenios`,
     RADAR_PRAZOS: `${API_BASE_URL}/transferegov/radar-prazos`,
     AVALIAR_PRAZOS: `${API_BASE_URL}/transferegov/radar-prazos/avaliar`,
+  },
+  CAUC: {
+    BASE: `${API_BASE_URL}/cauc`,
+    RESUMO: `${API_BASE_URL}/cauc/resumo`,
+    POR_PREFEITURA: (id: string) => `${API_BASE_URL}/cauc/prefeituras/${id}`,
+    CERTIDOES: (id: string) => `${API_BASE_URL}/cauc/prefeituras/${id}/certidoes`,
+    AVALIAR: `${API_BASE_URL}/cauc/avaliar`,
   }
 };
 

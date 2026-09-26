@@ -26,3 +26,24 @@ export interface MunicipioRiscoCauc {
   };
   certidoes: CertidaoCaucItem[];
 }
+
+export interface ResumoCauc {
+  totalMunicipios: number;
+  totalRegulares: number;
+  totalAlerta: number;
+  totalVencidas: number;
+  municipios: MunicipioRiscoCauc[];
+}
+
+export interface DossieCauc {
+  prefeituraId: string;
+  nomeMunicipio: string;
+  uf: string;
+  cnpj: string;
+  statusGeral: 'ADIMPLENTE' | 'BLOQUEADO';
+  certidoesRegulares: number;
+  certidoesAlerta: number;
+  certidoesVencidas: number;
+  certidoes: CertidaoCaucItem[];
+}
+

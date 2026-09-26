@@ -1,8 +1,9 @@
-import { Component, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MunicipioRiscoCauc, CertidaoCaucItem } from '../model/cauc.model';
 import { CaucHealthMatrixComponent } from '../components/cauc-health-matrix/cauc-health-matrix.component';
+import { RadarCaucService } from '../services/radar-cauc.service';
 
 /**
  * =========================================================================
@@ -335,14 +336,46 @@ const MOCK_MUNICIPIOS_RISCO: MunicipioRiscoCauc[] = [
     </div>
   `
 })
-export class RadarCaucPageComponent {
+export class RadarCaucPageComponent implements OnInit {
+  private readonly caucService = inject(RadarCaucService);
+
   readonly municipios = signal<MunicipioRiscoCauc[]>(MOCK_MUNICIPIOS_RISCO);
+  readonly carregando = signal(false);
+  readonly sincronizando = signal(false);
 
   readonly dossieAberto = signal(false);
   readonly municipioSelecionado = signal<MunicipioRiscoCauc | null>(null);
 
+  ngOnInit(): void {
+    this.carregarDados();
+  }
+
+  carregarDados(): void {
+    this.carregando.set(true);
+    this.caucService.obterResumo().subscribe({
+      next: (res) => {
+        if (res && res.municipios && res.municipios.length > 0) {
+          this.municipios.set(res.municipios);
+        }
+        this.carregando.set(false);
+      },
+      error: () => {
+        this.carregando.set(false);
+      }
+    });
+  }
+
   atualizar(): void {
-    // Sincronização em tempo real
+    this.sincronizando.set(true);
+    this.caucService.reavaliarConformidade().subscribe({
+      next: () => {
+        this.carregarDados();
+        this.sincronizando.set(false);
+      },
+      error: () => {
+        this.sincronizando.set(false);
+      }
+    });
   }
 
   abrirDossie(mun: MunicipioRiscoCauc): void {

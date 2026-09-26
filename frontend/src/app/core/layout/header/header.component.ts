@@ -75,9 +75,22 @@ import { AuthService } from '../../auth/auth.service';
                         {{ mun.nome }} - {{ mun.uf }}
                       </span>
                     </div>
-                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-gov-slate-400">
-                      {{ mun.conveniosAtivos }} convênios
-                    </span>
+                    <div class="flex items-center gap-1.5">
+                      <span
+                        class="text-[9px] font-semibold px-1.5 py-0.5 rounded"
+                        [ngClass]="{
+                          'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25': mun.situacaoCauc === 'REGULAR',
+                          'bg-amber-500/15 text-amber-400 border border-amber-500/25': mun.situacaoCauc === 'ALERTA',
+                          'bg-rose-500/15 text-rose-400 border border-rose-500/25': mun.situacaoCauc === 'BLOQUEADO'
+                        }"
+                        [title]="'Situação Fiscal CAUC: ' + mun.situacaoCauc"
+                      >
+                        {{ mun.situacaoCauc === 'BLOQUEADO' ? 'BLOQUEADO' : mun.situacaoCauc }}
+                      </span>
+                      <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-gov-slate-400">
+                        {{ mun.conveniosAtivos }} convênios
+                      </span>
+                    </div>
                   </button>
                 }
               </div>
