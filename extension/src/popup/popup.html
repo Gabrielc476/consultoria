@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>GovFlow</title>
+    <style>
+      body {
+        width: 280px;
+        margin: 0;
+        padding: 16px;
+        font-family: system-ui, sans-serif;
+        background: #0f172a;
+        color: #f8fafc;
+      }
+      h1 { font-size: 15px; margin: 0 0 12px; }
+      label { display: block; font-size: 12px; margin-bottom: 8px; }
+      input {
+        width: 100%;
+        box-sizing: border-box;
+        margin-top: 4px;
+        padding: 6px;
+      }
+      button {
+        width: 100%;
+        margin-top: 8px;
+        padding: 8px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        background: #10b981;
+        color: white;
+        font-weight: 700;
+      }
+      button.secundario { background: #334155; }
+      p { font-size: 12px; min-height: 2.4em; }
+    </style>
+  </head>
+  <body>
+    <h1>GovFlow Copiloto</h1>
+    <form id="login-form">
+      <label>E-mail
+        <input id="email" type="email" autocomplete="username" required />
+      </label>
+      <label>Senha
+        <input id="senha" type="password" autocomplete="current-password" required />
+      </label>
+      <button type="submit">Entrar no gateway</button>
+    </form>
+    <button id="sair" class="secundario" type="button" hidden>Sair</button>
+    <p id="status">Verificando sessão…</p>
+    <script src="popup.js"></script>
+  </body>
+</html>

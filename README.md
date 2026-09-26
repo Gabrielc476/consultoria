@@ -77,7 +77,23 @@ O projeto segue as práticas de **Domain-Driven Design (DDD)** e arquitetura lim
 | `frontend` | Angular 19/20 Standalone / Signals | Feature-Sliced Design (FSD) | `4200` |
 | `extension` | TypeScript / Chrome Manifest V3 | Shadow DOM & DOM Injector Strategy | - |
 
-### Entrega atual (branch `delta`) — API Gateway + AI Service (TASK-05)
+### Entrega atual (branch `delta`) — Extensão Chrome (TASK-08)
+
+Extensão Manifest V3 em [`extension/`](./extension). No ícone do Chrome o analista entra no gateway (`POST /api/v1/auth/login`). Na tela de documento hábil o painel em Shadow DOM fechado lista documentos `PRONTO_PARA_TRANSFEREGOV` (`dadosRevisao`) e oferece preenchimento com eventos `input`/`change` e cópia campo a campo.
+
+O gateway libera a origem `chrome-extension://*` além de `http://localhost:4200`. Sem isso o popup recebe HTTP 403.
+
+**Os testes desta etapa não usaram a tela real do Transferegov.br.** O content script foi exercitado numa página fixture que imita o formulário: [`extension/fixtures/incluir-documento-habil.html`](./extension/fixtures/incluir-documento-habil.html), servida em `http://localhost:4173/incluir-documento-habil.html`. Os seletores (`#dh-nr-documento` e os demais) são dessa simulação. No portal oficial o painel pode abrir se o título contiver "Incluir Documento Hábil", mas o preenchimento não está validado.
+
+| Área | O que entrou |
+| :--- | :--- |
+| `extension/` | Detector de host e heading, painel Shadow DOM, injetor e cópia, popup de login, service worker como único cliente HTTP |
+| Gateway | CORS para a origem da extensão Chrome |
+| Testes | Vitest no fixture (detecção, isolamento, preenchimento e clipboard). Sem ensaio no DOM do governo |
+
+Instalação local da extensão: `cd extension && npm install && npm run build` e carregar `extension/dist` em `chrome://extensions`.
+
+### Entrega anterior (branch `delta`) — API Gateway + AI Service (TASK-05)
 
 * 📦 **[`gateway/README.md`](./gateway/README.md)** — API Gateway  
 * 🤖 **[`services/ai-service/README.md`](./services/ai-service/README.md)** — extração multimodal Documento Hábil  

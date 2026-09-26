@@ -1,0 +1,17 @@
+{
+  "name": "govflow-extension",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.326",
+    "@types/node": "^26.6.3",
+    "esbuild": "^0.25.5",
+    "jsdom": "^26.1.0",
+    "typescript": "~5.7.2",
+    "vitest": "^3.1.4"
+  }
+}
