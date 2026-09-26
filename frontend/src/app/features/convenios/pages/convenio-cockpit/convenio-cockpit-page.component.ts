@@ -9,6 +9,8 @@ import { PhaseStepperComponent } from '../../components/phase-stepper/phase-step
 import { ConvenioKpisComponent } from '../../components/convenio-kpis/convenio-kpis.component';
 import { ConvenioDocumentsListComponent, DocumentoConvenioResumo } from '../../components/convenio-documents-list/convenio-documents-list.component';
 import { ConvenioTimelineComponent, PrazoConvenioItem } from '../../components/convenio-timeline/convenio-timeline.component';
+import { ClausulaSuspensivaModalComponent } from '../../components/clausula-suspensiva-modal/clausula-suspensiva-modal.component';
+import { DossieClausulaSuspensiva } from '../../model/clausula-suspensiva.model';
 
 const MOCK_DOCS: DocumentoConvenioResumo[] = [
   {
@@ -83,7 +85,8 @@ const MOCK_PRAZOS: PrazoConvenioItem[] = [
     PhaseStepperComponent,
     ConvenioKpisComponent,
     ConvenioDocumentsListComponent,
-    ConvenioTimelineComponent
+    ConvenioTimelineComponent,
+    ClausulaSuspensivaModalComponent
   ],
   template: `
     <div class="p-6 max-w-7xl mx-auto space-y-6 select-none font-sans">
@@ -237,44 +240,52 @@ const MOCK_PRAZOS: PrazoConvenioItem[] = [
 
       <!-- Modal Contextual da Fase Selecionada -->
       @if (detalhesFaseAberta()) {
-        <div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div class="bg-[#111827] border border-white/10 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b border-white/10">
-              <div class="flex items-center gap-2">
-                <span class="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-gov-cobalt-500/20 text-gov-cobalt-400 border border-gov-cobalt-500/30">
-                  {{ faseSelecionada().codigo }}
-                </span>
-                <h3 class="text-sm font-bold text-white">{{ faseSelecionada().nome }}</h3>
+        @if (faseSelecionada().numero === 2) {
+          <app-clausula-suspensiva-modal
+            [convenio]="convenio()"
+            (fechar)="detalhesFaseAberta.set(false)"
+            (atualizado)="onClausulaSuspensivaAtualizada($event)"
+          ></app-clausula-suspensiva-modal>
+        } @else {
+          <div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="bg-[#111827] border border-white/10 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+              <div class="flex items-center justify-between pb-3 border-b border-white/10">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-gov-cobalt-500/20 text-gov-cobalt-400 border border-gov-cobalt-500/30">
+                    {{ faseSelecionada().codigo }}
+                  </span>
+                  <h3 class="text-sm font-bold text-white">{{ faseSelecionada().nome }}</h3>
+                </div>
+                <button (click)="detalhesFaseAberta.set(false)" class="text-gov-slate-400 hover:text-white cursor-pointer">✕</button>
               </div>
-              <button (click)="detalhesFaseAberta.set(false)" class="text-gov-slate-400 hover:text-white cursor-pointer">✕</button>
-            </div>
 
-            <div class="text-xs text-gov-slate-300 leading-relaxed">
-              {{ faseSelecionada().descricao }}
-            </div>
-
-            <div class="p-3 rounded-lg bg-white/5 border border-white/5 space-y-2 text-xs">
-              <div class="flex justify-between">
-                <span class="text-gov-slate-400">Status Operacional:</span>
-                <strong class="text-emerald-400">{{ faseSelecionada().status }}</strong>
+              <div class="text-xs text-gov-slate-300 leading-relaxed">
+                {{ faseSelecionada().descricao }}
               </div>
-              <div class="flex justify-between">
-                <span class="text-gov-slate-400">Responsável:</span>
-                <span class="text-gov-slate-200">Consultoria / Fiscal Municipal</span>
-              </div>
-            </div>
 
-            <div class="text-right pt-2">
-              <button
-                type="button"
-                (click)="detalhesFaseAberta.set(false)"
-                class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-xs font-medium text-white transition-colors cursor-pointer"
-              >
-                Fechar
-              </button>
+              <div class="p-3 rounded-lg bg-white/5 border border-white/5 space-y-2 text-xs">
+                <div class="flex justify-between">
+                  <span class="text-gov-slate-400">Status Operacional:</span>
+                  <strong class="text-emerald-400">{{ faseSelecionada().status }}</strong>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gov-slate-400">Responsável:</span>
+                  <span class="text-gov-slate-200">Consultoria / Fiscal Municipal</span>
+                </div>
+              </div>
+
+              <div class="text-right pt-2">
+                <button
+                  type="button"
+                  (click)="detalhesFaseAberta.set(false)"
+                  class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-xs font-medium text-white transition-colors cursor-pointer"
+                >
+                  Fechar
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        }
       }
     </div>
   `
@@ -332,5 +343,20 @@ export class ConvenioCockpitPageComponent implements OnInit {
   abrirModalFase(fase: FaseConvenio): void {
     this.faseSelecionada.set(fase);
     this.detalhesFaseAberta.set(true);
+  }
+
+  onClausulaSuspensivaAtualizada(dossie: DossieClausulaSuspensiva): void {
+    if (dossie.superada) {
+      const atual = this.convenio();
+      if (atual && atual.fases && atual.fases[2]) {
+        atual.fases[2].status = 'CONCLUIDA';
+        if (atual.faseAtualNumero === 2) {
+          atual.faseAtualNumero = 3;
+          if (atual.fases[3]) {
+            atual.fases[3].status = 'EM_ANDAMENTO';
+          }
+        }
+      }
+    }
   }
 }

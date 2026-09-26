@@ -2,6 +2,8 @@ package br.com.govflow.core.infrastructure.error;
 
 import br.com.govflow.core.domain.exception.ConsultoriaJaCadastradaException;
 import br.com.govflow.core.domain.exception.ConsultoriaNaoEncontradaException;
+import br.com.govflow.core.domain.exception.CondicionanteNaoEncontradaException;
+import br.com.govflow.core.domain.exception.ConvenioNaoEncontradoException;
 import br.com.govflow.core.domain.exception.DocumentoNaoEncontradoException;
 import br.com.govflow.core.domain.exception.DomainException;
 import br.com.govflow.core.domain.exception.InconsistenciaMatematicaException;
@@ -49,7 +51,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
     }
 
-    @ExceptionHandler({PrefeituraNaoEncontradaException.class, ConsultoriaNaoEncontradaException.class, DocumentoNaoEncontradoException.class})
+    @ExceptionHandler({
+            PrefeituraNaoEncontradaException.class,
+            ConsultoriaNaoEncontradaException.class,
+            DocumentoNaoEncontradoException.class,
+            ConvenioNaoEncontradoException.class,
+            CondicionanteNaoEncontradaException.class
+    })
     public ResponseEntity<ProblemDetail> handleNotFound(DomainException ex, HttpServletRequest request) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
         problem.setTitle("Recurso Não Encontrado");

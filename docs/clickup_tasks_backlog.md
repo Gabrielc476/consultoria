@@ -339,9 +339,9 @@ Módulo de acompanhamento da regularidade fiscal do município conforme art. 25 
 Painel dedicado ao controle e superação da Cláusula Suspensiva em contratos de repasse com a Caixa Econômica Federal. Rastreia o prazo fatal e o status de aprovação técnica dos três pilares obrigatórios: Projetos de Engenharia e Orçamento SINAPI (SPA/LAE), Licenciamento Ambiental e Comprovação de Titularidade do Imóvel.
 
 ### Critérios de Aceite
-- [ ] Cadastro das condicionantes suspensivas com controle rigoroso de data-limite improrrogável.
-- [ ] Upload e custódia segura de laudos de titularidade e licenças ambientais no MinIO.
-- [ ] Checklist visual de pendências impedindo a perda de prazos que provocam rescisão de repasse.
+- [x] Cadastro das condicionantes suspensivas com controle rigoroso de data-limite improrrogável.
+- [x] Upload e custódia segura de laudos de titularidade e licenças ambientais no MinIO.
+- [x] Checklist visual de pendências impedindo a perda de prazos que provocam rescisão de repasse.
 
 ---
 
@@ -462,8 +462,8 @@ Módulo de proteção jurídica municipal contra bloqueios federais e instauraç
 | **TASK-09** | Transferegov Service: Streaming e Ingestão Dumps CSV/ZIP | 03. Sincronização | Média 🟡 | Concluído ✅ | Transferegov Service (Spring Boot) |
 | **TASK-10** | Radar Proativo de Prazos Críticos e Alertas de Vigência | 03. Sincronização | Média 🟡 | Concluído ✅ | Transferegov Service / Frontend |
 | **TASK-11** | Ingestão da API REST de Emendas Especiais (Emendas Pix) | 03. Sincronização | Média 🟡 | Concluído ✅ | Transferegov Service (RestClient) |
-| **TASK-12** | Radar CAUC: Monitoramento das 16 Exigências Fiscais (Fase 0) | 04. Ciclo de Vida | Alta 🟠 | Backlog ⏳ | Core Service |
-| **TASK-13** | Gestão de Cláusula Suspensiva: Três Pilares da Caixa (Fase 2) | 04. Ciclo de Vida | Alta 🟠 | Backlog ⏳ | Core Service / Frontend |
+| **TASK-12** | Radar CAUC: Monitoramento das 16 Exigências Fiscais (Fase 0) | 04. Ciclo de Vida | Alta 🟠 | Concluído ✅ | Core Service |
+| **TASK-13** | Gestão de Cláusula Suspensiva: Três Pilares da Caixa (Fase 2) | 04. Ciclo de Vida | Alta 🟠 | Concluído ✅ | Core Service / Frontend |
 | **TASK-14** | Licitações 1:N, Homologação VRPL e Emissão de AIO (Fase 3) | 04. Ciclo de Vida | Alta 🟠 | Backlog ⏳ | Core Service |
 | **TASK-15** | Boletins de Medição de Obras e Relatório RAE Caixa (Fase 4) | 04. Ciclo de Vida | Alta 🟠 | Backlog ⏳ | Core Service / Frontend |
 | **TASK-16** | Liquidação Financeira via OBTV em Duplo Comando (Fase 5) | 04. Ciclo de Vida | Alta 🟠 | Backlog ⏳ | Core Service / Extensão Chrome |
