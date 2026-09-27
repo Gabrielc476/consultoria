@@ -31,6 +31,8 @@ public class ConvenioPersistenceMapper {
                 entity.isProrrogacaoSolicitada(),
                 entity.getNovoPrazoProrrogado(),
                 entity.getS3KeyTermoRetiradaSuspensiva(),
+                entity.getStatusClausulaSuspensiva(),
+                entity.getDataSuperacaoClausulaSuspensiva(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );
@@ -60,6 +62,8 @@ public class ConvenioPersistenceMapper {
         entity.setProrrogacaoSolicitada(domain.isProrrogacaoSolicitada());
         entity.setNovoPrazoProrrogado(domain.getNovoPrazoProrrogado());
         entity.setS3KeyTermoRetiradaSuspensiva(domain.getS3KeyTermoRetiradaSuspensiva());
+        entity.setStatusClausulaSuspensiva(domain.getStatusClausulaSuspensiva());
+        entity.setDataSuperacaoClausulaSuspensiva(domain.getDataSuperacaoClausulaSuspensiva());
         entity.setCreatedAt(domain.getCreatedAt());
         entity.setUpdatedAt(domain.getUpdatedAt());
         return entity;

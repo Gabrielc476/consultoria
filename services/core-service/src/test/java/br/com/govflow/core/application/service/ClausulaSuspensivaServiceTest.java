@@ -7,6 +7,7 @@ import br.com.govflow.core.application.port.out.ClausulaSuspensivaEventPublisher
 import br.com.govflow.core.application.port.out.ClausulaSuspensivaStoragePort;
 import br.com.govflow.core.application.port.out.CondicionanteSuspensivaRepositoryPort;
 import br.com.govflow.core.application.port.out.ConvenioRepositoryPort;
+import br.com.govflow.core.domain.event.AlertaPrazoSuspensivaEvent;
 import br.com.govflow.core.domain.event.ClausulaSuspensivaSuperadaEvent;
 import br.com.govflow.core.domain.exception.ClausulaSuspensivaNaoPodeSerSuperadaException;
 import br.com.govflow.core.domain.model.convenio.*;
@@ -17,7 +18,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -58,7 +58,6 @@ class ClausulaSuspensivaServiceTest {
     @BeforeEach
     void setUp() {
         service = new ClausulaSuspensivaService(convenioRepository, condicionanteRepository, storagePort, eventPublisher);
-        ReflectionTestUtils.setField(service, "bucketDocumentos", "govflow-documentos");
 
         convenio = new Convenio(
                 convenioId,
@@ -100,6 +99,8 @@ class ClausulaSuspensivaServiceTest {
         assertThat(dossie.superada()).isFalse();
 
         verify(condicionanteRepository).salvarTodas(any());
+        // Pure read: ensure NO events are emitted during query
+        verify(eventPublisher, never()).publicarAlertaPrazo(any());
     }
 
     @Test
@@ -188,6 +189,57 @@ class ClausulaSuspensivaServiceTest {
     }
 
     @Test
+    @DisplayName("Deve deferir prorrogação de prazo concedida pela Mandatária")
+    void deveDeferirProrrogacao() {
+        when(convenioRepository.buscarPorId(convenioId)).thenReturn(Optional.of(convenio));
+        when(convenioRepository.salvar(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        LocalDate novoPrazo = convenio.getPrazoClausulaSuspensiva().plusDays(120);
+        Convenio resultado = service.deferirProrrogacao(convenioId, novoPrazo);
+
+        assertThat(resultado.isProrrogacaoSolicitada()).isFalse();
+        assertThat(resultado.getNovoPrazoProrrogado()).isEqualTo(novoPrazo);
+        verify(convenioRepository).salvar(convenio);
+    }
+
+    @Test
+    @DisplayName("Deve carregar documento comprobatório em bytes para download")
+    void deveCarregarDocumentoParaDownload() {
+        when(convenioRepository.buscarPorId(convenioId)).thenReturn(Optional.of(convenio));
+        var cond = CondicionanteSuspensiva.nova(tenantId, convenioId, TipoCondicionanteSuspensiva.LICENCIAMENTO_AMBIENTAL);
+        cond.vincularDocumento("s3/licenca_instalacao.pdf");
+
+        when(condicionanteRepository.buscarPorConvenioETipo(convenioId, TipoCondicionanteSuspensiva.LICENCIAMENTO_AMBIENTAL))
+                .thenReturn(Optional.of(cond));
+
+        byte[] fakeBytes = "PDF-LICENCA".getBytes();
+        when(storagePort.carregarArquivoBytes("s3/licenca_instalacao.pdf")).thenReturn(Optional.of(fakeBytes));
+
+        Optional<byte[]> resultado = service.carregarDocumento(convenioId, TipoCondicionanteSuspensiva.LICENCIAMENTO_AMBIENTAL);
+
+        assertThat(resultado).isPresent();
+        assertThat(resultado.get()).isEqualTo(fakeBytes);
+    }
+
+    @Test
+    @DisplayName("Deve executar varredura de alertas e publicar no RabbitMQ para prazos críticos")
+    void deveExecutarVarreduraAlertasPrazo() {
+        var convCritico = new Convenio(
+                UUID.randomUUID(), tenantId, prefeituraId, "914251/2023", "00125/2023",
+                "FNDE", "Creche", BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                "EM_EXECUCAO", true, LocalDate.now().plusDays(20),
+                LocalDate.now(), LocalDate.now().plusYears(1), false, null, null, Instant.now(), Instant.now()
+        );
+
+        when(convenioRepository.listarComClausulaSuspensivaAtiva()).thenReturn(List.of(convCritico));
+
+        int emitidos = service.executarVarreduraAlertasPrazo();
+
+        assertThat(emitidos).isEqualTo(1);
+        verify(eventPublisher).publicarAlertaPrazo(any(AlertaPrazoSuspensivaEvent.class));
+    }
+
+    @Test
     @DisplayName("Deve superar Cláusula Suspensiva e disparar evento RabbitMQ quando todos os 3 pilares estiverem aprovados")
     void deveSuperarClausulaSuspensivaComSucesso() {
         when(convenioRepository.buscarPorId(convenioId)).thenReturn(Optional.of(convenio));
@@ -255,7 +307,7 @@ class ClausulaSuspensivaServiceTest {
                 bytes
         );
 
-        verify(storagePort).salvarArquivo(eq("govflow-documentos"), any(), eq(bytes), eq("application/pdf"));
+        verify(storagePort).salvarArquivo(any(), eq(bytes), eq("application/pdf"));
         assertThat(resultado.getS3KeyDocumento()).contains("clausula-suspensiva");
         assertThat(resultado.getS3KeyDocumento()).contains("matricula_cri.pdf");
     }

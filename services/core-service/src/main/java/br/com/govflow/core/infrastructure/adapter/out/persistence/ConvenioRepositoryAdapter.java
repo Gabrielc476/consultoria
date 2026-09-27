@@ -18,7 +18,7 @@ public class ConvenioRepositoryAdapter implements ConvenioRepositoryPort {
     private final ConvenioPersistenceMapper mapper;
 
     public ConvenioRepositoryAdapter(SpringDataConvenioRepository repository,
-                                   ConvenioPersistenceMapper mapper) {
+                                    ConvenioPersistenceMapper mapper) {
         this.repository = repository;
         this.mapper = mapper;
     }
@@ -36,6 +36,13 @@ public class ConvenioRepositoryAdapter implements ConvenioRepositoryPort {
     @Override
     public List<Convenio> listarPorPrefeitura(UUID prefeituraId) {
         return repository.findByPrefeituraId(prefeituraId).stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<Convenio> listarComClausulaSuspensivaAtiva() {
+        return repository.findByPossuiClausulaSuspensivaTrueAndS3KeyTermoRetiradaSuspensivaIsNull().stream()
                 .map(mapper::toDomain)
                 .toList();
     }

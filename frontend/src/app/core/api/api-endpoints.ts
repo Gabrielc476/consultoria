@@ -38,8 +38,11 @@ export const API_ENDPOINTS = {
     UPLOAD_DOCUMENTO: (id: string, tipo: string) => `${API_BASE_URL}/convenios/${id}/clausula-suspensiva/condicionantes/${tipo}/documentos`,
     UPLOAD_LAUDO_PENDENCIAS: (id: string, tipo: string) => `${API_BASE_URL}/convenios/${id}/clausula-suspensiva/condicionantes/${tipo}/laudo-pendencias`,
     PRORROGAR: (id: string) => `${API_BASE_URL}/convenios/${id}/clausula-suspensiva/prorrogacao`,
+    DEFERIR_PRORROGACAO: (id: string) => `${API_BASE_URL}/convenios/${id}/clausula-suspensiva/prorrogacao/deferir`,
     SUPERAR: (id: string) => `${API_BASE_URL}/convenios/${id}/clausula-suspensiva/superar`,
     UPLOAD_TERMO_RETIRADA: (id: string) => `${API_BASE_URL}/convenios/${id}/clausula-suspensiva/termo-retirada`,
+    DOWNLOAD_DOCUMENTO: (id: string, tipo: string) => `${API_BASE_URL}/convenios/${id}/clausula-suspensiva/documentos/${tipo}/download`,
+    DOWNLOAD_TERMO_RETIRADA: (id: string) => `${API_BASE_URL}/convenios/${id}/clausula-suspensiva/termo-retirada/download`,
   }
 };
 

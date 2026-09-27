@@ -7,6 +7,7 @@ import br.com.govflow.core.domain.model.convenio.TipoCondicionanteSuspensiva;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface ConsultarClausulaSuspensivaUseCase {
@@ -14,6 +15,12 @@ public interface ConsultarClausulaSuspensivaUseCase {
     DossieClausulaSuspensivaDto obterDossiePorConvenioId(UUID convenioId);
 
     DossieClausulaSuspensivaDto obterDossiePorNumeroSiconv(String numeroSiconv);
+
+    Optional<byte[]> carregarDocumento(UUID convenioId, TipoCondicionanteSuspensiva tipo);
+
+    Optional<byte[]> carregarTermoRetirada(UUID convenioId);
+
+    int executarVarreduraAlertasPrazo();
 
     record DossieClausulaSuspensivaDto(
             UUID convenioId,

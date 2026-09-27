@@ -14,5 +14,7 @@ public interface ConvenioRepositoryPort {
 
     List<Convenio> listarPorPrefeitura(UUID prefeituraId);
 
+    List<Convenio> listarComClausulaSuspensivaAtiva();
+
     Convenio salvar(Convenio convenio);
 }

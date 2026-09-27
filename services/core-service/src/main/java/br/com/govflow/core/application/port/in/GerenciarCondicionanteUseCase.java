@@ -1,6 +1,7 @@
 package br.com.govflow.core.application.port.in;
 
 import br.com.govflow.core.domain.model.convenio.CondicionanteSuspensiva;
+import br.com.govflow.core.domain.model.convenio.ParametrosAprovacaoCondicionante;
 import br.com.govflow.core.domain.model.convenio.TipoCondicionanteSuspensiva;
 
 import java.math.BigDecimal;
@@ -36,7 +37,20 @@ public interface GerenciarCondicionanteUseCase {
             String numeroArtRrt,
             String orgaoEmissor,
             String s3KeyDocumento
-    ) {}
+    ) {
+        public ParametrosAprovacaoCondicionante toParametros() {
+            return new ParametrosAprovacaoCondicionante(
+                    numeroDocumentoComprobatorio,
+                    dataAprovacao,
+                    dataValidade,
+                    valorOrcamentoAprovado,
+                    percentualBdiAprovado,
+                    numeroArtRrt,
+                    orgaoEmissor,
+                    s3KeyDocumento
+            );
+        }
+    }
 
     record AtualizarCondicionanteCommand(
             UUID convenioId,

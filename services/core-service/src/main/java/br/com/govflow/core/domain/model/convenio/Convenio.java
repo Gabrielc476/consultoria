@@ -32,6 +32,8 @@ public class Convenio {
     private boolean prorrogacaoSolicitada;
     private LocalDate novoPrazoProrrogado;
     private String s3KeyTermoRetiradaSuspensiva;
+    private String statusClausulaSuspensiva;
+    private LocalDate dataSuperacaoClausulaSuspensiva;
     private final Instant createdAt;
     private Instant updatedAt;
 
@@ -53,6 +55,8 @@ public class Convenio {
                     boolean prorrogacaoSolicitada,
                     LocalDate novoPrazoProrrogado,
                     String s3KeyTermoRetiradaSuspensiva,
+                    String statusClausulaSuspensiva,
+                    LocalDate dataSuperacaoClausulaSuspensiva,
                     Instant createdAt,
                     Instant updatedAt) {
         this.id = Objects.requireNonNull(id, "O id do convênio não pode ser nulo");
@@ -72,9 +76,37 @@ public class Convenio {
         this.dataFimVigencia = dataFimVigencia;
         this.prorrogacaoSolicitada = prorrogacaoSolicitada;
         this.novoPrazoProrrogado = novoPrazoProrrogado;
-        this.s3KeyTermoRetiradaSuspensiva = s3KeyTermoRetiradaSuspensiva;
+        this.statusClausulaSuspensiva = statusClausulaSuspensiva != null ? statusClausulaSuspensiva :
+                (possuiClausulaSuspensiva ? (s3KeyTermoRetiradaSuspensiva != null && !s3KeyTermoRetiradaSuspensiva.trim().isEmpty() ? "SUPERADA" : "PENDENTE") : "NAO_APLICA");
+        this.dataSuperacaoClausulaSuspensiva = dataSuperacaoClausulaSuspensiva;
         this.createdAt = createdAt != null ? createdAt : Instant.now();
         this.updatedAt = updatedAt != null ? updatedAt : Instant.now();
+    }
+
+    public Convenio(UUID id,
+                    UUID tenantId,
+                    UUID prefeituraId,
+                    String numeroSiconv,
+                    String numeroProcesso,
+                    String orgaoConcedente,
+                    String objeto,
+                    BigDecimal valorGlobal,
+                    BigDecimal valorRepasse,
+                    BigDecimal valorContrapartida,
+                    String situacao,
+                    boolean possuiClausulaSuspensiva,
+                    LocalDate prazoClausulaSuspensiva,
+                    LocalDate dataInicioVigencia,
+                    LocalDate dataFimVigencia,
+                    boolean prorrogacaoSolicitada,
+                    LocalDate novoPrazoProrrogado,
+                    String s3KeyTermoRetiradaSuspensiva,
+                    Instant createdAt,
+                    Instant updatedAt) {
+        this(id, tenantId, prefeituraId, numeroSiconv, numeroProcesso, orgaoConcedente, objeto,
+             valorGlobal, valorRepasse, valorContrapartida, situacao, possuiClausulaSuspensiva,
+             prazoClausulaSuspensiva, dataInicioVigencia, dataFimVigencia, prorrogacaoSolicitada,
+             novoPrazoProrrogado, s3KeyTermoRetiradaSuspensiva, null, null, createdAt, updatedAt);
     }
 
     /**
@@ -121,7 +153,8 @@ public class Convenio {
      * Indica se a cláusula suspensiva foi definitivamente superada com termo de retirada emitido.
      */
     public boolean isClausulaSuspensivaSuperada() {
-        return s3KeyTermoRetiradaSuspensiva != null && !s3KeyTermoRetiradaSuspensiva.trim().isEmpty();
+        return "SUPERADA".equalsIgnoreCase(statusClausulaSuspensiva) ||
+               (s3KeyTermoRetiradaSuspensiva != null && !s3KeyTermoRetiradaSuspensiva.trim().isEmpty());
     }
 
     /**
@@ -138,12 +171,32 @@ public class Convenio {
             throw new RegraNegocioClausulaSuspensivaException("A nova data proposta para prorrogação é obrigatória.");
         }
         LocalDate prazoAtual = getPrazoFatalEfetivo();
+        LocalDate ref = dataReferencia != null ? dataReferencia : LocalDate.now();
+        if (prazoAtual != null && ref.isAfter(prazoAtual)) {
+            throw new RegraNegocioClausulaSuspensivaException(
+                "Solicitação intempestiva: o prazo fatal da cláusula suspensiva expirou em " + prazoAtual + " e não pode ser prorrogado após o vencimento (Portaria Conjunta MGI/MF/CGU nº 33/2023).");
+        }
         if (prazoAtual != null && !novoPrazo.isAfter(prazoAtual)) {
             throw new RegraNegocioClausulaSuspensivaException("O novo prazo prorrogado deve ser posterior ao prazo fatal atual (" + prazoAtual + ").");
         }
 
         this.prorrogacaoSolicitada = true;
         this.novoPrazoProrrogado = novoPrazo;
+        this.updatedAt = Instant.now();
+    }
+
+    /**
+     * Defere formalmente a prorrogação do prazo da Cláusula Suspensiva chancelada pela Mandatária / Ministério.
+     */
+    public void deferirProrrogacaoPrazo(LocalDate novoPrazoAprovado) {
+        if (!possuiClausulaSuspensiva) {
+            throw new RegraNegocioClausulaSuspensivaException("Este convênio não opera sob regime de cláusula suspensiva.");
+        }
+        if (novoPrazoAprovado == null) {
+            throw new RegraNegocioClausulaSuspensivaException("O novo prazo aprovado é obrigatório.");
+        }
+        this.novoPrazoProrrogado = novoPrazoAprovado;
+        this.prorrogacaoSolicitada = false;
         this.updatedAt = Instant.now();
     }
 
@@ -181,7 +234,17 @@ public class Convenio {
         }
 
         this.s3KeyTermoRetiradaSuspensiva = s3KeyTermoRetirada.trim();
+        this.statusClausulaSuspensiva = "SUPERADA";
+        this.dataSuperacaoClausulaSuspensiva = LocalDate.now();
         this.updatedAt = Instant.now();
+    }
+
+    public String getStatusClausulaSuspensiva() {
+        return statusClausulaSuspensiva;
+    }
+
+    public LocalDate getDataSuperacaoClausulaSuspensiva() {
+        return dataSuperacaoClausulaSuspensiva;
     }
 
     public UUID getId() {

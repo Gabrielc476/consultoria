@@ -8,4 +8,6 @@ import java.util.UUID;
 public interface ProrrogarPrazoClausulaSuspensivaUseCase {
 
     Convenio solicitarProrrogacao(UUID convenioId, LocalDate novoPrazo);
+
+    Convenio deferirProrrogacao(UUID convenioId, LocalDate novoPrazo);
 }

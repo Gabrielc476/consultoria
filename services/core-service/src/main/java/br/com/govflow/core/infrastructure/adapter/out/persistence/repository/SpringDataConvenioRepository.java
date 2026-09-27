@@ -16,4 +16,6 @@ public interface SpringDataConvenioRepository extends JpaRepository<ConvenioJpaE
     List<ConvenioJpaEntity> findByPrefeituraId(UUID prefeituraId);
 
     List<ConvenioJpaEntity> findByTenantId(UUID tenantId);
+
+    List<ConvenioJpaEntity> findByPossuiClausulaSuspensivaTrueAndS3KeyTermoRetiradaSuspensivaIsNull();
 }

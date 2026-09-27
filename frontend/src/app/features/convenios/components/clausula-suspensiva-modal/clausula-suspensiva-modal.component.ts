@@ -108,16 +108,25 @@ import { ConvenioCockpit } from '../../model/convenio-fase.model';
                   </span>
                   @if (dossie()?.prorrogacaoSolicitada) {
                     <span class="px-2 py-0.5 rounded bg-gov-cobalt-500/20 text-gov-cobalt-300 text-[10px] font-mono">
-                      (Prorrogação Registrada)
+                      (Prorrogação Solicitada)
                     </span>
                   }
                 </div>
               </div>
             </div>
 
-            <!-- Botão de Prorrogação -->
+            <!-- Botões de Prorrogação -->
             @if (!dossie()?.superada) {
               <div class="flex items-center gap-2">
+                @if (dossie()?.prorrogacaoSolicitada) {
+                  <button
+                    type="button"
+                    (click)="deferirProrrogacao()"
+                    class="px-3.5 py-2 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200 border border-emerald-500/40 font-medium transition-colors cursor-pointer inline-flex items-center gap-2"
+                  >
+                    <span>✓ Deferir Prorrogação</span>
+                  </button>
+                }
                 <button
                   type="button"
                   (click)="formProrrogacaoAberto.set(!formProrrogacaoAberto())"
@@ -197,7 +206,7 @@ import { ConvenioCockpit } from '../../model/convenio-fase.model';
                   </div>
 
                   <p class="text-gov-slate-400 text-[11px] leading-relaxed">
-                    Projetos executivos, planilha orçamentária referenciada em SINAPI/SICRO, Curva ABC e BDI analítico balizado pelo Acórdão TCU 2622/2013.
+                    Projetos executivos, planilha orçamentária referenciada em SINAPI/SICRO, Curva ABC e BDI analítico balizado pelo Acórdão TCU 2622/2013 (máx 30%).
                   </p>
 
                   <div class="mt-3 pt-3 border-t border-white/5 space-y-1.5 text-[11px]">
@@ -211,11 +220,11 @@ import { ConvenioCockpit } from '../../model/convenio-fase.model';
                     </div>
                     <div class="flex justify-between">
                       <span class="text-gov-slate-500">BDI Aprovado:</span>
-                      <span class="text-emerald-400 font-mono font-semibold">{{ pilarEngenharia()?.percentualBdiAprovado || '22.12' }}%</span>
+                      <span class="text-emerald-400 font-mono font-semibold">{{ pilarEngenharia()?.percentualBdiAprovado ? (pilarEngenharia()?.percentualBdiAprovado + '%') : 'Não aprovado' }}</span>
                     </div>
                     <div class="flex justify-between">
                       <span class="text-gov-slate-500">ART / RRT:</span>
-                      <span class="text-gov-slate-300 font-mono">{{ pilarEngenharia()?.numeroArtRrt || 'ART-PB' }}</span>
+                      <span class="text-gov-slate-300 font-mono">{{ pilarEngenharia()?.numeroArtRrt || 'Não informado' }}</span>
                     </div>
                   </div>
 
@@ -227,30 +236,39 @@ import { ConvenioCockpit } from '../../model/convenio-fase.model';
                 </div>
 
                 <!-- Ações do Pilar 1 -->
-                @if (!dossie()?.superada) {
-                  <div class="pt-3 border-t border-white/5 flex flex-wrap gap-2">
-                    @if (pilarEngenharia()?.status !== 'APROVADO') {
-                      <button
-                        type="button"
-                        (click)="aprovarPilarRapido('ENGENHARIA_PROJETOS_SINAPI')"
-                        class="px-2.5 py-1.5 rounded bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 text-emerald-300 font-medium text-[11px] cursor-pointer"
-                      >
-                        ✓ Aprovar LAE/SPA
-                      </button>
-                      <button
-                        type="button"
-                        (click)="abrirModalDiligencia('ENGENHARIA_PROJETOS_SINAPI')"
-                        class="px-2.5 py-1.5 rounded bg-amber-600/20 hover:bg-amber-600/40 border border-amber-500/30 text-amber-300 text-[11px] cursor-pointer"
-                      >
-                        ⚠️ Diligência
-                      </button>
-                    }
+                <div class="pt-3 border-t border-white/5 flex flex-wrap gap-2 items-center">
+                  @if (!dossie()?.superada && pilarEngenharia()?.status !== 'APROVADO') {
+                    <button
+                      type="button"
+                      (click)="abrirModalAprovacao('ENGENHARIA_PROJETOS_SINAPI')"
+                      class="px-2.5 py-1.5 rounded bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 text-emerald-300 font-medium text-[11px] cursor-pointer"
+                    >
+                      ✓ Aprovar LAE/SPA
+                    </button>
+                    <button
+                      type="button"
+                      (click)="abrirModalDiligencia('ENGENHARIA_PROJETOS_SINAPI')"
+                      class="px-2.5 py-1.5 rounded bg-amber-600/20 hover:bg-amber-600/40 border border-amber-500/30 text-amber-300 text-[11px] cursor-pointer"
+                    >
+                      ⚠️ Diligência
+                    </button>
+                  }
+                  @if (!dossie()?.superada) {
                     <label class="px-2.5 py-1.5 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-gov-slate-300 text-[11px] cursor-pointer">
                       <span>📁 Anexar LAE</span>
                       <input type="file" class="hidden" (change)="onUploadArquivo($event, 'ENGENHARIA_PROJETOS_SINAPI')" />
                     </label>
-                  </div>
-                }
+                  }
+                  @if (pilarEngenharia()?.s3KeyDocumento) {
+                    <button
+                      type="button"
+                      (click)="baixarDocumento('ENGENHARIA_PROJETOS_SINAPI')"
+                      class="px-2.5 py-1.5 rounded bg-gov-cobalt-600/20 hover:bg-gov-cobalt-600/40 border border-gov-cobalt-500/30 text-gov-cobalt-300 text-[11px] cursor-pointer inline-flex items-center gap-1"
+                    >
+                      <span>📥 Baixar LAE</span>
+                    </button>
+                  }
+                </div>
               </div>
 
               <!-- Card Pilar 2: Licenciamento Ambiental -->
@@ -280,7 +298,7 @@ import { ConvenioCockpit } from '../../model/convenio-fase.model';
                     </div>
                     <div class="flex justify-between">
                       <span class="text-gov-slate-500">Órgão Emissor:</span>
-                      <span class="text-gov-slate-300">{{ pilarAmbiental()?.orgaoEmissor || 'SUDEMA-PB' }}</span>
+                      <span class="text-gov-slate-300">{{ pilarAmbiental()?.orgaoEmissor || 'Não informado' }}</span>
                     </div>
                     <div class="flex justify-between">
                       <span class="text-gov-slate-500">Validade da Licença:</span>
@@ -302,30 +320,39 @@ import { ConvenioCockpit } from '../../model/convenio-fase.model';
                 </div>
 
                 <!-- Ações do Pilar 2 -->
-                @if (!dossie()?.superada) {
-                  <div class="pt-3 border-t border-white/5 flex flex-wrap gap-2">
-                    @if (pilarAmbiental()?.status !== 'APROVADO') {
-                      <button
-                        type="button"
-                        (click)="aprovarPilarRapido('LICENCIAMENTO_AMBIENTAL')"
-                        class="px-2.5 py-1.5 rounded bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 text-emerald-300 font-medium text-[11px] cursor-pointer"
-                      >
-                        ✓ Aprovar Licença
-                      </button>
-                      <button
-                        type="button"
-                        (click)="abrirModalDiligencia('LICENCIAMENTO_AMBIENTAL')"
-                        class="px-2.5 py-1.5 rounded bg-amber-600/20 hover:bg-amber-600/40 border border-amber-500/30 text-amber-300 text-[11px] cursor-pointer"
-                      >
-                        ⚠️ Diligência
-                      </button>
-                    }
+                <div class="pt-3 border-t border-white/5 flex flex-wrap gap-2 items-center">
+                  @if (!dossie()?.superada && pilarAmbiental()?.status !== 'APROVADO') {
+                    <button
+                      type="button"
+                      (click)="abrirModalAprovacao('LICENCIAMENTO_AMBIENTAL')"
+                      class="px-2.5 py-1.5 rounded bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 text-emerald-300 font-medium text-[11px] cursor-pointer"
+                    >
+                      ✓ Aprovar Licença
+                    </button>
+                    <button
+                      type="button"
+                      (click)="abrirModalDiligencia('LICENCIAMENTO_AMBIENTAL')"
+                      class="px-2.5 py-1.5 rounded bg-amber-600/20 hover:bg-amber-600/40 border border-amber-500/30 text-amber-300 text-[11px] cursor-pointer"
+                    >
+                      ⚠️ Diligência
+                    </button>
+                  }
+                  @if (!dossie()?.superada) {
                     <label class="px-2.5 py-1.5 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-gov-slate-300 text-[11px] cursor-pointer">
                       <span>📁 Anexar Licença</span>
                       <input type="file" class="hidden" (change)="onUploadArquivo($event, 'LICENCIAMENTO_AMBIENTAL')" />
                     </label>
-                  </div>
-                }
+                  }
+                  @if (pilarAmbiental()?.s3KeyDocumento) {
+                    <button
+                      type="button"
+                      (click)="baixarDocumento('LICENCIAMENTO_AMBIENTAL')"
+                      class="px-2.5 py-1.5 rounded bg-gov-cobalt-600/20 hover:bg-gov-cobalt-600/40 border border-gov-cobalt-500/30 text-gov-cobalt-300 text-[11px] cursor-pointer inline-flex items-center gap-1"
+                    >
+                      <span>📥 Baixar Licença</span>
+                    </button>
+                  }
+                </div>
               </div>
 
               <!-- Card Pilar 3: Titularidade do Imóvel -->
@@ -355,7 +382,7 @@ import { ConvenioCockpit } from '../../model/convenio-fase.model';
                     </div>
                     <div class="flex justify-between">
                       <span class="text-gov-slate-500">Cartório / Serventia:</span>
-                      <span class="text-gov-slate-300">{{ pilarTitularidade()?.orgaoEmissor || '1º CRI Patos' }}</span>
+                      <span class="text-gov-slate-300">{{ pilarTitularidade()?.orgaoEmissor || 'Não informado' }}</span>
                     </div>
                     <div class="flex justify-between">
                       <span class="text-gov-slate-500">Data de Aceite:</span>
@@ -371,30 +398,39 @@ import { ConvenioCockpit } from '../../model/convenio-fase.model';
                 </div>
 
                 <!-- Ações do Pilar 3 -->
-                @if (!dossie()?.superada) {
-                  <div class="pt-3 border-t border-white/5 flex flex-wrap gap-2">
-                    @if (pilarTitularidade()?.status !== 'APROVADO') {
-                      <button
-                        type="button"
-                        (click)="aprovarPilarRapido('TITULARIDADE_IMOVEL')"
-                        class="px-2.5 py-1.5 rounded bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 text-emerald-300 font-medium text-[11px] cursor-pointer"
-                      >
-                        ✓ Aprovar CRI
-                      </button>
-                      <button
-                        type="button"
-                        (click)="abrirModalDiligencia('TITULARIDADE_IMOVEL')"
-                        class="px-2.5 py-1.5 rounded bg-amber-600/20 hover:bg-amber-600/40 border border-amber-500/30 text-amber-300 text-[11px] cursor-pointer"
-                      >
-                        ⚠️ Diligência
-                      </button>
-                    }
+                <div class="pt-3 border-t border-white/5 flex flex-wrap gap-2 items-center">
+                  @if (!dossie()?.superada && pilarTitularidade()?.status !== 'APROVADO') {
+                    <button
+                      type="button"
+                      (click)="abrirModalAprovacao('TITULARIDADE_IMOVEL')"
+                      class="px-2.5 py-1.5 rounded bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 text-emerald-300 font-medium text-[11px] cursor-pointer"
+                    >
+                      ✓ Aprovar CRI
+                    </button>
+                    <button
+                      type="button"
+                      (click)="abrirModalDiligencia('TITULARIDADE_IMOVEL')"
+                      class="px-2.5 py-1.5 rounded bg-amber-600/20 hover:bg-amber-600/40 border border-amber-500/30 text-amber-300 text-[11px] cursor-pointer"
+                    >
+                      ⚠️ Diligência
+                    </button>
+                  }
+                  @if (!dossie()?.superada) {
                     <label class="px-2.5 py-1.5 rounded bg-white/5 hover:bg-white/10 border border-white/10 text-gov-slate-300 text-[11px] cursor-pointer">
                       <span>📁 Anexar CRI</span>
                       <input type="file" class="hidden" (change)="onUploadArquivo($event, 'TITULARIDADE_IMOVEL')" />
                     </label>
-                  </div>
-                }
+                  }
+                  @if (pilarTitularidade()?.s3KeyDocumento) {
+                    <button
+                      type="button"
+                      (click)="baixarDocumento('TITULARIDADE_IMOVEL')"
+                      class="px-2.5 py-1.5 rounded bg-gov-cobalt-600/20 hover:bg-gov-cobalt-600/40 border border-gov-cobalt-500/30 text-gov-cobalt-300 text-[11px] cursor-pointer inline-flex items-center gap-1"
+                    >
+                      <span>📥 Baixar CRI</span>
+                    </button>
+                  }
+                </div>
               </div>
 
             </div>
@@ -414,16 +450,22 @@ import { ConvenioCockpit } from '../../model/convenio-fase.model';
                       Cláusula Suspensiva Superada — Convênio 100% Eficaz!
                     </h4>
                     <p class="text-xs text-gov-slate-300 mt-0.5">
-                      Termo de Retirada registrado no Transferegov.br. O convênio está plenamente destravado para publicação de editais e emissão de AIO na <strong>Fase 3</strong>.
+                      Termo de Retirada registrado no Transferegov.br e custodiado no MinIO. O convênio está plenamente destravado para publicação de editais e emissão de AIO na <strong>Fase 3</strong>.
                     </p>
                   </div>
                 </div>
-                <div class="text-xs font-mono text-gov-slate-400">
-                  Ref S3: {{ dossie()?.s3KeyTermoRetirada || 's3://govflow/termo_retirada.pdf' }}
+                <div class="flex items-center gap-3">
+                  <button
+                    type="button"
+                    (click)="baixarTermoRetirada()"
+                    class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-colors cursor-pointer inline-flex items-center gap-2"
+                  >
+                    <span>📥 Baixar Termo de Retirada</span>
+                  </button>
                 </div>
               </div>
             } @else if (pilaresAprovadosCount() === 3) {
-              <!-- Todos os 3 pilares aprovados: Pronto para emissão -->
+              <!-- Todos os 3 pilares aprovados: Pronto para superação -->
               <div class="p-5 rounded-2xl bg-gradient-to-r from-gov-cobalt-950/70 via-slate-900 to-emerald-950/70 border border-emerald-500/40 flex flex-col md:flex-row items-center justify-between gap-4">
                 <div class="flex items-center gap-3">
                   <div class="w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 text-lg">
@@ -434,25 +476,17 @@ import { ConvenioCockpit } from '../../model/convenio-fase.model';
                       Todos os 3 Pilares Foram Aprovados pela Mandatária!
                     </h4>
                     <p class="text-xs text-gov-slate-300 mt-0.5">
-                      O processo atende a todos os requisitos do Decreto nº 11.531/2023. Proceda à formalização do Termo de Retirada da Cláusula Suspensiva.
+                      O processo atende a todos os requisitos do Decreto nº 11.531/2023. Realize o upload do Termo de Retirada assinado para formalizar a superação imediata.
                     </p>
                   </div>
                 </div>
 
                 <div class="flex items-center gap-3 shrink-0">
-                  <button
-                    type="button"
-                    (click)="superarClausulaDireto()"
-                    class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-900/30 transition-all cursor-pointer flex items-center gap-2"
-                  >
-                    <span>Emitir Termo de Retirada</span>
+                  <label class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-900/30 transition-all cursor-pointer flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                     </svg>
-                  </button>
-
-                  <label class="px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-xs border border-white/10 cursor-pointer">
-                    <span>Upload Termo Assinado</span>
+                    <span>Upload Termo Assinado & Superar</span>
                     <input type="file" class="hidden" (change)="onUploadTermoRetirada($event)" />
                   </label>
                 </div>
@@ -538,6 +572,125 @@ import { ConvenioCockpit } from '../../model/convenio-fase.model';
         </div>
       </div>
     }
+
+    <!-- Modal Auxiliar: Aprovação Técnica Real do Pilar (Elimina Scope Creep / Hardcode) -->
+    @if (modalAprovacaoAberto()) {
+      <div class="fixed inset-0 bg-black/80 backdrop-blur-sm z-60 flex items-center justify-center p-4">
+        <div class="bg-[#111c30] border border-emerald-500/40 rounded-xl max-w-lg w-full p-5 shadow-2xl space-y-4">
+          <div class="flex items-center justify-between pb-2 border-b border-white/10">
+            <h4 class="text-xs font-bold text-emerald-300 flex items-center gap-2">
+              <span>✓ Aprovação Técnica de Condicionante</span>
+            </h4>
+            <button (click)="modalAprovacaoAberto.set(false)" class="text-gov-slate-400 hover:text-white cursor-pointer">✕</button>
+          </div>
+
+          <div class="space-y-3 text-xs">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-gov-slate-300 mb-1">Nº Documento / LAE / Matrícula:</label>
+                <input
+                  type="text"
+                  [(ngModel)]="aprovacaoNumeroDocumento"
+                  placeholder="Ex: SPA-914250/2026"
+                  class="w-full p-2 rounded-lg bg-black/40 border border-white/20 text-white font-mono focus:outline-none focus:border-emerald-400"
+                />
+              </div>
+              <div>
+                <label class="block text-gov-slate-300 mb-1">Órgão Emissor / Mandatária:</label>
+                <input
+                  type="text"
+                  [(ngModel)]="aprovacaoOrgaoEmissor"
+                  placeholder="Ex: Caixa GIGOV"
+                  class="w-full p-2 rounded-lg bg-black/40 border border-white/20 text-white focus:outline-none focus:border-emerald-400"
+                />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-gov-slate-300 mb-1">Data de Aprovação:</label>
+                <input
+                  type="date"
+                  [(ngModel)]="aprovacaoData"
+                  class="w-full p-2 rounded-lg bg-black/40 border border-white/20 text-white font-mono focus:outline-none focus:border-emerald-400"
+                />
+              </div>
+              <div>
+                <label class="block text-gov-slate-300 mb-1">Data de Validade (se houver):</label>
+                <input
+                  type="date"
+                  [(ngModel)]="aprovacaoDataValidade"
+                  class="w-full p-2 rounded-lg bg-black/40 border border-white/20 text-white font-mono focus:outline-none focus:border-emerald-400"
+                />
+              </div>
+            </div>
+
+            @if (pilarAprovacao() === 'ENGENHARIA_PROJETOS_SINAPI') {
+              <div class="p-3 rounded-lg bg-white/[0.02] border border-white/10 space-y-3">
+                <span class="text-[11px] font-bold text-gov-cobalt-300">Parâmetros SINAPI & BDI (Acórdão TCU nº 2.622/2013)</span>
+                
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-gov-slate-300 mb-1">Orçamento Aprovado (R$):</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      [(ngModel)]="aprovacaoValorOrcamento"
+                      class="w-full p-2 rounded-lg bg-black/40 border border-white/20 text-white font-mono focus:outline-none focus:border-emerald-400"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-gov-slate-300 mb-1">Percentual de BDI (%):</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      max="30"
+                      [(ngModel)]="aprovacaoPercentualBdi"
+                      class="w-full p-2 rounded-lg bg-black/40 border text-white font-mono focus:outline-none"
+                      [ngClass]="aprovacaoPercentualBdi > 30 ? 'border-rose-500 focus:border-rose-400 text-rose-300' : 'border-white/20 focus:border-emerald-400'"
+                    />
+                  </div>
+                </div>
+
+                @if (aprovacaoPercentualBdi > 30) {
+                  <p class="text-rose-400 text-[10px] font-medium">
+                    ⚠️ Limite Máximo TCU Ultrapassado: O teto referencial do BDI para obras de edificações e praças é de até 30.00%.
+                  </p>
+                }
+
+                <div>
+                  <label class="block text-gov-slate-300 mb-1">Nº ART / RRT:</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="aprovacaoArtRrt"
+                    placeholder="Ex: ART-PB-123456"
+                    class="w-full p-2 rounded-lg bg-black/40 border border-white/20 text-white font-mono focus:outline-none focus:border-emerald-400"
+                  />
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2 border-t border-white/10">
+            <button
+              type="button"
+              (click)="modalAprovacaoAberto.set(false)"
+              class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gov-slate-400 text-xs cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              (click)="salvarAprovacaoTecnica()"
+              [disabled]="pilarAprovacao() === 'ENGENHARIA_PROJETOS_SINAPI' && aprovacaoPercentualBdi > 30"
+              class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-xs cursor-pointer"
+            >
+              Confirmar Aprovação
+            </button>
+          </div>
+        </div>
+      </div>
+    }
   `
 })
 export class ClausulaSuspensivaModalComponent implements OnInit {
@@ -559,6 +712,16 @@ export class ClausulaSuspensivaModalComponent implements OnInit {
   readonly pilarDiligencia = signal<TipoCondicionante | null>(null);
   public diligenciaObservacoes = '';
   public diligenciaDataLimite = '';
+
+  readonly modalAprovacaoAberto = signal(false);
+  readonly pilarAprovacao = signal<TipoCondicionante | null>(null);
+  public aprovacaoNumeroDocumento = '';
+  public aprovacaoOrgaoEmissor = '';
+  public aprovacaoData = '';
+  public aprovacaoDataValidade = '';
+  public aprovacaoValorOrcamento = 0;
+  public aprovacaoPercentualBdi = 22.12;
+  public aprovacaoArtRrt = '';
 
   ngOnInit(): void {
     this.carregarDossie();
@@ -606,23 +769,47 @@ export class ClausulaSuspensivaModalComponent implements OnInit {
     }
   }
 
-  aprovarPilarRapido(tipo: TipoCondicionante): void {
-    const docNumero = tipo === 'ENGENHARIA_PROJETOS_SINAPI'
-      ? `SPA-${this.convenio.numeroSiconv}`
-      : (tipo === 'LICENCIAMENTO_AMBIENTAL' ? `LI-${new Date().getFullYear()}/01` : 'Matrícula CRI Patos 48.912');
+  abrirModalAprovacao(tipo: TipoCondicionante): void {
+    this.pilarAprovacao.set(tipo);
+    this.aprovacaoNumeroDocumento = '';
+    this.aprovacaoOrgaoEmissor = tipo === 'ENGENHARIA_PROJETOS_SINAPI' ? 'Caixa GIGOV' : (tipo === 'LICENCIAMENTO_AMBIENTAL' ? 'Órgão Ambiental' : 'Cartório de Registro de Imóveis');
+    this.aprovacaoData = new Date().toISOString().split('T')[0];
+    this.aprovacaoDataValidade = '';
+    this.aprovacaoValorOrcamento = this.convenio.valorTotal || 0;
+    this.aprovacaoPercentualBdi = 22.12;
+    this.aprovacaoArtRrt = '';
+    this.modalAprovacaoAberto.set(true);
+  }
+
+  salvarAprovacaoTecnica(): void {
+    const tipo = this.pilarAprovacao();
+    if (!tipo) return;
+
+    if (!this.aprovacaoNumeroDocumento) {
+      this.mensagemErro.set('Informe o número do documento comprobatório ou laudo.');
+      return;
+    }
+
+    if (tipo === 'ENGENHARIA_PROJETOS_SINAPI' && this.aprovacaoPercentualBdi > 30) {
+      this.mensagemErro.set('Percentual de BDI não pode exceder o teto do TCU de 30%.');
+      return;
+    }
 
     this.service.aprovarCondicionante(this.convenio.id, tipo, {
-      numeroDocumentoComprobatorio: docNumero,
-      valorOrcamentoAprovado: this.convenio.valorTotal,
-      percentualBdiAprovado: 22.12,
-      numeroArtRrt: 'ART-PB-884210',
-      orgaoEmissor: 'Mandatária Caixa GIGOV'
+      numeroDocumentoComprobatorio: this.aprovacaoNumeroDocumento,
+      orgaoEmissor: this.aprovacaoOrgaoEmissor,
+      dataAprovacao: this.aprovacaoData,
+      dataValidade: this.aprovacaoDataValidade || undefined,
+      valorOrcamentoAprovado: tipo === 'ENGENHARIA_PROJETOS_SINAPI' ? this.aprovacaoValorOrcamento : undefined,
+      percentualBdiAprovado: tipo === 'ENGENHARIA_PROJETOS_SINAPI' ? this.aprovacaoPercentualBdi : undefined,
+      numeroArtRrt: tipo === 'ENGENHARIA_PROJETOS_SINAPI' ? this.aprovacaoArtRrt : undefined
     }).subscribe({
       next: item => {
+        this.modalAprovacaoAberto.set(false);
         this.mensagemSucesso.set(`Pilar '${item.descricaoTipo}' aprovado com sucesso!`);
         this.carregarDossie();
       },
-      error: err => {
+      error: () => {
         this.mensagemErro.set('Erro ao registrar aprovação do pilar.');
       }
     });
@@ -679,17 +866,54 @@ export class ClausulaSuspensivaModalComponent implements OnInit {
     });
   }
 
-  superarClausulaDireto(): void {
-    this.service.superarClausula(this.convenio.id, {
-      s3KeyTermoRetirada: `clausula-suspensiva/${this.convenio.id}/termo_retirada_${Date.now()}.pdf`
+  deferirProrrogacao(): void {
+    const prazo = this.dossie()?.novoPrazoProrrogado || this.novaDataProrrogacao;
+    if (!prazo) {
+      this.mensagemErro.set('Não há data proposta de prorrogação registrada.');
+      return;
+    }
+
+    this.service.deferirProrrogacao(this.convenio.id, {
+      novoPrazoProrrogado: prazo
     }).subscribe({
       next: atualizado => {
         this.dossie.set(atualizado);
-        this.mensagemSucesso.set('CLÁUSULA SUSPENSIVA SUPERADA COM SUCESSO! Convênio 100% eficaz destravado para Fase 3 (Licitações).');
-        this.atualizado.emit(atualizado);
+        this.mensagemSucesso.set(`Prorrogação deferida com sucesso! Novo prazo fatal vigente: ${prazo}`);
       },
       error: () => {
-        this.mensagemErro.set('Não foi possível superar a cláusula suspensiva.');
+        this.mensagemErro.set('Erro ao deferir prorrogação de prazo.');
+      }
+    });
+  }
+
+  baixarDocumento(tipo: TipoCondicionante): void {
+    this.service.downloadDocumento(this.convenio.id, tipo).subscribe({
+      next: blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${tipo.toLowerCase()}_comprovante.pdf`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: () => {
+        this.mensagemErro.set('Erro ao baixar documento do MinIO.');
+      }
+    });
+  }
+
+  baixarTermoRetirada(): void {
+    this.service.downloadTermoRetirada(this.convenio.id).subscribe({
+      next: blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'termo_retirada_clausula_suspensiva.pdf';
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: () => {
+        this.mensagemErro.set('Erro ao baixar Termo de Retirada do MinIO.');
       }
     });
   }

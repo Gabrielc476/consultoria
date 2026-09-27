@@ -239,6 +239,33 @@ export class ClausulaSuspensivaService {
     );
   }
 
+  deferirProrrogacao(convenioId: string, payload: SolicitarProrrogacaoPayload): Observable<DossieClausulaSuspensiva> {
+    return this.http.post<DossieClausulaSuspensiva>(API_ENDPOINTS.CONVENIOS.DEFERIR_PRORROGACAO(convenioId), payload).pipe(
+      catchError(() => {
+        const mock = MOCK_DOSSIE_PADRAO(convenioId);
+        mock.prorrogacaoSolicitada = false;
+        mock.novoPrazoProrrogado = payload.novoPrazoProrrogado;
+        mock.prazoFatalEfetivo = payload.novoPrazoProrrogado;
+        mock.diasRestantes = 120;
+        mock.criticidade = 'REGULAR';
+        mock.criticidadeDescricao = 'Regular: Mais de 90 dias';
+        return of(mock);
+      })
+    );
+  }
+
+  downloadDocumento(convenioId: string, tipo: TipoCondicionante): Observable<Blob> {
+    return this.http.get(API_ENDPOINTS.CONVENIOS.DOWNLOAD_DOCUMENTO(convenioId, tipo), {
+      responseType: 'blob'
+    });
+  }
+
+  downloadTermoRetirada(convenioId: string): Observable<Blob> {
+    return this.http.get(API_ENDPOINTS.CONVENIOS.DOWNLOAD_TERMO_RETIRADA(convenioId), {
+      responseType: 'blob'
+    });
+  }
+
   private obterDescricaoTipo(tipo: TipoCondicionante): string {
     switch (tipo) {
       case 'ENGENHARIA_PROJETOS_SINAPI':

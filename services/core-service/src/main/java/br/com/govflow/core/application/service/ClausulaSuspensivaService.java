@@ -11,7 +11,6 @@ import br.com.govflow.core.domain.exception.ConvenioNaoEncontradoException;
 import br.com.govflow.core.domain.model.convenio.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,9 +34,6 @@ public class ClausulaSuspensivaService implements
     private final ClausulaSuspensivaStoragePort storagePort;
     private final ClausulaSuspensivaEventPublisherPort eventPublisher;
 
-    @Value("${govflow.storage.bucket-documentos:govflow-documentos}")
-    private String bucketDocumentos;
-
     public ClausulaSuspensivaService(ConvenioRepositoryPort convenioRepository,
                                     CondicionanteSuspensivaRepositoryPort condicionanteRepository,
                                     ClausulaSuspensivaStoragePort storagePort,
@@ -49,17 +45,39 @@ public class ClausulaSuspensivaService implements
     }
 
     @Override
+    @Transactional(readOnly = true)
     public DossieClausulaSuspensivaDto obterDossiePorConvenioId(UUID convenioId) {
-        Convenio convenio = convenioRepository.buscarPorId(convenioId)
-                .orElseThrow(() -> new ConvenioNaoEncontradoException(convenioId));
+        Convenio convenio = buscarConvenioOuFalhar(convenioId);
         return montarDossie(convenio);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public DossieClausulaSuspensivaDto obterDossiePorNumeroSiconv(String numeroSiconv) {
         Convenio convenio = convenioRepository.buscarPorNumeroSiconv(numeroSiconv)
                 .orElseThrow(() -> new ConvenioNaoEncontradoException(numeroSiconv));
         return montarDossie(convenio);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<byte[]> carregarDocumento(UUID convenioId, TipoCondicionanteSuspensiva tipo) {
+        buscarConvenioOuFalhar(convenioId);
+        return condicionanteRepository.buscarPorConvenioETipo(convenioId, tipo)
+                .map(CondicionanteSuspensiva::getS3KeyDocumento)
+                .filter(key -> key != null && !key.trim().isEmpty())
+                .flatMap(storagePort::carregarArquivoBytes);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<byte[]> carregarTermoRetirada(UUID convenioId) {
+        Convenio convenio = buscarConvenioOuFalhar(convenioId);
+        String s3Key = convenio.getS3KeyTermoRetiradaSuspensiva();
+        if (s3Key == null || s3Key.trim().isEmpty()) {
+            return Optional.empty();
+        }
+        return storagePort.carregarArquivoBytes(s3Key);
     }
 
     @Override
@@ -90,16 +108,7 @@ public class ClausulaSuspensivaService implements
     public CondicionanteSuspensiva aprovarCondicionante(AprovarCondicionanteCommand command) {
         Convenio convenio = buscarConvenioOuFalhar(command.convenioId());
         CondicionanteSuspensiva cond = obterOuCriarCondicionante(convenio, command.tipo());
-        cond.aprovar(
-                command.numeroDocumentoComprobatorio(),
-                command.dataAprovacao(),
-                command.dataValidade(),
-                command.valorOrcamentoAprovado(),
-                command.percentualBdiAprovado(),
-                command.numeroArtRrt(),
-                command.orgaoEmissor(),
-                command.s3KeyDocumento()
-        );
+        cond.aprovar(command.toParametros());
         log.info("Condicionante {} do convênio {} APROVADA pela Caixa. Doc: {}",
                 command.tipo(), command.convenioId(), command.numeroDocumentoComprobatorio());
         return condicionanteRepository.salvar(cond);
@@ -125,7 +134,15 @@ public class ClausulaSuspensivaService implements
     public Convenio solicitarProrrogacao(UUID convenioId, LocalDate novoPrazo) {
         Convenio convenio = buscarConvenioOuFalhar(convenioId);
         convenio.solicitarProrrogacaoPrazo(novoPrazo, LocalDate.now());
-        log.info("Solicitação de prorrogação protocolada para convênio {}. Novo prazo fatal: {}", convenioId, novoPrazo);
+        log.info("Solicitação de prorrogação protocolada para convênio {}. Novo prazo fatal proposto: {}", convenioId, novoPrazo);
+        return convenioRepository.salvar(convenio);
+    }
+
+    @Override
+    public Convenio deferirProrrogacao(UUID convenioId, LocalDate novoPrazo) {
+        Convenio convenio = buscarConvenioOuFalhar(convenioId);
+        convenio.deferirProrrogacaoPrazo(novoPrazo);
+        log.info("Prorrogação da cláusula suspensiva DEFERIDA para o convênio {}. Novo prazo fatal: {}", convenioId, novoPrazo);
         return convenioRepository.salvar(convenio);
     }
 
@@ -162,7 +179,7 @@ public class ClausulaSuspensivaService implements
         String s3Key = String.format("clausula-suspensiva/%s/%s/%s/%s",
                 convenio.getTenantId(), convenioId, tipo.name(), sanitizarNomeArquivo(nomeArquivo));
 
-        storagePort.salvarArquivo(bucketDocumentos, s3Key, conteudo, contentType);
+        storagePort.salvarArquivo(s3Key, conteudo, contentType);
 
         CondicionanteSuspensiva cond = obterOuCriarCondicionante(convenio, tipo);
         cond.vincularDocumento(s3Key);
@@ -180,7 +197,7 @@ public class ClausulaSuspensivaService implements
         String s3Key = String.format("clausula-suspensiva/%s/%s/%s/diligencias/%s",
                 convenio.getTenantId(), convenioId, tipo.name(), sanitizarNomeArquivo(nomeArquivo));
 
-        storagePort.salvarArquivo(bucketDocumentos, s3Key, conteudo, contentType);
+        storagePort.salvarArquivo(s3Key, conteudo, contentType);
 
         CondicionanteSuspensiva cond = obterOuCriarCondicionante(convenio, tipo);
         cond.registrarDiligencia(
@@ -201,8 +218,37 @@ public class ClausulaSuspensivaService implements
         String s3Key = String.format("clausula-suspensiva/%s/%s/termo-retirada/%s",
                 convenio.getTenantId(), convenioId, sanitizarNomeArquivo(nomeArquivo));
 
-        storagePort.salvarArquivo(bucketDocumentos, s3Key, conteudo, contentType);
+        storagePort.salvarArquivo(s3Key, conteudo, contentType);
         return superarClausulaSuspensiva(convenioId, s3Key);
+    }
+
+    /**
+     * Varredura periódica de prazos e disparo de alertas proativos via RabbitMQ.
+     * Operado pelo agendador diário (ClausulaSuspensivaDailyScheduler).
+     */
+    public int executarVarreduraAlertasPrazo() {
+        List<Convenio> convenios = convenioRepository.listarComClausulaSuspensivaAtiva();
+        int alertasEmitidos = 0;
+        LocalDate hoje = LocalDate.now();
+
+        for (Convenio convenio : convenios) {
+            long dias = convenio.calcularDiasRestantes(hoje);
+            CriticidadePrazoSuspensiva criticidade = convenio.calcularCriticidadePrazo(hoje);
+
+            // Emissão de alerta nos marcos de 30, 15, 5 dias, expirado ou crítico
+            if (dias == 30 || dias == 15 || dias == 5 || dias < 0 || criticidade == CriticidadePrazoSuspensiva.CRITICO) {
+                eventPublisher.publicarAlertaPrazo(new AlertaPrazoSuspensivaEvent(
+                        convenio.getTenantId(),
+                        convenio.getId(),
+                        convenio.getNumeroSiconv(),
+                        dias,
+                        criticidade
+                ));
+                alertasEmitidos++;
+            }
+        }
+        log.info("Varredura de cláusula suspensiva concluída. Total de alertas proativos emitidos: {}", alertasEmitidos);
+        return alertasEmitidos;
     }
 
     private DossieClausulaSuspensivaDto montarDossie(Convenio convenio) {
@@ -211,17 +257,6 @@ public class ClausulaSuspensivaService implements
         LocalDate hoje = LocalDate.now();
         long diasRestantes = convenio.calcularDiasRestantes(hoje);
         CriticidadePrazoSuspensiva criticidade = convenio.calcularCriticidadePrazo(hoje);
-
-        // Se estiver em risco crítico e ainda não superado, publica alerta
-        if (criticidade == CriticidadePrazoSuspensiva.CRITICO && !convenio.isClausulaSuspensivaSuperada()) {
-            eventPublisher.publicarAlertaPrazo(new AlertaPrazoSuspensivaEvent(
-                    convenio.getTenantId(),
-                    convenio.getId(),
-                    convenio.getNumeroSiconv(),
-                    diasRestantes,
-                    criticidade
-            ));
-        }
 
         List<ItemCondicionanteDto> itensDto = pilares.stream()
                 .map(this::toItemDto)

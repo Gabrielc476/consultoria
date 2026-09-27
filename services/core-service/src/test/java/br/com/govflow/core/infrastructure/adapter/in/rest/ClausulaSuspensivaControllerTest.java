@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
@@ -28,10 +29,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -287,5 +290,63 @@ class ClausulaSuspensivaControllerTest {
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.title").value("Regra de Domínio Violada"))
                 .andExpect(jsonPath("$.errorCode").value("CLAUSULA_SUSPENSIVA_BLOQUEADA"));
+    }
+
+    @Test
+    @DisplayName("Deve realizar download de documento comprobatório existente no MinIO (HTTP 200)")
+    void deveBaixarDocumentoComprobatorioComSucesso() throws Exception {
+        byte[] pdfBytes = "%PDF-1.4 mock de comprovante".getBytes();
+        when(consultarUseCase.carregarDocumento(convenioId, TipoCondicionanteSuspensiva.ENGENHARIA_PROJETOS_SINAPI))
+                .thenReturn(Optional.of(pdfBytes));
+
+        mockMvc.perform(get("/api/v1/convenios/" + convenioId + "/clausula-suspensiva/documentos/ENGENHARIA_PROJETOS_SINAPI/download")
+                        .header("X-Tenant-Id", tenantId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_PDF_VALUE))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"engenharia_projetos_sinapi_comprovante.pdf\""))
+                .andExpect(content().bytes(pdfBytes));
+    }
+
+    @Test
+    @DisplayName("Deve retornar HTTP 404 ao tentar baixar documento comprobatório que não existe")
+    void deveRetornar404AoBaixarDocumentoNaoExistente() throws Exception {
+        when(consultarUseCase.carregarDocumento(convenioId, TipoCondicionanteSuspensiva.LICENCIAMENTO_AMBIENTAL))
+                .thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/v1/convenios/" + convenioId + "/clausula-suspensiva/documentos/LICENCIAMENTO_AMBIENTAL/download")
+                        .header("X-Tenant-Id", tenantId.toString()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("Deve realizar download do termo de retirada existente no MinIO (HTTP 200)")
+    void deveBaixarTermoRetiradaComSucesso() throws Exception {
+        byte[] pdfBytes = "%PDF-1.4 mock termo de retirada".getBytes();
+        when(consultarUseCase.carregarTermoRetirada(convenioId))
+                .thenReturn(Optional.of(pdfBytes));
+
+        mockMvc.perform(get("/api/v1/convenios/" + convenioId + "/clausula-suspensiva/termo-retirada/download")
+                        .header("X-Tenant-Id", tenantId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_PDF_VALUE))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"termo_retirada_clausula_suspensiva.pdf\""))
+                .andExpect(content().bytes(pdfBytes));
+    }
+
+    @Test
+    @DisplayName("Deve deferir prorrogação de prazo fatal com sucesso (HTTP 200)")
+    void deveDeferirProrrogacaoComSucesso() throws Exception {
+        DossieClausulaSuspensivaDto dossie = criarDossieMock();
+        when(consultarUseCase.obterDossiePorConvenioId(convenioId)).thenReturn(dossie);
+        when(prorrogarUseCase.deferirProrrogacao(eq(convenioId), any())).thenReturn(null);
+
+        var request = new SolicitarProrrogacaoRequest(LocalDate.now().plusDays(180));
+
+        mockMvc.perform(post("/api/v1/convenios/" + convenioId + "/clausula-suspensiva/prorrogacao/deferir")
+                        .header("X-Tenant-Id", tenantId.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.convenioId").value(convenioId.toString()));
     }
 }

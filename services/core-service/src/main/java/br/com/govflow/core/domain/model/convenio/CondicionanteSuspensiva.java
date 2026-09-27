@@ -119,6 +119,31 @@ public class CondicionanteSuspensiva {
     }
 
     /**
+     * Limite referencial máximo do BDI para obras públicas ordinárias (Acórdão TCU nº 2.622/2013 - Plenário).
+     */
+    public static final BigDecimal LIMITE_MAXIMO_BDI_TCU = new BigDecimal("30.00");
+
+    /**
+     * Registra o aceite técnico e aprovação formal pela Mandatária (LAE/SPA, Licença ou CRI)
+     * utilizando o Value Object ParametrosAprovacaoCondicionante.
+     */
+    public void aprovar(ParametrosAprovacaoCondicionante params) {
+        if (params == null) {
+            throw new RegraNegocioClausulaSuspensivaException("Os parâmetros de aprovação da condicionante são obrigatórios.");
+        }
+        aprovar(
+                params.getNumeroDocumentoComprobatorio(),
+                params.getDataAprovacao(),
+                params.getDataValidade(),
+                params.getValorOrcamentoAprovado(),
+                params.getPercentualBdiAprovado(),
+                params.getNumeroArtRrt(),
+                params.getOrgaoEmissor(),
+                params.getS3KeyDocumento()
+        );
+    }
+
+    /**
      * Registra o aceite técnico e aprovação formal pela Mandatária (LAE/SPA, Licença ou CRI).
      */
     public void aprovar(String numeroDocumento,
@@ -132,8 +157,13 @@ public class CondicionanteSuspensiva {
         if (numeroDocumento == null || numeroDocumento.trim().isEmpty()) {
             throw new RegraNegocioClausulaSuspensivaException("O número do documento comprobatório oficial é obrigatório para aprovação da condicionante.");
         }
-        if (percentualBdi != null && percentualBdi.compareTo(BigDecimal.ZERO) < 0) {
-            throw new RegraNegocioClausulaSuspensivaException("O percentual de BDI não pode ser negativo.");
+        if (percentualBdi != null) {
+            if (percentualBdi.compareTo(BigDecimal.ZERO) < 0) {
+                throw new RegraNegocioClausulaSuspensivaException("O percentual de BDI não pode ser negativo.");
+            }
+            if (this.tipoCondicionante == TipoCondicionanteSuspensiva.ENGENHARIA_PROJETOS_SINAPI && percentualBdi.compareTo(LIMITE_MAXIMO_BDI_TCU) > 0) {
+                throw new RegraNegocioClausulaSuspensivaException("O percentual de BDI (" + percentualBdi + "%) excede o teto máximo referencial admitido pelo TCU de " + LIMITE_MAXIMO_BDI_TCU + "% (Acórdão nº 2.622/2013 - Plenário).");
+            }
         }
         this.status = StatusCondicionanteSuspensiva.APROVADO;
         this.numeroDocumentoComprobatorio = numeroDocumento.trim();
@@ -180,6 +210,12 @@ public class CondicionanteSuspensiva {
             this.valorOrcamentoAprovadoCaixa = valorOrcamento;
         }
         if (percentualBdi != null) {
+            if (percentualBdi.compareTo(BigDecimal.ZERO) < 0) {
+                throw new RegraNegocioClausulaSuspensivaException("O percentual de BDI não pode ser negativo.");
+            }
+            if (this.tipoCondicionante == TipoCondicionanteSuspensiva.ENGENHARIA_PROJETOS_SINAPI && percentualBdi.compareTo(LIMITE_MAXIMO_BDI_TCU) > 0) {
+                throw new RegraNegocioClausulaSuspensivaException("O percentual de BDI (" + percentualBdi + "%) excede o teto máximo referencial admitido pelo TCU de " + LIMITE_MAXIMO_BDI_TCU + "% (Acórdão nº 2.622/2013 - Plenário).");
+            }
             this.percentualBdiAprovado = percentualBdi;
         }
         if (numeroArtRrt != null) {

@@ -66,6 +66,12 @@ public class ConvenioJpaEntity extends BaseTenantEntity {
     @Column(name = "s3_key_termo_retirada_suspensiva", length = 500)
     private String s3KeyTermoRetiradaSuspensiva;
 
+    @Column(name = "status_clausula_suspensiva", length = 30)
+    private String statusClausulaSuspensiva;
+
+    @Column(name = "data_superacao_clausula_suspensiva")
+    private LocalDate dataSuperacaoClausulaSuspensiva;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -217,6 +223,22 @@ public class ConvenioJpaEntity extends BaseTenantEntity {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getStatusClausulaSuspensiva() {
+        return statusClausulaSuspensiva;
+    }
+
+    public void setStatusClausulaSuspensiva(String statusClausulaSuspensiva) {
+        this.statusClausulaSuspensiva = statusClausulaSuspensiva;
+    }
+
+    public LocalDate getDataSuperacaoClausulaSuspensiva() {
+        return dataSuperacaoClausulaSuspensiva;
+    }
+
+    public void setDataSuperacaoClausulaSuspensiva(LocalDate dataSuperacaoClausulaSuspensiva) {
+        this.dataSuperacaoClausulaSuspensiva = dataSuperacaoClausulaSuspensiva;
     }
 
     public Instant getUpdatedAt() {

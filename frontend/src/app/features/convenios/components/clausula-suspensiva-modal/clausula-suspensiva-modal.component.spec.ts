@@ -54,7 +54,8 @@ describe('ClausulaSuspensivaModalComponent', () => {
         tipo: 'ENGENHARIA_PROJETOS_SINAPI',
         descricaoTipo: 'Engenharia e Projetos SINAPI',
         status: 'EM_ANALISE_CAIXA',
-        statusDescricao: 'Em Análise pela Caixa GIGOV'
+        statusDescricao: 'Em Análise pela Caixa GIGOV',
+        s3KeyDocumento: 's3/lae.pdf'
       },
       {
         id: 'cond-amb',
@@ -80,9 +81,12 @@ describe('ClausulaSuspensivaModalComponent', () => {
       'aprovarCondicionante',
       'registrarDiligencia',
       'solicitarProrrogacao',
+      'deferirProrrogacao',
       'superarClausula',
       'uploadDocumento',
-      'uploadTermoRetirada'
+      'uploadTermoRetirada',
+      'downloadDocumento',
+      'downloadTermoRetirada'
     ]);
 
     serviceSpy.obterDossiePorConvenioId.and.returnValue(of(mockDossie));
@@ -120,7 +124,7 @@ describe('ClausulaSuspensivaModalComponent', () => {
     expect(component.fechar.emit).toHaveBeenCalled();
   });
 
-  it('deve aprovar pilar rapidamente com parecer técnico', () => {
+  it('deve abrir modal de aprovação técnica e aprovar com sucesso', () => {
     const pilarAprovado = {
       ...mockDossie.condicionantes[1],
       status: 'APROVADO' as const,
@@ -128,13 +132,31 @@ describe('ClausulaSuspensivaModalComponent', () => {
     };
     service.aprovarCondicionante.and.returnValue(of(pilarAprovado));
 
-    component.aprovarPilarRapido('LICENCIAMENTO_AMBIENTAL');
+    component.abrirModalAprovacao('LICENCIAMENTO_AMBIENTAL');
+    expect(component.modalAprovacaoAberto()).toBeTrue();
+    expect(component.pilarAprovacao()).toBe('LICENCIAMENTO_AMBIENTAL');
+
+    component.aprovacaoNumeroDocumento = 'LI-2026/001';
+    component.salvarAprovacaoTecnica();
+
     expect(service.aprovarCondicionante).toHaveBeenCalledWith(
       'conv-test-123',
       'LICENCIAMENTO_AMBIENTAL',
-      jasmine.objectContaining({ numeroDocumentoComprobatorio: jasmine.any(String) })
+      jasmine.objectContaining({ numeroDocumentoComprobatorio: 'LI-2026/001' })
     );
+    expect(component.modalAprovacaoAberto()).toBeFalse();
     expect(component.mensagemSucesso()).toContain('aprovado com sucesso');
+  });
+
+  it('deve barrar aprovação de engenharia com BDI acima de 30% (Acórdão TCU nº 2.622/2013)', () => {
+    component.abrirModalAprovacao('ENGENHARIA_PROJETOS_SINAPI');
+    component.aprovacaoNumeroDocumento = 'SPA-914250/2026';
+    component.aprovacaoPercentualBdi = 31.5;
+
+    component.salvarAprovacaoTecnica();
+
+    expect(service.aprovarCondicionante).not.toHaveBeenCalled();
+    expect(component.mensagemErro()).toContain('teto do TCU de 30%');
   });
 
   it('deve abrir modal de diligência e salvar apontamento', () => {
@@ -165,7 +187,7 @@ describe('ClausulaSuspensivaModalComponent', () => {
     expect(component.modalDiligenciaAberto()).toBeFalse();
   });
 
-  it('deve protocolar prorrogação de prazo excepcional', () => {
+  it('deve protocolar solicitação de prorrogação', () => {
     component.novaDataProrrogacao = '2024-09-30';
     const dossieProrrogado = {
       ...mockDossie,
@@ -182,18 +204,38 @@ describe('ClausulaSuspensivaModalComponent', () => {
     expect(component.dossie()?.prorrogacaoSolicitada).toBeTrue();
   });
 
-  it('deve acionar superação da cláusula suspensiva e emitir evento', () => {
-    spyOn(component.atualizado, 'emit');
-    const dossieSuperado = {
+  it('deve deferir prorrogação de prazo fatal com sucesso', () => {
+    const dossieComSolicitacao = {
       ...mockDossie,
-      superada: true
+      prorrogacaoSolicitada: true,
+      novoPrazoProrrogado: '2024-12-31'
     };
-    service.superarClausula.and.returnValue(of(dossieSuperado));
+    component.dossie.set(dossieComSolicitacao);
 
-    component.superarClausulaDireto();
+    const dossieDeferido = {
+      ...dossieComSolicitacao,
+      prorrogacaoSolicitada: false,
+      prazoFatalEfetivo: '2024-12-31'
+    };
+    service.deferirProrrogacao.and.returnValue(of(dossieDeferido));
 
-    expect(service.superarClausula).toHaveBeenCalled();
-    expect(component.dossie()?.superada).toBeTrue();
-    expect(component.atualizado.emit).toHaveBeenCalledWith(dossieSuperado);
+    component.deferirProrrogacao();
+
+    expect(service.deferirProrrogacao).toHaveBeenCalledWith('conv-test-123', {
+      novoPrazoProrrogado: '2024-12-31'
+    });
+    expect(component.dossie()?.prorrogacaoSolicitada).toBeFalse();
+  });
+
+  it('deve solicitar download de documento do MinIO', () => {
+    const mockBlob = new Blob(['%PDF'], { type: 'application/pdf' });
+    service.downloadDocumento.and.returnValue(of(mockBlob));
+    spyOn(window.URL, 'createObjectURL').and.returnValue('blob:http://localhost/mock');
+    spyOn(window.URL, 'revokeObjectURL');
+
+    component.baixarDocumento('ENGENHARIA_PROJETOS_SINAPI');
+
+    expect(service.downloadDocumento).toHaveBeenCalledWith('conv-test-123', 'ENGENHARIA_PROJETOS_SINAPI');
+    expect(window.URL.createObjectURL).toHaveBeenCalledWith(mockBlob);
   });
 });

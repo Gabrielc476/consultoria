@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -110,6 +109,17 @@ class ConvenioTest {
     }
 
     @Test
+    @DisplayName("Deve rejeitar solicitação de prorrogação intempestiva se o prazo fatal já tiver expirado")
+    void deveRejeitarProrrogacaoIntempestiva() {
+        LocalDate prazoOriginal = dataReferencia.minusDays(2);
+        var convenio = criarConvenio(true, prazoOriginal);
+
+        assertThatThrownBy(() -> convenio.solicitarProrrogacaoPrazo(dataReferencia.plusDays(60), dataReferencia))
+                .isInstanceOf(RegraNegocioClausulaSuspensivaException.class)
+                .hasMessageContaining("Solicitação intempestiva");
+    }
+
+    @Test
     @DisplayName("Não deve permitir solicitar prorrogação com data retroativa ou anterior ao prazo atual")
     void deveRejeitarProrrogacaoInvalida() {
         LocalDate prazoOriginal = dataReferencia.plusDays(30);
@@ -121,7 +131,21 @@ class ConvenioTest {
     }
 
     @Test
-    @DisplayName("Deve superar a Cláusula Suspensiva quando todos os três pilares estiverem aprovados")
+    @DisplayName("Deve permitir deferir formalmente a prorrogação de prazo concedida pela Mandatária")
+    void deveDeferirProrrogacaoComSucesso() {
+        LocalDate prazoOriginal = dataReferencia.plusDays(15);
+        var convenio = criarConvenio(true, prazoOriginal);
+        LocalDate novoPrazo = dataReferencia.plusDays(180);
+
+        convenio.deferirProrrogacaoPrazo(novoPrazo);
+
+        assertThat(convenio.getNovoPrazoProrrogado()).isEqualTo(novoPrazo);
+        assertThat(convenio.isProrrogacaoSolicitada()).isFalse();
+        assertThat(convenio.getPrazoFatalEfetivo()).isEqualTo(novoPrazo);
+    }
+
+    @Test
+    @DisplayName("Deve superar a Cláusula Suspensiva quando todos os três pilares estiverem aprovados e registrar status no banco")
     void deveSuperarClausulaSuspensivaComSucesso() {
         var convenio = criarConvenio(true, dataReferencia.plusDays(60));
 
@@ -140,6 +164,8 @@ class ConvenioTest {
 
         assertThat(convenio.isClausulaSuspensivaSuperada()).isTrue();
         assertThat(convenio.getS3KeyTermoRetiradaSuspensiva()).isEqualTo("s3/termo_retirada_914250.pdf");
+        assertThat(convenio.getStatusClausulaSuspensiva()).isEqualTo("SUPERADA");
+        assertThat(convenio.getDataSuperacaoClausulaSuspensiva()).isEqualTo(LocalDate.now());
     }
 
     @Test

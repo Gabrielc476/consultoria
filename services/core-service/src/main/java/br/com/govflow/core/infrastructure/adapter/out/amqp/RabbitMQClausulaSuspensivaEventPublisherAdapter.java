@@ -5,11 +5,14 @@ import br.com.govflow.core.domain.event.AlertaPrazoSuspensivaEvent;
 import br.com.govflow.core.domain.event.ClausulaSuspensivaSuperadaEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.core.MessagePostProcessor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+import java.util.UUID;
 
 @Component
 public class RabbitMQClausulaSuspensivaEventPublisherAdapter implements ClausulaSuspensivaEventPublisherPort {
@@ -37,13 +40,8 @@ public class RabbitMQClausulaSuspensivaEventPublisherAdapter implements Clausula
             log.info("Publicando ClausulaSuspensivaSuperadaEvent: exchange={}, routingKey={}, convenioId={}, siconv={}",
                     exchange, routingKeySuperada, evento.convenioId(), evento.numeroSiconv());
 
-            rabbitTemplate.convertAndSend(exchange, routingKeySuperada, evento, m -> {
-                if (evento.tenantId() != null) {
-                    m.getMessageProperties().setHeader("X-Tenant-Id", evento.tenantId().toString());
-                }
-                m.getMessageProperties().setHeader("X-Correlation-Id", evento.convenioId().toString());
-                return m;
-            });
+            rabbitTemplate.convertAndSend(exchange, routingKeySuperada, evento,
+                    criarPostProcessor(evento.tenantId(), evento.convenioId()));
         }, "ClausulaSuspensivaSuperadaEvent", evento.convenioId());
     }
 
@@ -53,14 +51,21 @@ public class RabbitMQClausulaSuspensivaEventPublisherAdapter implements Clausula
             log.info("Publicando AlertaPrazoSuspensivaEvent: exchange={}, routingKey={}, convenioId={}, diasRestantes={}",
                     exchange, routingKeyAlerta, evento.convenioId(), evento.diasRestantes());
 
-            rabbitTemplate.convertAndSend(exchange, routingKeyAlerta, evento, m -> {
-                if (evento.tenantId() != null) {
-                    m.getMessageProperties().setHeader("X-Tenant-Id", evento.tenantId().toString());
-                }
-                m.getMessageProperties().setHeader("X-Correlation-Id", evento.convenioId().toString());
-                return m;
-            });
+            rabbitTemplate.convertAndSend(exchange, routingKeyAlerta, evento,
+                    criarPostProcessor(evento.tenantId(), evento.convenioId()));
         }, "AlertaPrazoSuspensivaEvent", evento.convenioId());
+    }
+
+    private MessagePostProcessor criarPostProcessor(UUID tenantId, UUID correlationId) {
+        return message -> {
+            if (tenantId != null) {
+                message.getMessageProperties().setHeader("X-Tenant-Id", tenantId.toString());
+            }
+            if (correlationId != null) {
+                message.getMessageProperties().setHeader("X-Correlation-Id", correlationId.toString());
+            }
+            return message;
+        };
     }
 
     private void executarAposCommit(Runnable acaoEnvio, String nomeEvento, Object id) {

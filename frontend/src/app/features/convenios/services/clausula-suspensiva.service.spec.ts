@@ -197,4 +197,62 @@ describe('ClausulaSuspensivaService', () => {
     expect(resultado.superada).toBeTrue();
     expect(resultado.s3KeyTermoRetirada).toBe('s3/termo.pdf');
   });
+
+  it('deve deferir prorrogação de prazo fatal com sucesso', () => {
+    const mockConvenioId = 'conv-123';
+    let resultado: any;
+
+    service.deferirProrrogacao(mockConvenioId, {
+      novoPrazoProrrogado: '2027-04-30'
+    }).subscribe(data => {
+      resultado = data;
+    });
+
+    const req = httpMock.expectOne(API_ENDPOINTS.CONVENIOS.DEFERIR_PRORROGACAO(mockConvenioId));
+    expect(req.request.method).toBe('POST');
+
+    req.flush({
+      convenioId: mockConvenioId,
+      prorrogacaoSolicitada: false,
+      novoPrazoProrrogado: '2027-04-30',
+      prazoFatalEfetivo: '2027-04-30'
+    });
+
+    expect(resultado.prorrogacaoSolicitada).toBeFalse();
+    expect(resultado.prazoFatalEfetivo).toBe('2027-04-30');
+  });
+
+  it('deve baixar documento comprobatório como blob', () => {
+    const mockConvenioId = 'conv-123';
+    let blobResultado: Blob | undefined;
+
+    service.downloadDocumento(mockConvenioId, 'ENGENHARIA_PROJETOS_SINAPI').subscribe(blob => {
+      blobResultado = blob;
+    });
+
+    const req = httpMock.expectOne(API_ENDPOINTS.CONVENIOS.DOWNLOAD_DOCUMENTO(mockConvenioId, 'ENGENHARIA_PROJETOS_SINAPI'));
+    expect(req.request.method).toBe('GET');
+
+    const mockBlob = new Blob(['%PDF-1.4 mock'], { type: 'application/pdf' });
+    req.flush(mockBlob);
+
+    expect(blobResultado).toBeDefined();
+  });
+
+  it('deve baixar termo de retirada como blob', () => {
+    const mockConvenioId = 'conv-123';
+    let blobResultado: Blob | undefined;
+
+    service.downloadTermoRetirada(mockConvenioId).subscribe(blob => {
+      blobResultado = blob;
+    });
+
+    const req = httpMock.expectOne(API_ENDPOINTS.CONVENIOS.DOWNLOAD_TERMO_RETIRADA(mockConvenioId));
+    expect(req.request.method).toBe('GET');
+
+    const mockBlob = new Blob(['%PDF-1.4 termo'], { type: 'application/pdf' });
+    req.flush(mockBlob);
+
+    expect(blobResultado).toBeDefined();
+  });
 });

@@ -3,6 +3,7 @@ package br.com.govflow.core.infrastructure.adapter.out.storage;
 import br.com.govflow.core.application.port.out.ClausulaSuspensivaStoragePort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -18,9 +19,35 @@ public class MinioClausulaSuspensivaStorageAdapter implements ClausulaSuspensiva
     private static final Logger log = LoggerFactory.getLogger(MinioClausulaSuspensivaStorageAdapter.class);
 
     private final S3Client s3Client;
+    private final String defaultBucket;
 
-    public MinioClausulaSuspensivaStorageAdapter(S3Client s3Client) {
+    public MinioClausulaSuspensivaStorageAdapter(
+            S3Client s3Client,
+            @Value("${aws.s3.bucket-documentos:${govflow.storage.bucket-documentos:govflow-documentos}}") String defaultBucket) {
         this.s3Client = s3Client;
+        this.defaultBucket = defaultBucket != null && !defaultBucket.trim().isEmpty() ? defaultBucket : "govflow-documentos";
+    }
+
+    @Override
+    public String salvarArquivo(String s3Key, byte[] conteudo, String contentType) {
+        return salvarArquivo(this.defaultBucket, s3Key, conteudo, contentType);
+    }
+
+    @Override
+    public Optional<byte[]> carregarArquivoBytes(String s3Key) {
+        return carregarArquivo(this.defaultBucket, s3Key).map(stream -> {
+            try (stream) {
+                return stream.readAllBytes();
+            } catch (Exception e) {
+                log.error("Erro ao ler bytes do arquivo S3: key={}", s3Key, e);
+                return null;
+            }
+        });
+    }
+
+    @Override
+    public Optional<InputStream> carregarArquivo(String s3Key) {
+        return carregarArquivo(this.defaultBucket, s3Key);
     }
 
     @Override
@@ -69,7 +96,6 @@ public class MinioClausulaSuspensivaStorageAdapter implements ClausulaSuspensiva
             log.info("Bucket {} não existe no MinIO. Criando bucket...", bucket);
             s3Client.createBucket(CreateBucketRequest.builder().bucket(bucket).build());
         } catch (Exception e) {
-            // Em caso de erro 404 via S3Exception
             if (e instanceof S3Exception s3e && s3e.statusCode() == 404) {
                 log.info("Bucket {} não encontrado (404). Criando...", bucket);
                 s3Client.createBucket(CreateBucketRequest.builder().bucket(bucket).build());

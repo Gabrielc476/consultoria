@@ -77,13 +77,23 @@ class CondicionanteSuspensivaTest {
     }
 
     @Test
-    @DisplayName("Deve aprovar pilar de engenharia com parâmetros da SPA e BDI do TCU")
-    void deveAprovarComParametrosTecnicosCompletos() {
+    @DisplayName("Deve aprovar pilar de engenharia com parâmetros da SPA e BDI do TCU via Value Object")
+    void deveAprovarComParametrosTecnicosCompletosViaVo() {
         var cond = CondicionanteSuspensiva.nova(tenantId, convenioId, TipoCondicionanteSuspensiva.ENGENHARIA_PROJETOS_SINAPI);
         BigDecimal orcamento = new BigDecimal("2050000.00");
         BigDecimal bdi = new BigDecimal("22.50");
 
-        cond.aprovar("SPA-914250/2026", LocalDate.of(2026, 9, 26), null, orcamento, bdi, "ART-PB-88421", "Caixa GIGOV", "s3/lae_spa.pdf");
+        var params = ParametrosAprovacaoCondicionante.builder()
+                .numeroDocumentoComprobatorio("SPA-914250/2026")
+                .dataAprovacao(LocalDate.of(2026, 9, 26))
+                .valorOrcamentoAprovado(orcamento)
+                .percentualBdiAprovado(bdi)
+                .numeroArtRrt("ART-PB-88421")
+                .orgaoEmissor("Caixa GIGOV")
+                .s3KeyDocumento("s3/lae_spa.pdf")
+                .build();
+
+        cond.aprovar(params);
 
         assertThat(cond.isAprovado()).isTrue();
         assertThat(cond.getStatus()).isEqualTo(StatusCondicionanteSuspensiva.APROVADO);
@@ -113,5 +123,15 @@ class CondicionanteSuspensivaTest {
         assertThatThrownBy(() -> cond.aprovar("SPA-01", LocalDate.now(), null, null, new BigDecimal("-5.00"), null, null, null))
                 .isInstanceOf(RegraNegocioClausulaSuspensivaException.class)
                 .hasMessageContaining("percentual de BDI não pode ser negativo");
+    }
+
+    @Test
+    @DisplayName("Deve rejeitar BDI abusivo acima do teto referencial do Acórdão TCU 2622/2013 (30%)")
+    void deveRejeitarBdiAcimaDoLimiteTcu() {
+        var cond = CondicionanteSuspensiva.nova(tenantId, convenioId, TipoCondicionanteSuspensiva.ENGENHARIA_PROJETOS_SINAPI);
+
+        assertThatThrownBy(() -> cond.aprovar("SPA-01", LocalDate.now(), null, null, new BigDecimal("35.00"), null, null, null))
+                .isInstanceOf(RegraNegocioClausulaSuspensivaException.class)
+                .hasMessageContaining("excede o teto máximo referencial admitido pelo TCU");
     }
 }

@@ -2,7 +2,6 @@ package br.com.govflow.core.infrastructure.adapter.in.rest;
 
 import br.com.govflow.core.application.port.in.*;
 import br.com.govflow.core.domain.model.convenio.CondicionanteSuspensiva;
-import br.com.govflow.core.domain.model.convenio.Convenio;
 import br.com.govflow.core.domain.model.convenio.TipoCondicionanteSuspensiva;
 import br.com.govflow.core.infrastructure.adapter.in.rest.dto.request.*;
 import br.com.govflow.core.infrastructure.adapter.in.rest.dto.response.CondicionanteSuspensivaResponse;
@@ -10,6 +9,7 @@ import br.com.govflow.core.infrastructure.adapter.in.rest.dto.response.DossieCla
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -55,6 +55,30 @@ public class ClausulaSuspensivaController {
     public ResponseEntity<DossieClausulaSuspensivaResponse> obterDossiePorNumeroSiconv(@PathVariable String numeroSiconv) {
         var dossie = consultarUseCase.obterDossiePorNumeroSiconv(numeroSiconv);
         return ResponseEntity.ok(DossieClausulaSuspensivaResponse.fromDto(dossie));
+    }
+
+    @GetMapping("/{convenioId}/clausula-suspensiva/documentos/{tipo}/download")
+    @Operation(summary = "Download de Documento Comprobatório do MinIO")
+    public ResponseEntity<byte[]> downloadDocumento(
+            @PathVariable UUID convenioId,
+            @PathVariable TipoCondicionanteSuspensiva tipo) {
+        return consultarUseCase.carregarDocumento(convenioId, tipo)
+                .map(bytes -> ResponseEntity.ok()
+                        .contentType(MediaType.APPLICATION_PDF)
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + tipo.name().toLowerCase() + "_comprovante.pdf\"")
+                        .body(bytes))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/{convenioId}/clausula-suspensiva/termo-retirada/download")
+    @Operation(summary = "Download do Termo de Retirada da Cláusula Suspensiva do MinIO")
+    public ResponseEntity<byte[]> downloadTermoRetirada(@PathVariable UUID convenioId) {
+        return consultarUseCase.carregarTermoRetirada(convenioId)
+                .map(bytes -> ResponseEntity.ok()
+                        .contentType(MediaType.APPLICATION_PDF)
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"termo_retirada_clausula_suspensiva.pdf\"")
+                        .body(bytes))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping("/{convenioId}/clausula-suspensiva/condicionantes/{tipo}/submeter")
@@ -171,8 +195,16 @@ public class ClausulaSuspensivaController {
             @PathVariable UUID convenioId,
             @Valid @RequestBody SolicitarProrrogacaoRequest request) {
         prorrogarUseCase.solicitarProrrogacao(convenioId, request.novoPrazoProrrogado());
-        var dossie = consultarUseCase.obterDossiePorConvenioId(convenioId);
-        return ResponseEntity.ok(DossieClausulaSuspensivaResponse.fromDto(dossie));
+        return responderDossieAtualizado(convenioId);
+    }
+
+    @PostMapping("/{convenioId}/clausula-suspensiva/prorrogacao/deferir")
+    @Operation(summary = "Deferir Prorrogação de Prazo da Cláusula Suspensiva (Caixa/Ministério)")
+    public ResponseEntity<DossieClausulaSuspensivaResponse> deferirProrrogacao(
+            @PathVariable UUID convenioId,
+            @Valid @RequestBody SolicitarProrrogacaoRequest request) {
+        prorrogarUseCase.deferirProrrogacao(convenioId, request.novoPrazoProrrogado());
+        return responderDossieAtualizado(convenioId);
     }
 
     @PostMapping("/{convenioId}/clausula-suspensiva/superar")
@@ -182,8 +214,7 @@ public class ClausulaSuspensivaController {
             @PathVariable UUID convenioId,
             @Valid @RequestBody SuperarClausulaSuspensivaRequest request) {
         superarUseCase.superarClausulaSuspensiva(convenioId, request.s3KeyTermoRetirada());
-        var dossie = consultarUseCase.obterDossiePorConvenioId(convenioId);
-        return ResponseEntity.ok(DossieClausulaSuspensivaResponse.fromDto(dossie));
+        return responderDossieAtualizado(convenioId);
     }
 
     @PostMapping(value = "/{convenioId}/clausula-suspensiva/termo-retirada",
@@ -199,6 +230,10 @@ public class ClausulaSuspensivaController {
                 arquivo.getContentType(),
                 arquivo.getBytes()
         );
+        return responderDossieAtualizado(convenioId);
+    }
+
+    private ResponseEntity<DossieClausulaSuspensivaResponse> responderDossieAtualizado(UUID convenioId) {
         var dossie = consultarUseCase.obterDossiePorConvenioId(convenioId);
         return ResponseEntity.ok(DossieClausulaSuspensivaResponse.fromDto(dossie));
     }
