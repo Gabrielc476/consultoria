@@ -1,9 +1,10 @@
-import { Component, HostListener, inject, signal } from '@angular/core';
+import { Component, HostListener, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { MunicipioContextService } from '../../context/municipio-context.service';
 import { ConvenioContextService } from '../../../features/convenios/services/convenio-context.service';
 import { AuthService } from '../../auth/auth.service';
+import { CadastrarPrefeituraModalComponent } from '../../components/cadastrar-prefeitura-modal/cadastrar-prefeitura-modal.component';
 
 /**
  * =========================================================================
@@ -21,7 +22,7 @@ import { AuthService } from '../../auth/auth.service';
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, CadastrarPrefeituraModalComponent],
   template: `
     <header class="h-16 bg-[#111827] border-b border-white/10 px-6 flex items-center justify-between gap-4 select-none shrink-0 z-30">
       <!-- Lado Esquerdo: Seletor Global de Município & Convênio Ativo -->
@@ -94,20 +95,34 @@ import { AuthService } from '../../auth/auth.service';
                   </button>
                 }
               </div>
+              @if (auth.isAdmin()) {
+                <div class="p-1 border-t border-white/5">
+                  <button
+                    type="button"
+                    (click)="abrirModalNovaPrefeitura()"
+                    class="w-full text-left px-3 py-2 text-xs flex items-center gap-2 text-gov-cobalt-400 hover:text-gov-cobalt-300 hover:bg-gov-cobalt-500/10 rounded-lg transition-colors font-medium cursor-pointer"
+                  >
+                    <span class="text-sm">➕</span>
+                    <span>Cadastrar Nova Prefeitura</span>
+                  </button>
+                </div>
+              }
             </div>
           }
         </div>
 
         <!-- 2. Convênio Ativo Pill (Atalho) -->
-        <a
-          routerLink="/convenios"
-          class="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/10 border border-white/5 text-xs text-gov-slate-300 transition-colors"
-          title="Ver Cockpit do Convênio Selecionado"
-        >
-          <span class="w-2 h-2 rounded-full bg-gov-cobalt-400"></span>
-          <span class="font-mono text-gov-cobalt-300 font-bold">#{{ convenioCtx.convenioAtivo().numeroSiconv }}</span>
-          <span class="text-gov-slate-400 text-[11px] truncate max-w-[140px]">{{ convenioCtx.convenioAtivo().objeto }}</span>
-        </a>
+        @if (convenioCtx.convenioAtivo(); as convAtivo) {
+          <a
+            routerLink="/convenios"
+            class="hidden md:flex items-center gap-2 px-2.5 py-1 rounded-md bg-white/5 hover:bg-white/10 border border-white/5 text-xs text-gov-slate-300 transition-colors"
+            title="Ver Cockpit do Convênio Selecionado"
+          >
+            <span class="w-2 h-2 rounded-full bg-gov-cobalt-400"></span>
+            <span class="font-mono text-gov-cobalt-300 font-bold">#{{ convAtivo.numeroSiconv }}</span>
+            <span class="text-gov-slate-400 text-[11px] truncate max-w-[140px]">{{ convAtivo.objeto }}</span>
+          </a>
+        }
       </div>
 
       <!-- Lado Direito: Busca Global (Ctrl+K) & Atalhos -->
@@ -161,22 +176,57 @@ import { AuthService } from '../../auth/auth.service';
         <div class="w-px h-6 bg-white/10"></div>
 
         <!-- Consultoria Tenant Badge -->
-        <div class="flex items-center gap-2 text-xs">
+        <div class="flex items-center gap-2.5 text-xs">
           <div class="text-right hidden sm:block">
-            <div class="font-medium text-white text-[11px] leading-tight">Consultoria Aliança</div>
-            <div class="text-[10px] text-gov-slate-400 leading-tight">Patos & Sertão PB</div>
+            <div class="flex items-center justify-end gap-1.5">
+              <span class="font-medium text-white text-[11px] leading-tight">{{ consultoriaNome() }}</span>
+              <span
+                class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded"
+                [ngClass]="{
+                  'bg-gov-cobalt-500/20 text-gov-cobalt-300 border border-gov-cobalt-500/30': auth.role() === 'ADMIN',
+                  'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30': auth.role() === 'AGENTE'
+                }"
+              >
+                {{ auth.role() }}
+              </span>
+            </div>
+            <div class="text-[10px] text-gov-slate-400 leading-tight">{{ consultoriaSubtitulo() }}</div>
           </div>
         </div>
       </div>
     </header>
+
+    @if (modalNovaPrefeituraAberto()) {
+      <app-cadastrar-prefeitura-modal
+        (fechar)="modalNovaPrefeituraAberto.set(false)"
+        (cadastrado)="modalNovaPrefeituraAberto.set(false)"
+      ></app-cadastrar-prefeitura-modal>
+    }
   `
 })
 export class HeaderComponent {
   readonly municipioCtx = inject(MunicipioContextService);
   readonly convenioCtx = inject(ConvenioContextService);
+  readonly auth = inject(AuthService);
   readonly router = inject(Router);
 
   readonly menuMunicipiosAberto = signal(false);
+  readonly modalNovaPrefeituraAberto = signal(false);
+
+  readonly consultoriaNome = computed(() => {
+    if (this.auth.isModoDemo()) return 'Consultoria Aliança';
+    const user = this.auth.usuario();
+    return user?.nomeConsultoria || 'GovFlow Consultoria';
+  });
+
+  readonly consultoriaSubtitulo = computed(() => {
+    if (this.auth.isModoDemo()) return 'Patos & Sertão PB';
+    const user = this.auth.usuario();
+    if (user?.nome) {
+      return user.nome;
+    }
+    return user?.email || 'Ambiente Seguro';
+  });
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
@@ -189,6 +239,11 @@ export class HeaderComponent {
   trocarMunicipio(id: string): void {
     this.municipioCtx.selecionarMunicipio(id);
     this.menuMunicipiosAberto.set(false);
+  }
+
+  abrirModalNovaPrefeitura(): void {
+    this.menuMunicipiosAberto.set(false);
+    this.modalNovaPrefeituraAberto.set(true);
   }
 
   irParaRadar(): void {

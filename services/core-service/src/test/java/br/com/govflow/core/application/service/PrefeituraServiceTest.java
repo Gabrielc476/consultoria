@@ -3,6 +3,8 @@ package br.com.govflow.core.application.service;
 import br.com.govflow.core.application.port.in.CadastrarPrefeituraUseCase;
 import br.com.govflow.core.application.port.out.ConsultoriaRepositoryPort;
 import br.com.govflow.core.application.port.out.PrefeituraRepositoryPort;
+import br.com.govflow.core.application.port.out.UsuarioRepositoryPort;
+import br.com.govflow.core.domain.exception.AcessoNegadoException;
 import br.com.govflow.core.domain.exception.LimitePrefeiturasExcedidoException;
 import br.com.govflow.core.domain.exception.PrefeituraJaCadastradaException;
 import br.com.govflow.core.domain.model.Cnpj;
@@ -10,6 +12,10 @@ import br.com.govflow.core.domain.model.Consultoria;
 import br.com.govflow.core.domain.model.PlanoConsultoria;
 import br.com.govflow.core.domain.model.PorteMunicipio;
 import br.com.govflow.core.domain.model.Prefeitura;
+import br.com.govflow.core.domain.model.Uf;
+import br.com.govflow.core.domain.model.CodigoIbge;
+import br.com.govflow.core.infrastructure.interceptor.UserContext;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,11 +25,15 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,6 +44,9 @@ class PrefeituraServiceTest {
 
     @Mock
     private ConsultoriaRepositoryPort consultoriaRepository;
+
+    @Mock
+    private UsuarioRepositoryPort usuarioRepository;
 
     @InjectMocks
     private PrefeituraService prefeituraService;
@@ -59,6 +72,11 @@ class PrefeituraServiceTest {
         );
     }
 
+    @AfterEach
+    void tearDown() {
+        UserContext.clear();
+    }
+
     @Test
     @DisplayName("Deve cadastrar prefeitura com sucesso quando dados e tenant estiverem válidos")
     void deveCadastrarPrefeituraComSucesso() {
@@ -82,6 +100,16 @@ class PrefeituraServiceTest {
         assertEquals(tenantId, resultado.getTenantId());
         assertEquals("08.778.326/0001-56", resultado.getCnpj().getFormatted());
         verify(prefeituraRepository, times(1)).salvar(any(Prefeitura.class));
+    }
+
+    @Test
+    @DisplayName("Deve lançar AcessoNegadoException se um AGENTE tentar cadastrar prefeitura")
+    void deveLancarAcessoNegadoSeAgenteTentarCadastrar() {
+        UUID userId = UUID.randomUUID();
+        UserContext.setCurrentUser(userId, tenantId, Set.of("AGENTE"), Collections.emptySet());
+
+        assertThrows(AcessoNegadoException.class, () -> prefeituraService.cadastrar(command));
+        verify(prefeituraRepository, never()).salvar(any());
     }
 
     @Test
@@ -111,5 +139,63 @@ class PrefeituraServiceTest {
 
         assertThrows(LimitePrefeiturasExcedidoException.class, () -> prefeituraService.cadastrar(command));
         verify(prefeituraRepository, never()).salvar(any(Prefeitura.class));
+    }
+
+    @Test
+    @DisplayName("Deve filtrar listagem apenas para prefeituras atribuídas se usuário for AGENTE")
+    void deveFiltrarListagemParaAgente() {
+        UUID userId = UUID.randomUUID();
+        UUID prefIdAtribuida = UUID.randomUUID();
+        UserContext.setCurrentUser(userId, tenantId, Set.of("AGENTE"), Set.of(prefIdAtribuida));
+
+        Prefeitura prefeitura = Prefeitura.criarNova(
+                tenantId,
+                new Cnpj("08.778.326/0001-56"),
+                "Prefeitura Patos",
+                "Patos",
+                Uf.PB,
+                new CodigoIbge("2510808"),
+                PorteMunicipio.MEDIO_PORTE,
+                "Prefeito",
+                null,
+                null,
+                null
+        );
+
+        when(prefeituraRepository.listarPorIds(eq(Set.of(prefIdAtribuida)), eq(0), eq(10), isNull()))
+                .thenReturn(List.of(prefeitura));
+
+        List<Prefeitura> resultado = prefeituraService.listar(0, 10, null);
+
+        assertEquals(1, resultado.size());
+        verify(prefeituraRepository, times(1)).listarPorIds(any(), eq(0), eq(10), isNull());
+        verify(prefeituraRepository, never()).listar(eq(0), eq(10), isNull());
+    }
+
+    @Test
+    @DisplayName("Deve lançar AcessoNegadoException quando AGENTE tentar acessar prefeitura não atribuída")
+    void deveLancarAcessoNegadoParaPrefeituraNaoAtribuida() {
+        UUID userId = UUID.randomUUID();
+        UUID prefIdAtribuida = UUID.randomUUID();
+        UUID prefIdNaoAtribuida = UUID.randomUUID();
+        UserContext.setCurrentUser(userId, tenantId, Set.of("AGENTE"), Set.of(prefIdAtribuida));
+
+        Prefeitura prefeitura = Prefeitura.criarNova(
+                tenantId,
+                new Cnpj("08.778.326/0001-56"),
+                "Prefeitura Sousa",
+                "Sousa",
+                Uf.PB,
+                new CodigoIbge("2516201"),
+                PorteMunicipio.MEDIO_PORTE,
+                "Prefeito",
+                null,
+                null,
+                null
+        );
+
+        when(prefeituraRepository.buscarPorId(prefIdNaoAtribuida)).thenReturn(Optional.of(prefeitura));
+
+        assertThrows(AcessoNegadoException.class, () -> prefeituraService.buscarPorId(prefIdNaoAtribuida));
     }
 }

@@ -14,9 +14,17 @@ _Avoid_: Cliente, Cidade, Município contratante, Órgão local.
 A empresa privada prestadora de serviços técnicos em gestão municipal detentora da assinatura do software (Tenant).  
 _Avoid_: Empresa usuária, Escritório, Agência.
 
-**Analista**:  
-O operador técnico da consultoria responsável por auditar documentos lado a lado e realizar lançamentos no Transferegov.  
+**Administrador**:  
+O usuário gestor responsável pela conta da Consultoria. Possui prerrogativa de cadastrar Prefeituras atendidas, cadastrar e gerenciar Agentes, alocar vínculos de prefeituras e configurar números de celular operacionais.  
+_Avoid_: Superuser genérico, Root, Dono do sistema.
+
+**Agente**:  
+O operador técnico e analista da consultoria alocado para gerenciar e auditar convênios de prefeituras específicas. Possui número de celular cadastrado (utilizado para interações no WhatsApp, envio/recebimento de documentos e recebimento de notificações críticas) e opera com visão restrita às prefeituras vinculadas a ele.  
 _Avoid_: Digitador, Contador, Usuário comum.
+
+**Contato Externo**:  
+Pessoa física externa à consultoria (secretário municipal, fiscal de engenharia, engenheiro da empreiteira, fornecedor) que interage via WhatsApp e canais digitais. Não possui vínculo 1:1 com prefeitura ou convênio: um mesmo contato pode atuar em múltiplos convênios (1:N) de uma ou mais prefeituras.  
+_Avoid_: Contato da prefeitura, Usuário externo fixo.
 
 **Fiscal de Obras**:  
 O engenheiro ou técnico municipal designado por portaria para atestar boletins de medição e relatórios fotográficos.  
@@ -25,6 +33,25 @@ _Avoid_: Engenheiro da obra, Mestre de obras, Secretário.
 **Mandatária**:  
 A instituição financeira pública oficial (exclusivamente Caixa Econômica Federal / GIGOV ou Banco do Brasil) delegada pela União para operacionalizar e auditar contratos de repasse de engenharia.  
 _Avoid_: Banco repassador, Agência da Caixa, Gerente.
+
+---
+
+### Arquitetura de Módulos (Bounded Contexts)
+
+**Módulo 1: Identidade, Organização e Acesso (IAM & Onboarding)**:  
+Gestão do ciclo de vida da Consultoria (Tenant), Administradores, Agentes (com seus números de celular e vínculos N:N com Prefeituras), autenticação robusta (BCrypt + JWT) e isolamento multi-tenant de dados.
+
+**Módulo 2: GED & Ficheiro Digital do Convênio**:  
+Sistema oficial de gestão documental eletrônica estruturado por Convênio e Fases do Ciclo de Vida (Fases 0 a 9). Substitui integralmente a pasta do Windows das consultorias, suportando todos os tipos documentais (engenharia, licitações, medições, financeiro, aditivos e prestação de contas) com versionamento, tags, busca textual, preview inline e download em lote.
+
+**Módulo 3: Comunicação & WhatsApp (Roteamento 1:N & IA de Contexto)**:  
+Camada de mensageria omnicanal. Desacopla contatos de prefeituras fixas (relação 1:N convênios). Implementa ingestão agnóstica na entrada (áudios, textos e arquivos de qualquer tipo), com IA que analisa o histórico recente da conversa para montar o contexto de inferência, e classificação na saída com triagem rápida na Inbox do Agente em caso de ambiguidade.
+
+**Módulo 4: Cockpit de Ciclo de Vida & Hub Operacional**:  
+Interface central e intuitiva de acompanhamento do convênio. Organiza o fluxo em torno de cada uma das 10 Fases, provendo para cada fase: 1) Checklist de Pendências / Travas Legais; 2) Ficheiro Digital da Fase; e 3) Cronômetro regressivo de Prazos Fatais e ações recomendadas.
+
+**Módulo 5: Integração Transferegov & Inteligência**:  
+Mecanismos de sincronização e ingestão batch/webhook de dados abertos do portal Transferegov.br e pipelines de inteligência artificial especializada.
 
 ---
 

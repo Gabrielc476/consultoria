@@ -69,6 +69,10 @@ export interface PrazoConvenioItem {
                 }
               </div>
             </div>
+          } @empty {
+            <div class="py-8 text-center text-xs text-gov-slate-500">
+              Nenhum prazo fatal pendente para este convênio.
+            </div>
           }
         </div>
       </div>

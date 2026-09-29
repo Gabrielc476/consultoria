@@ -10,6 +10,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -56,11 +58,38 @@ public class PrefeituraRepositoryAdapter implements PrefeituraRepositoryPort {
     }
 
     @Override
+    public List<Prefeitura> listarPorIds(Collection<UUID> ids, int page, int size, Boolean ativo) {
+        if (ids == null || ids.isEmpty()) {
+            return Collections.emptyList();
+        }
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by("nomeMunicipio").ascending());
+        if (ativo != null) {
+            return repository.findByIdInAndAtivo(ids, ativo, pageRequest)
+                    .map(mapper::toDomain)
+                    .getContent();
+        }
+        return repository.findByIdIn(ids, pageRequest)
+                .map(mapper::toDomain)
+                .getContent();
+    }
+
+    @Override
     public long contar(Boolean ativo) {
         if (ativo != null) {
             return repository.countByAtivo(ativo);
         }
         return repository.count();
+    }
+
+    @Override
+    public long contarPorIds(Collection<UUID> ids, Boolean ativo) {
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+        if (ativo != null) {
+            return repository.countByIdInAndAtivo(ids, ativo);
+        }
+        return repository.countByIdIn(ids);
     }
 
     @Override

@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,7 +23,15 @@ public interface SpringDataPrefeituraRepository extends JpaRepository<Prefeitura
 
     Page<PrefeituraJpaEntity> findByAtivo(boolean ativo, Pageable pageable);
 
+    Page<PrefeituraJpaEntity> findByIdIn(Collection<UUID> ids, Pageable pageable);
+
+    Page<PrefeituraJpaEntity> findByIdInAndAtivo(Collection<UUID> ids, boolean ativo, Pageable pageable);
+
     long countByAtivo(boolean ativo);
+
+    long countByIdIn(Collection<UUID> ids);
+
+    long countByIdInAndAtivo(Collection<UUID> ids, boolean ativo);
 
     long countByTenantId(UUID tenantId);
 }

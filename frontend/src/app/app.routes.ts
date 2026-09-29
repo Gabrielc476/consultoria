@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth/auth.guard';
 import { LoginPageComponent } from './features/auth/pages/login/login-page.component';
+import { RegisterPageComponent } from './features/auth/pages/register/register-page.component';
 import { AppShellComponent } from './core/layout/app-shell/app-shell.component';
 import { ConvenioCockpitPageComponent } from './features/convenios/pages/convenio-cockpit/convenio-cockpit-page.component';
 import { ConveniosListPageComponent } from './features/convenios/pages/convenios-list/convenios-list-page.component';
@@ -8,12 +9,22 @@ import { WhatsAppHubPageComponent } from './features/whatsapp/pages/whatsapp-hub
 import { DocumentosListPageComponent } from './features/revisao-documento/pages/documentos-list/documentos-list-page.component';
 import { RadarCaucPageComponent } from './features/radar-cauc/pages/radar-cauc-page.component';
 import { RevisaoDetalhePageComponent } from './features/revisao-documento/pages/revisao-detalhe/revisao-detalhe-page.component';
+import { AgentesListPageComponent } from './features/agentes/pages/agentes-list/agentes-list-page.component';
 
 export const routes: Routes = [
-  // 1. Autenticação (fora do AppShell)
+  // 1. Autenticação & Onboarding (fora do AppShell)
   {
     path: 'login',
     component: LoginPageComponent
+  },
+  {
+    path: 'cadastro',
+    component: RegisterPageComponent
+  },
+  {
+    path: 'register',
+    redirectTo: 'cadastro',
+    pathMatch: 'full'
   },
 
   // 2. Bancada de Revisão Lado a Lado (Modo Foco / Zen Mode 100% Viewport)
@@ -57,6 +68,10 @@ export const routes: Routes = [
         path: 'radar-prazos',
         redirectTo: 'radar-cauc',
         pathMatch: 'full'
+      },
+      {
+        path: 'admin/agentes',
+        component: AgentesListPageComponent
       },
       {
         path: '',

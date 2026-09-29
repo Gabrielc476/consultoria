@@ -9,6 +9,9 @@ export interface UsuarioAutenticado {
   nome: string;
   email: string;
   tenantId: string;
+  nomeConsultoria?: string;
+  role?: 'ADMIN' | 'AGENTE';
+  prefeiturasAtribuidasIds?: string[];
 }
 
 export interface LoginResponse {
@@ -18,6 +21,25 @@ export interface LoginResponse {
   nome: string;
   email: string;
   tenantId: string;
+  nomeConsultoria?: string;
+  role?: 'ADMIN' | 'AGENTE';
+  prefeiturasAtribuidasIds?: string[];
+}
+
+export interface RegisterPayload {
+  razaoSocial: string;
+  nomeFantasia?: string;
+  cnpj: string;
+  nomeAdministrador: string;
+  emailAdministrador: string;
+  senha: string;
+  telefone?: string;
+  celular?: string;
+  celularAdmin?: string;
+  plano?: string;
+  // Aliases de compatibilidade
+  nomeAnalista?: string;
+  emailAnalista?: string;
 }
 
 @Injectable({
@@ -36,9 +58,46 @@ export class AuthService {
   public readonly token = this._token.asReadonly();
   public readonly usuario = this._usuario.asReadonly();
   public readonly isAuthenticated = computed(() => !!this._token());
+  public readonly isModoDemo = computed(() => this._token() === 'demo-token-govflow-jwt-expert');
+
+  public readonly role = computed(() => this._usuario()?.role || (this.isModoDemo() ? 'ADMIN' : 'AGENTE'));
+  public readonly isAdmin = computed(() => this.role() === 'ADMIN');
+  public readonly isAgente = computed(() => this.role() === 'AGENTE');
+  public readonly prefeiturasAtribuidasIds = computed(() => this._usuario()?.prefeiturasAtribuidasIds || []);
 
   public login(email: string, senha: string): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, { email, senha }).pipe(
+      tap(response => {
+        this.salvarSessao(response);
+      })
+    );
+  }
+
+  public cadastrarConsultoria(payload: RegisterPayload): Observable<LoginResponse> {
+    const finalPayload = {
+      razaoSocial: payload.razaoSocial,
+      nomeFantasia: payload.nomeFantasia || payload.razaoSocial,
+      cnpj: payload.cnpj,
+      nomeAdministrador: payload.nomeAdministrador || payload.nomeAnalista || '',
+      emailAdministrador: payload.emailAdministrador || payload.emailAnalista || '',
+      senha: payload.senha,
+      telefone: payload.celularAdmin || payload.telefone || payload.celular || '',
+      plano: payload.plano || 'PRO'
+    };
+    const consultoriaNome = payload.nomeFantasia || payload.razaoSocial;
+    return this.http.post<LoginResponse>(API_ENDPOINTS.AUTH.REGISTER, finalPayload).pipe(
+      tap(response => {
+        this.salvarSessao({
+          ...response,
+          nomeConsultoria: response.nomeConsultoria || consultoriaNome,
+          role: response.role || 'ADMIN'
+        });
+      })
+    );
+  }
+
+  public carregarPerfilMe(): Observable<LoginResponse> {
+    return this.http.get<LoginResponse>(API_ENDPOINTS.AUTH.ME).pipe(
       tap(response => {
         this.salvarSessao(response);
       })
@@ -52,7 +111,10 @@ export class AuthService {
       analistaId: 'analista-demo-01',
       nome: 'Gabriel Especialista',
       email: 'analista@govflow.com.br',
-      tenantId: 'consultoria-alianca-pb'
+      tenantId: 'consultoria-alianca-pb',
+      nomeConsultoria: 'Consultoria Aliança',
+      role: 'ADMIN',
+      prefeiturasAtribuidasIds: ['mun-patos-01', 'mun-sousa-02', 'mun-pombal-03']
     };
     this.salvarSessao(demoResponse);
     this.router.navigate(['/convenios']);
@@ -61,17 +123,22 @@ export class AuthService {
   public logout(): void {
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
+    localStorage.removeItem('govflow_municipio_ativo_id');
+    localStorage.removeItem('govflow_convenio_ativo_id');
     this._token.set(null);
     this._usuario.set(null);
     this.router.navigate(['/login']);
   }
 
-  private salvarSessao(response: LoginResponse): void {
+  public salvarSessao(response: LoginResponse): void {
     const usuario: UsuarioAutenticado = {
       analistaId: response.analistaId,
       nome: response.nome,
       email: response.email,
-      tenantId: response.tenantId
+      tenantId: response.tenantId,
+      nomeConsultoria: response.nomeConsultoria,
+      role: response.role || 'ADMIN',
+      prefeiturasAtribuidasIds: response.prefeiturasAtribuidasIds || []
     };
 
     localStorage.setItem(this.TOKEN_KEY, response.token);

@@ -110,6 +110,74 @@ public class Convenio {
     }
 
     /**
+     * Fábrica de domínio para criação manual de novo convênio por um analista técnico.
+     */
+    public static Convenio criarNovo(UUID tenantId,
+                                    UUID prefeituraId,
+                                    String numeroSiconv,
+                                    String numeroProcesso,
+                                    String orgaoConcedente,
+                                    String objeto,
+                                    BigDecimal valorGlobal,
+                                    BigDecimal valorRepasse,
+                                    BigDecimal valorContrapartida,
+                                    boolean possuiClausulaSuspensiva,
+                                    LocalDate prazoClausulaSuspensiva,
+                                    LocalDate dataInicioVigencia,
+                                    LocalDate dataFimVigencia) {
+        Objects.requireNonNull(tenantId, "O tenantId não pode ser nulo");
+        Objects.requireNonNull(prefeituraId, "O prefeituraId não pode ser nulo");
+        Objects.requireNonNull(numeroSiconv, "O número SICONV não pode ser nulo");
+        Objects.requireNonNull(orgaoConcedente, "O órgão concedente não pode ser nulo");
+        Objects.requireNonNull(objeto, "O objeto do convênio não pode ser nulo");
+        Objects.requireNonNull(dataFimVigencia, "A data de fim de vigência não pode ser nula");
+
+        BigDecimal global = valorGlobal != null ? valorGlobal : BigDecimal.ZERO;
+        BigDecimal repasse = valorRepasse != null ? valorRepasse : BigDecimal.ZERO;
+        BigDecimal contrapartida = valorContrapartida != null ? valorContrapartida : BigDecimal.ZERO;
+
+        if (repasse.add(contrapartida).compareTo(global) != 0) {
+            throw new RegraNegocioClausulaSuspensivaException(
+                "Inconsistência financeira: A soma do valor de repasse (" + repasse + ") com a contrapartida (" + contrapartida + ") deve ser exatamente igual ao valor global (" + global + ")."
+            );
+        }
+
+        LocalDate prazoSuspensiva = prazoClausulaSuspensiva;
+        if (possuiClausulaSuspensiva && prazoSuspensiva == null) {
+            prazoSuspensiva = LocalDate.now().plusDays(180);
+        }
+
+        UUID id = UUID.randomUUID();
+        Instant now = Instant.now();
+        String statusSuspensiva = possuiClausulaSuspensiva ? "PENDENTE" : "NAO_APLICA";
+
+        return new Convenio(
+                id,
+                tenantId,
+                prefeituraId,
+                numeroSiconv,
+                numeroProcesso,
+                orgaoConcedente,
+                objeto,
+                global,
+                repasse,
+                contrapartida,
+                "EM_EXECUCAO",
+                possuiClausulaSuspensiva,
+                prazoSuspensiva,
+                dataInicioVigencia != null ? dataInicioVigencia : LocalDate.now(),
+                dataFimVigencia,
+                false,
+                null,
+                null,
+                statusSuspensiva,
+                null,
+                now,
+                now
+        );
+    }
+
+    /**
      * Retorna a data fatal efetiva da cláusula suspensiva (considerando prorrogação concedida, se houver).
      */
     public LocalDate getPrazoFatalEfetivo() {

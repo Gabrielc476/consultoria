@@ -3,6 +3,7 @@ import { ConvenioCockpitPageComponent } from './convenio-cockpit-page.component'
 import { provideRouter } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { AuthService } from '../../../../core/auth/auth.service';
 
 describe('ConvenioCockpitPageComponent', () => {
   let component: ConvenioCockpitPageComponent;
@@ -36,5 +37,29 @@ describe('ConvenioCockpitPageComponent', () => {
     component.onFaseClick(faseAlvo);
     expect(component.faseSelecionada().numero).toBe(2);
     expect(component.detalhesFaseAberta()).toBeTrue();
+  });
+
+  it('deve exibir mocks de documentos e prazos em modo demo ou não autenticado', () => {
+    expect(component.documentos().length).toBeGreaterThan(0);
+    expect(component.prazos().length).toBeGreaterThan(0);
+    expect(component.documentos()[0].numeroDocumento).toContain('NF-e 004821');
+  });
+
+  it('deve isolar documentos e prazos para tenant real autenticado', () => {
+    const authService = TestBed.inject(AuthService);
+    authService.salvarSessao({
+      token: 'jwt-tenant-real',
+      tokenType: 'Bearer',
+      analistaId: 'analista-1',
+      nome: 'Maria Gestora',
+      email: 'maria@consultoria.com.br',
+      tenantId: 'tenant-novo-999'
+    });
+
+    component.carregarDocumentos();
+    expect(component.authService.isModoDemo()).toBeFalse();
+    expect(component.authService.isAuthenticated()).toBeTrue();
+
+    authService.logout();
   });
 });

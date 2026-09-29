@@ -5,6 +5,8 @@ import br.com.govflow.core.application.port.in.CadastrarPrefeituraUseCase;
 import br.com.govflow.core.application.port.in.ConsultarPrefeituraUseCase;
 import br.com.govflow.core.application.port.out.ConsultoriaRepositoryPort;
 import br.com.govflow.core.application.port.out.PrefeituraRepositoryPort;
+import br.com.govflow.core.application.port.out.UsuarioRepositoryPort;
+import br.com.govflow.core.domain.exception.AcessoNegadoException;
 import br.com.govflow.core.domain.exception.ConsultoriaNaoEncontradaException;
 import br.com.govflow.core.domain.exception.DomainException;
 import br.com.govflow.core.domain.exception.LimitePrefeiturasExcedidoException;
@@ -16,11 +18,14 @@ import br.com.govflow.core.domain.model.Consultoria;
 import br.com.govflow.core.domain.model.Cpf;
 import br.com.govflow.core.domain.model.Prefeitura;
 import br.com.govflow.core.domain.model.Uf;
+import br.com.govflow.core.infrastructure.interceptor.UserContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -29,15 +34,20 @@ public class PrefeituraService implements CadastrarPrefeituraUseCase, ConsultarP
 
     private final PrefeituraRepositoryPort prefeituraRepository;
     private final ConsultoriaRepositoryPort consultoriaRepository;
+    private final UsuarioRepositoryPort usuarioRepository;
 
     public PrefeituraService(PrefeituraRepositoryPort prefeituraRepository,
-                             ConsultoriaRepositoryPort consultoriaRepository) {
+                             ConsultoriaRepositoryPort consultoriaRepository,
+                             UsuarioRepositoryPort usuarioRepository) {
         this.prefeituraRepository = prefeituraRepository;
         this.consultoriaRepository = consultoriaRepository;
+        this.usuarioRepository = usuarioRepository;
     }
 
     @Override
     public Prefeitura cadastrar(CadastrarPrefeituraCommand command) {
+        validarNaoEhAgente();
+
         // 1. Valida existência e limite do Tenant (Consultoria) se cadastrado
         Optional<Consultoria> consultoriaOpt = consultoriaRepository.buscarPorId(command.tenantId());
         if (consultoriaOpt.isPresent()) {
@@ -83,23 +93,51 @@ public class PrefeituraService implements CadastrarPrefeituraUseCase, ConsultarP
     @Override
     @Transactional(readOnly = true)
     public Optional<Prefeitura> buscarPorId(UUID id) {
-        return prefeituraRepository.buscarPorId(id);
+        Optional<Prefeitura> opt = prefeituraRepository.buscarPorId(id);
+        if (opt.isEmpty()) {
+            return Optional.empty();
+        }
+
+        if (UserContext.isAgente()) {
+            Set<UUID> idsPermitidos = obterPrefeiturasDoAgente();
+            if (!idsPermitidos.contains(id)) {
+                throw new AcessoNegadoException("Você não possui permissão para acessar esta prefeitura.");
+            }
+        }
+
+        return opt;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Prefeitura> listar(int page, int size, Boolean ativo) {
+        if (UserContext.isAgente()) {
+            Set<UUID> idsPermitidos = obterPrefeiturasDoAgente();
+            if (idsPermitidos.isEmpty()) {
+                return Collections.emptyList();
+            }
+            return prefeituraRepository.listarPorIds(idsPermitidos, page, size, ativo);
+        }
         return prefeituraRepository.listar(page, size, ativo);
     }
 
     @Override
     @Transactional(readOnly = true)
     public long contar(Boolean ativo) {
+        if (UserContext.isAgente()) {
+            Set<UUID> idsPermitidos = obterPrefeiturasDoAgente();
+            if (idsPermitidos.isEmpty()) {
+                return 0;
+            }
+            return prefeituraRepository.contarPorIds(idsPermitidos, ativo);
+        }
         return prefeituraRepository.contar(ativo);
     }
 
     @Override
     public Prefeitura atualizar(UUID id, AtualizarPrefeituraCommand command) {
+        validarNaoEhAgente();
+
         Prefeitura prefeitura = prefeituraRepository.buscarPorId(id)
                 .orElseThrow(() -> new PrefeituraNaoEncontradaException(id));
 
@@ -123,6 +161,8 @@ public class PrefeituraService implements CadastrarPrefeituraUseCase, ConsultarP
 
     @Override
     public void inativar(UUID id) {
+        validarNaoEhAgente();
+
         Prefeitura prefeitura = prefeituraRepository.buscarPorId(id)
                 .orElseThrow(() -> new PrefeituraNaoEncontradaException(id));
         prefeitura.inativar();
@@ -131,9 +171,29 @@ public class PrefeituraService implements CadastrarPrefeituraUseCase, ConsultarP
 
     @Override
     public void ativar(UUID id) {
+        validarNaoEhAgente();
+
         Prefeitura prefeitura = prefeituraRepository.buscarPorId(id)
                 .orElseThrow(() -> new PrefeituraNaoEncontradaException(id));
         prefeitura.ativar();
         prefeituraRepository.salvar(prefeitura);
+    }
+
+    private void validarNaoEhAgente() {
+        if (UserContext.isAgente()) {
+            throw new AcessoNegadoException("Apenas administradores podem cadastrar, alterar ou inativar prefeituras.");
+        }
+    }
+
+    private Set<UUID> obterPrefeiturasDoAgente() {
+        Set<UUID> ids = UserContext.getPrefeiturasAtribuidasIds();
+        if (ids != null && !ids.isEmpty()) {
+            return ids;
+        }
+        UUID userId = UserContext.getUserId();
+        if (userId != null) {
+            return usuarioRepository.buscarPrefeiturasAtribuidas(userId);
+        }
+        return Collections.emptySet();
     }
 }

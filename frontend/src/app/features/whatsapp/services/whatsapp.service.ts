@@ -1,5 +1,6 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, signal, inject, effect } from '@angular/core';
 import { WhatsAppContact, WhatsAppMessage } from '../model/whatsapp.model';
+import { AuthService } from '../../../core/auth/auth.service';
 
 const MOCK_CONTACTS: WhatsAppContact[] = [
   {
@@ -164,22 +165,60 @@ const MOCK_MESSAGES_MARCOS: WhatsAppMessage[] = [
   providedIn: 'root'
 })
 export class WhatsAppService {
-  readonly contatos = signal<WhatsAppContact[]>(MOCK_CONTACTS);
-  readonly contatoAtivoId = signal<string>('chat-carlos-mendes');
+  private readonly authService = inject(AuthService, { optional: true });
 
-  private readonly mensagensPorChat = signal<Record<string, WhatsAppMessage[]>>({
-    'chat-carlos-mendes': MOCK_MESSAGES_CARLOS,
-    'chat-marcos-vinicius': MOCK_MESSAGES_MARCOS
+  readonly contatos = signal<WhatsAppContact[]>([]);
+  readonly contatoAtivoId = signal<string | null>(null);
+
+  private readonly mensagensPorChat = signal<Record<string, WhatsAppMessage[]>>({});
+
+  constructor() {
+    this.inicializarDados();
+    if (this.authService) {
+      effect(() => {
+        this.authService?.token();
+        this.inicializarDados();
+      });
+    }
+  }
+
+  private isDemoOrUnauthenticated(): boolean {
+    if (!this.authService) return true;
+    return this.authService.isModoDemo() || !this.authService.isAuthenticated();
+  }
+
+  private inicializarDados(): void {
+    if (this.isDemoOrUnauthenticated()) {
+      this.contatos.set(MOCK_CONTACTS);
+      this.contatoAtivoId.set('chat-carlos-mendes');
+      this.mensagensPorChat.set({
+        'chat-carlos-mendes': MOCK_MESSAGES_CARLOS,
+        'chat-marcos-vinicius': MOCK_MESSAGES_MARCOS
+      });
+    } else {
+      // Sessão Real de Tenant
+      this.contatos.set([]);
+      this.contatoAtivoId.set(null);
+      this.mensagensPorChat.set({});
+    }
+  }
+
+  readonly contatoAtivo = computed<WhatsAppContact | null>(() => {
+    const id = this.contatoAtivoId();
+    const lista = this.contatos();
+    if (lista.length === 0) return null;
+    if (!id) return lista[0] || null;
+    return lista.find(c => c.id === id) || lista[0] || null;
   });
 
-  readonly contatoAtivo = computed(() => {
+  readonly mensagensDoChatAtivo = computed<WhatsAppMessage[]>(() => {
     const id = this.contatoAtivoId();
-    return this.contatos().find(c => c.id === id) || this.contatos()[0];
-  });
-
-  readonly mensagensDoChatAtivo = computed(() => {
-    const id = this.contatoAtivoId();
+    if (!id) return [];
     return this.mensagensPorChat()[id] || [];
+  });
+
+  readonly totalNaoLidas = computed<number>(() => {
+    return this.contatos().reduce((acc, c) => acc + (c.mensagensNaoLidas || 0), 0);
   });
 
   selecionarContato(id: string): void {
@@ -194,6 +233,8 @@ export class WhatsAppService {
     if (!texto.trim()) return;
 
     const chatId = this.contatoAtivoId();
+    if (!chatId) return;
+
     const novaMensagem: WhatsAppMessage = {
       id: `msg-${Date.now()}`,
       chatId,
@@ -220,6 +261,8 @@ export class WhatsAppService {
 
   dispararMacroAlerta(tipo: 'PRAZO_15' | 'SOLICITAR_ART' | 'CONFIRMAR_OBTV'): void {
     const contato = this.contatoAtivo();
+    if (!contato) return;
+
     let texto = '';
 
     if (tipo === 'PRAZO_15') {

@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { WhatsAppHubPageComponent } from './whatsapp-hub-page.component';
 
 describe('WhatsAppHubPageComponent', () => {
@@ -8,7 +9,7 @@ describe('WhatsAppHubPageComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [WhatsAppHubPageComponent],
+      imports: [WhatsAppHubPageComponent, HttpClientTestingModule],
       providers: [provideRouter([])]
     }).compileComponents();
 
@@ -37,5 +38,13 @@ describe('WhatsAppHubPageComponent', () => {
     const filtrados = component.contatosFiltrados();
     expect(filtrados.length).toBe(1);
     expect(filtrados[0].nome).toContain('Carlos');
+  });
+
+  it('deve exibir estado vazio quando o tenant não possuir contatos', () => {
+    component.whatsService.contatos.set([]);
+    component.whatsService.contatoAtivoId.set(null);
+    fixture.detectChanges();
+    expect(component.whatsService.contatoAtivo()).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Nenhuma conversa ativa no momento');
   });
 });

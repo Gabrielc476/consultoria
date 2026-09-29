@@ -29,4 +29,11 @@ describe('RadarCaucPageComponent', () => {
     expect(component.municipioSelecionado()?.id).toBe(mun.id);
     expect(component.dossieAberto()).toBeTrue();
   });
+
+  it('deve exibir empty state na tabela quando o tenant não possuir municípios', () => {
+    component.municipios.set([]);
+    fixture.detectChanges();
+    expect(component.totalMunicipios()).toBe(0);
+    expect(fixture.nativeElement.textContent).toContain('Nenhum município cadastrado no Radar CAUC');
+  });
 });

@@ -1,9 +1,11 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MunicipioRiscoCauc, CertidaoCaucItem } from '../model/cauc.model';
 import { CaucHealthMatrixComponent } from '../components/cauc-health-matrix/cauc-health-matrix.component';
 import { RadarCaucService } from '../services/radar-cauc.service';
+import { AuthService } from '../../../core/auth/auth.service';
+import { CadastrarPrefeituraModalComponent } from '../../../core/components/cadastrar-prefeitura-modal/cadastrar-prefeitura-modal.component';
 
 /**
  * =========================================================================
@@ -118,7 +120,7 @@ const MOCK_MUNICIPIOS_RISCO: MunicipioRiscoCauc[] = [
 @Component({
   selector: 'app-radar-cauc-page',
   standalone: true,
-  imports: [CommonModule, CaucHealthMatrixComponent],
+  imports: [CommonModule, CaucHealthMatrixComponent, CadastrarPrefeituraModalComponent],
   template: `
     <div class="p-6 max-w-7xl mx-auto space-y-6">
       <!-- Cabeçalho da Página -->
@@ -140,10 +142,22 @@ const MOCK_MUNICIPIOS_RISCO: MunicipioRiscoCauc[] = [
         <div class="flex items-center gap-3">
           <button
             type="button"
-            (click)="atualizar()"
-            class="px-3.5 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-semibold text-white border border-white/10 transition-colors inline-flex items-center gap-2"
+            (click)="modalNovaPrefeituraAberto.set(true)"
+            class="px-3.5 py-2 rounded-lg bg-gov-cobalt-600 hover:bg-gov-cobalt-500 text-xs font-semibold text-white transition-colors inline-flex items-center gap-2 cursor-pointer shadow-sm"
           >
             <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            <span>Nova Prefeitura</span>
+          </button>
+
+          <button
+            type="button"
+            (click)="atualizar()"
+            class="px-3.5 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-semibold text-white border border-white/10 transition-colors inline-flex items-center gap-2 cursor-pointer"
+          >
+            <svg class="w-3.5 h-3.5" [class.animate-spin]="sincronizando()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
               <path d="M3 3v5h5"/>
               <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
@@ -160,32 +174,42 @@ const MOCK_MUNICIPIOS_RISCO: MunicipioRiscoCauc[] = [
           <div class="text-[11px] font-medium text-gov-slate-400 uppercase tracking-wider">
             Municípios Gerenciados
           </div>
-          <div class="text-2xl font-bold font-mono text-white mt-1">14</div>
-          <div class="text-[11px] text-gov-slate-400 mt-1">Sertão e Agreste Paraibano</div>
+          <div class="text-2xl font-bold font-mono text-white mt-1">{{ totalMunicipios() }}</div>
+          <div class="text-[11px] text-gov-slate-400 mt-1">
+            {{ isModoDemo() ? 'Sertão e Agreste Paraibano' : (totalMunicipios() === 1 ? '1 prefeitura parceira' : totalMunicipios() + ' prefeituras parceiras') }}
+          </div>
         </div>
 
         <div class="bg-[#111827] border border-white/10 rounded-xl p-4 shadow-sm">
           <div class="text-[11px] font-medium text-gov-slate-400 uppercase tracking-wider">
             Prazos Críticos (< 15 dias)
           </div>
-          <div class="text-2xl font-bold font-mono text-rose-400 mt-1">3</div>
-          <div class="text-[11px] text-rose-400/80 mt-1">Risco iminente de perda de verba</div>
+          <div class="text-2xl font-bold font-mono text-rose-400 mt-1">{{ prazosCriticos() }}</div>
+          <div class="text-[11px] text-rose-400/80 mt-1">
+            {{ prazosCriticos() > 0 ? 'Risco iminente de perda de verba' : 'Nenhum prazo fatal iminente' }}
+          </div>
         </div>
 
         <div class="bg-[#111827] border border-white/10 rounded-xl p-4 shadow-sm">
           <div class="text-[11px] font-medium text-gov-slate-400 uppercase tracking-wider">
             Certidões em Alerta
           </div>
-          <div class="text-2xl font-bold font-mono text-amber-400 mt-1">2</div>
-          <div class="text-[11px] text-amber-400/80 mt-1">Vencimento em menos de 10 dias</div>
+          <div class="text-2xl font-bold font-mono text-amber-400 mt-1">{{ certidoesAlerta() }}</div>
+          <div class="text-[11px] text-amber-400/80 mt-1">
+            {{ certidoesAlerta() > 0 ? 'Vencimento em menos de 10 dias' : 'Regularidade fiscal em dia' }}
+          </div>
         </div>
 
         <div class="bg-[#111827] border border-white/10 rounded-xl p-4 shadow-sm">
           <div class="text-[11px] font-medium text-gov-slate-400 uppercase tracking-wider">
-            Verbas sob Gestão
+            Convênios Sob Gestão
           </div>
-          <div class="text-2xl font-bold font-mono text-gov-slate-100 mt-1">R$ 14.8M</div>
-          <div class="text-[11px] text-emerald-400 mt-1">42 convênios federais ativos</div>
+          <div class="text-2xl font-bold font-mono text-gov-slate-100 mt-1">
+            {{ isModoDemo() ? 'R$ 14.8M' : totalConvenios() }}
+          </div>
+          <div class="text-[11px] text-emerald-400 mt-1">
+            {{ isModoDemo() ? '42 convênios federais ativos' : (totalConvenios() === 1 ? '1 convênio federal ativo' : totalConvenios() + ' convênios federais ativos') }}
+          </div>
         </div>
       </div>
 
@@ -229,18 +253,22 @@ const MOCK_MUNICIPIOS_RISCO: MunicipioRiscoCauc[] = [
                 <!-- Próximo Prazo Fatal -->
                 <td class="py-3.5 px-5">
                   <div class="flex items-center gap-2">
-                    @if (item.proximoPrazoFatal.diasRestantes <= 15) {
-                      <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/30">
-                        D-{{ item.proximoPrazoFatal.diasRestantes }} dias: {{ item.proximoPrazoFatal.descricao }}
-                      </span>
-                    } @else if (item.proximoPrazoFatal.diasRestantes <= 30) {
-                      <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30">
-                        D-{{ item.proximoPrazoFatal.diasRestantes }} dias: {{ item.proximoPrazoFatal.descricao }}
-                      </span>
+                    @if (item.proximoPrazoFatal) {
+                      @if (item.proximoPrazoFatal.diasRestantes <= 15) {
+                        <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/30">
+                          D-{{ item.proximoPrazoFatal.diasRestantes }} dias: {{ item.proximoPrazoFatal.descricao }}
+                        </span>
+                      } @else if (item.proximoPrazoFatal.diasRestantes <= 30) {
+                        <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                          D-{{ item.proximoPrazoFatal.diasRestantes }} dias: {{ item.proximoPrazoFatal.descricao }}
+                        </span>
+                      } @else {
+                        <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-white/5 text-gov-slate-300 border border-white/10">
+                          D-{{ item.proximoPrazoFatal.diasRestantes }} dias: {{ item.proximoPrazoFatal.descricao }}
+                        </span>
+                      }
                     } @else {
-                      <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-white/5 text-gov-slate-300 border border-white/10">
-                        D-{{ item.proximoPrazoFatal.diasRestantes }} dias: {{ item.proximoPrazoFatal.descricao }}
-                      </span>
+                      <span class="text-[10px] text-emerald-400 font-mono">Sem pendências</span>
                     }
                   </div>
                 </td>
@@ -254,6 +282,35 @@ const MOCK_MUNICIPIOS_RISCO: MunicipioRiscoCauc[] = [
                   >
                     Ver Dossiê
                   </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="5" class="py-12 px-6 text-center">
+                  <div class="max-w-md mx-auto space-y-3">
+                    <div class="w-12 h-12 rounded-full bg-gov-cobalt-500/10 text-gov-cobalt-400 border border-gov-cobalt-500/20 flex items-center justify-center mx-auto">
+                      <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                      </svg>
+                    </div>
+                    <h4 class="text-sm font-semibold text-white">Nenhum município cadastrado no Radar CAUC</h4>
+                    <p class="text-xs text-gov-slate-400 leading-relaxed">
+                      Cadastre a primeira prefeitura parceira da sua consultoria para iniciar o monitoramento preventivo das 16 certidões do CAUC e prazos fatais.
+                    </p>
+                    <div class="pt-2">
+                      <button
+                        type="button"
+                        (click)="modalNovaPrefeituraAberto.set(true)"
+                        class="px-4 py-2 rounded-lg bg-gov-cobalt-600 hover:bg-gov-cobalt-500 text-white font-medium text-xs transition-colors inline-flex items-center gap-2 cursor-pointer shadow-sm"
+                      >
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <line x1="12" y1="5" x2="12" y2="19"/>
+                          <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        <span>Cadastrar Primeira Prefeitura</span>
+                      </button>
+                    </div>
+                  </div>
                 </td>
               </tr>
             }
@@ -333,18 +390,42 @@ const MOCK_MUNICIPIOS_RISCO: MunicipioRiscoCauc[] = [
           </div>
         </div>
       }
+
+      <!-- Modal de Cadastro de Prefeitura -->
+      @if (modalNovaPrefeituraAberto()) {
+        <app-cadastrar-prefeitura-modal
+          (fechar)="modalNovaPrefeituraAberto.set(false)"
+          (sucesso)="onPrefeituraCadastrada()"
+        ></app-cadastrar-prefeitura-modal>
+      }
     </div>
   `
 })
 export class RadarCaucPageComponent implements OnInit {
   private readonly caucService = inject(RadarCaucService);
+  readonly authService = inject(AuthService);
 
-  readonly municipios = signal<MunicipioRiscoCauc[]>(MOCK_MUNICIPIOS_RISCO);
+  readonly isModoDemo = computed(() => this.authService.isModoDemo());
+  readonly municipios = signal<MunicipioRiscoCauc[]>(
+    this.authService.isModoDemo() || !this.authService.isAuthenticated() ? MOCK_MUNICIPIOS_RISCO : []
+  );
   readonly carregando = signal(false);
   readonly sincronizando = signal(false);
+  readonly modalNovaPrefeituraAberto = signal(false);
 
   readonly dossieAberto = signal(false);
   readonly municipioSelecionado = signal<MunicipioRiscoCauc | null>(null);
+
+  readonly totalMunicipios = computed(() => this.municipios().length);
+  readonly prazosCriticos = computed(() =>
+    this.municipios().filter(m => m.proximoPrazoFatal && m.proximoPrazoFatal.diasRestantes <= 15).length
+  );
+  readonly certidoesAlerta = computed(() =>
+    this.municipios().reduce((acc, m) => acc + (m.certidoesAlerta || 0), 0)
+  );
+  readonly totalConvenios = computed(() =>
+    this.municipios().reduce((acc, m) => acc + (m.conveniosAtivos || 0), 0)
+  );
 
   ngOnInit(): void {
     this.carregarDados();
@@ -352,14 +433,34 @@ export class RadarCaucPageComponent implements OnInit {
 
   carregarDados(): void {
     this.carregando.set(true);
+
+    if (this.authService.isModoDemo() || !this.authService.isAuthenticated()) {
+      this.caucService.obterResumo().subscribe({
+        next: (res) => {
+          if (res && res.municipios && res.municipios.length > 0) {
+            this.municipios.set(res.municipios);
+          } else {
+            this.municipios.set(MOCK_MUNICIPIOS_RISCO);
+          }
+          this.carregando.set(false);
+        },
+        error: () => {
+          this.municipios.set(MOCK_MUNICIPIOS_RISCO);
+          this.carregando.set(false);
+        }
+      });
+      return;
+    }
+
+    // Sessão Real de Tenant
     this.caucService.obterResumo().subscribe({
       next: (res) => {
-        if (res && res.municipios && res.municipios.length > 0) {
-          this.municipios.set(res.municipios);
-        }
+        const lista = res?.municipios || [];
+        this.municipios.set(lista);
         this.carregando.set(false);
       },
       error: () => {
+        this.municipios.set([]);
         this.carregando.set(false);
       }
     });
@@ -381,5 +482,10 @@ export class RadarCaucPageComponent implements OnInit {
   abrirDossie(mun: MunicipioRiscoCauc): void {
     this.municipioSelecionado.set(mun);
     this.dossieAberto.set(true);
+  }
+
+  onPrefeituraCadastrada(): void {
+    this.modalNovaPrefeituraAberto.set(false);
+    this.carregarDados();
   }
 }

@@ -10,6 +10,11 @@ import br.com.govflow.core.domain.exception.InconsistenciaMatematicaException;
 import br.com.govflow.core.domain.exception.LimitePrefeiturasExcedidoException;
 import br.com.govflow.core.domain.exception.PrefeituraJaCadastradaException;
 import br.com.govflow.core.domain.exception.PrefeituraNaoEncontradaException;
+import br.com.govflow.core.domain.exception.AcessoNegadoException;
+import br.com.govflow.core.domain.exception.CredenciaisInvalidasException;
+import br.com.govflow.core.domain.exception.EmailJaCadastradoException;
+import br.com.govflow.core.domain.exception.UsuarioInativoException;
+import br.com.govflow.core.domain.exception.UsuarioNaoEncontradoException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +61,8 @@ public class GlobalExceptionHandler {
             ConsultoriaNaoEncontradaException.class,
             DocumentoNaoEncontradoException.class,
             ConvenioNaoEncontradoException.class,
-            CondicionanteNaoEncontradaException.class
+            CondicionanteNaoEncontradaException.class,
+            UsuarioNaoEncontradoException.class
     })
     public ResponseEntity<ProblemDetail> handleNotFound(DomainException ex, HttpServletRequest request) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
@@ -68,7 +74,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(problem);
     }
 
-    @ExceptionHandler({PrefeituraJaCadastradaException.class, ConsultoriaJaCadastradaException.class})
+    @ExceptionHandler({PrefeituraJaCadastradaException.class, ConsultoriaJaCadastradaException.class, EmailJaCadastradoException.class})
     public ResponseEntity<ProblemDetail> handleConflict(DomainException ex, HttpServletRequest request) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
         problem.setTitle("Conflito de Dados");
@@ -77,6 +83,28 @@ public class GlobalExceptionHandler {
         problem.setProperty("errorCode", ex.getErrorCode());
         problem.setProperty("timestamp", Instant.now());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
+    }
+
+    @ExceptionHandler(CredenciaisInvalidasException.class)
+    public ResponseEntity<ProblemDetail> handleCredenciaisInvalidas(CredenciaisInvalidasException ex, HttpServletRequest request) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
+        problem.setTitle("Credenciais Inválidas");
+        problem.setType(URI.create("https://govflow.com.br/errors/unauthorized"));
+        problem.setInstance(URI.create(request.getRequestURI()));
+        problem.setProperty("errorCode", ex.getErrorCode());
+        problem.setProperty("timestamp", Instant.now());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problem);
+    }
+
+    @ExceptionHandler({AcessoNegadoException.class, UsuarioInativoException.class})
+    public ResponseEntity<ProblemDetail> handleAcessoNegado(DomainException ex, HttpServletRequest request) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+        problem.setTitle("Acesso Negado");
+        problem.setType(URI.create("https://govflow.com.br/errors/forbidden"));
+        problem.setInstance(URI.create(request.getRequestURI()));
+        problem.setProperty("errorCode", ex.getErrorCode());
+        problem.setProperty("timestamp", Instant.now());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(problem);
     }
 
     @ExceptionHandler(LimitePrefeiturasExcedidoException.class)

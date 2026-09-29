@@ -1,7 +1,8 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../auth/auth.service';
+import { WhatsAppService } from '../../../features/whatsapp/services/whatsapp.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -77,9 +78,11 @@ import { AuthService } from '../../auth/auth.service';
               </svg>
               <span>Central WhatsApp</span>
             </div>
-            <span class="w-4 h-4 rounded-full bg-emerald-500 text-white font-bold text-[9px] flex items-center justify-center shadow-sm">
-              2
-            </span>
+            @if (totalNaoLidas() > 0) {
+              <span class="w-4 h-4 rounded-full bg-emerald-500 text-white font-bold text-[9px] flex items-center justify-center shadow-sm">
+                {{ totalNaoLidas() }}
+              </span>
+            }
           </a>
 
           <!-- Esteira de Documentos (WhatsApp / OCR) -->
@@ -113,8 +116,27 @@ import { AuthService } from '../../auth/auth.service';
               <circle cx="12" cy="12" r="2"/>
             </svg>
             <span class="flex-1">Radar CAUC & Prazos</span>
-            <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse" title="Prazos Críticos Pendentes"></span>
+            @if (isModoDemo()) {
+              <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse" title="Prazos Críticos Pendentes"></span>
+            }
           </a>
+
+          <!-- Gestão de Agentes (IAM & Equipe) -->
+          @if (auth.isAdmin()) {
+            <a
+              routerLink="/admin/agentes"
+              routerLinkActive="bg-gov-cobalt-600/15 text-gov-cobalt-300 font-semibold border border-gov-cobalt-500/30 shadow-sm"
+              class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gov-slate-300 hover:text-white hover:bg-white/5 transition-all group cursor-pointer"
+            >
+              <svg class="w-4 h-4 shrink-0 transition-colors group-hover:text-white text-gov-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              <span>Equipe de Agentes</span>
+            </a>
+          }
         </nav>
       </div>
 
@@ -133,11 +155,11 @@ import { AuthService } from '../../auth/auth.service';
         <div class="flex items-center justify-between pt-1 text-xs text-gov-slate-400">
           <div class="flex items-center gap-2.5 min-w-0">
             <div class="w-7 h-7 rounded-full bg-gov-cobalt-600/30 border border-gov-cobalt-500/40 flex items-center justify-center text-[11px] font-bold text-gov-cobalt-300 shrink-0">
-              {{ (auth.usuario()?.nome || 'A').charAt(0) }}
+              {{ (auth.usuario()?.nome || 'A').charAt(0).toUpperCase() }}
             </div>
             <div class="min-w-0">
               <div class="truncate text-gov-slate-200 text-xs font-medium">{{ auth.usuario()?.nome || 'Consultor' }}</div>
-              <div class="text-[10px] text-gov-slate-500 truncate">Analista Sênior</div>
+              <div class="text-[10px] text-gov-slate-500 truncate">{{ cargoUsuario() }}</div>
             </div>
           </div>
           <button
@@ -155,4 +177,13 @@ import { AuthService } from '../../auth/auth.service';
 })
 export class SidebarComponent {
   readonly auth = inject(AuthService);
+  private readonly whatsapp = inject(WhatsAppService);
+
+  readonly totalNaoLidas = computed(() => this.whatsapp.totalNaoLidas());
+  readonly isModoDemo = computed(() => this.auth.isModoDemo());
+
+  readonly cargoUsuario = computed(() => {
+    if (this.auth.isModoDemo()) return 'Especialista Transferegov';
+    return this.auth.role() === 'ADMIN' ? 'Administrador da Equipe' : 'Agente Operacional';
+  });
 }

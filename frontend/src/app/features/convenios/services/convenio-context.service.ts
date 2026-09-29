@@ -1,8 +1,10 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { MunicipioContextService } from '../../../core/context/municipio-context.service';
 import { ConvenioCockpit, FaseConvenio } from '../model/convenio-fase.model';
+import { ConvenioService, ConvenioResponseDto } from './convenio.service';
+import { AuthService } from '../../../core/auth/auth.service';
 
-const FASES_TEMPLATE_PADRAO: (faseAtual: number) => FaseConvenio[] = (faseAtual: number) => [
+export const FASES_TEMPLATE_PADRAO: (faseAtual: number) => FaseConvenio[] = (faseAtual: number) => [
   {
     numero: 0,
     codigo: 'Fase 00',
@@ -280,9 +282,12 @@ const STORAGE_KEY_CONVENIO_ATIVO = 'govflow_convenio_ativo_id';
 })
 export class ConvenioContextService {
   private readonly municipioCtx = inject(MunicipioContextService);
+  private readonly convenioService = inject(ConvenioService);
+  private readonly auth = inject(AuthService);
 
   readonly todosConvenios = signal<ConvenioCockpit[]>(MOCK_CONVENIOS_SISTEMA);
-  readonly convenioAtivoId = signal<string>(this.obterIdSalvo());
+  readonly convenioAtivoId = signal<string | null>(this.obterIdSalvo() || 'conv-914250');
+  readonly carregando = signal<boolean>(false);
 
   /**
    * Convênios pertencentes ao município atualmente selecionado no header
@@ -290,24 +295,81 @@ export class ConvenioContextService {
   readonly conveniosDoMunicipio = computed(() => {
     const munAtivo = this.municipioCtx.municipioAtivo();
     if (!munAtivo) return this.todosConvenios();
-    const filtrados = this.todosConvenios().filter(c => c.municipioId === munAtivo.id);
-    return filtrados.length > 0 ? filtrados : this.todosConvenios();
+    return this.todosConvenios().filter(c => c.municipioId === munAtivo.id);
   });
 
   /**
-   * Convênio atualmente exibido no Cockpit
+   * Convênio atualmente exibido no Cockpit (ou null se nenhum convênio cadastrado)
    */
   readonly convenioAtivo = computed(() => {
-    const id = this.convenioAtivoId();
-    const encontrados = this.todosConvenios().find(c => c.id === id);
-    if (encontrados) return encontrados;
-
-    // Se o selecionado não pertencer ao município atual, pega o primeiro do município atual
     const doMunicipio = this.conveniosDoMunicipio();
-    return doMunicipio[0] || this.todosConvenios()[0];
+    const id = this.convenioAtivoId();
+
+    if (id) {
+      const encontradoNoMunicipio = doMunicipio.find(c => c.id === id);
+      if (encontradoNoMunicipio) return encontradoNoMunicipio;
+
+      const encontradoGeral = this.todosConvenios().find(c => c.id === id);
+      if (encontradoGeral) return encontradoGeral;
+    }
+
+    return doMunicipio[0] || this.todosConvenios()[0] || null;
   });
 
-  selecionarConvenio(id: string): void {
+  constructor() {
+    this.carregarConvenios();
+    effect(() => {
+      // Reage a mudanças de autenticação
+      this.auth.token();
+      this.carregarConvenios();
+    });
+  }
+
+  carregarConvenios(): void {
+    if (this.auth.isModoDemo() || !this.auth.isAuthenticated()) {
+      this.todosConvenios.set(MOCK_CONVENIOS_SISTEMA);
+      const salvo = this.obterIdSalvo();
+      const existe = MOCK_CONVENIOS_SISTEMA.find(c => c.id === salvo);
+      this.convenioAtivoId.set(existe ? salvo : 'conv-914250');
+      return;
+    }
+
+    // Sessão Real de Tenant
+    this.carregando.set(true);
+    this.convenioService.listarConvenios().subscribe({
+      next: (dtos) => {
+        this.carregando.set(false);
+        const lista = Array.isArray(dtos) ? dtos : [];
+        const mapeados: ConvenioCockpit[] = lista.map(dto => this.mapearDtoParaCockpit(dto));
+        this.todosConvenios.set(mapeados);
+
+        if (mapeados.length > 0) {
+          const salvo = this.obterIdSalvo();
+          const aindaExiste = mapeados.find(c => c.id === salvo);
+          this.convenioAtivoId.set(aindaExiste ? salvo : mapeados[0].id);
+        } else {
+          this.convenioAtivoId.set(null);
+        }
+      },
+      error: () => {
+        this.carregando.set(false);
+        this.todosConvenios.set([]);
+        this.convenioAtivoId.set(null);
+      }
+    });
+  }
+
+  recarregarConvenios(): void {
+    this.carregarConvenios();
+  }
+
+  selecionarConvenio(id: string | null): void {
+    if (!id) {
+      this.convenioAtivoId.set(null);
+      localStorage.removeItem(STORAGE_KEY_CONVENIO_ATIVO);
+      return;
+    }
+
     const existe = this.todosConvenios().find(c => c.id === id);
     if (existe) {
       this.convenioAtivoId.set(id);
@@ -322,15 +384,55 @@ export class ConvenioContextService {
     }
   }
 
+  adicionarConvenio(novo: ConvenioCockpit): void {
+    this.todosConvenios.update(lista => {
+      const semDuplicados = lista.filter(c => c.id !== novo.id && c.numeroSiconv !== novo.numeroSiconv);
+      return [novo, ...semDuplicados];
+    });
+    this.selecionarConvenio(novo.id);
+  }
+
   obterConvenioPorId(id: string): ConvenioCockpit | undefined {
     return this.todosConvenios().find(c => c.id === id);
   }
 
-  private obterIdSalvo(): string {
+  private mapearDtoParaCockpit(resp: ConvenioResponseDto): ConvenioCockpit {
+    const mun = this.municipioCtx.municipios().find(m => m.id === resp.prefeituraId);
+    const hoje = new Date();
+    const fimVigencia = new Date(resp.dataFimVigencia);
+    const diffTime = fimVigencia.getTime() - hoje.getTime();
+    const dias = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diasParaVencimento = isNaN(dias) ? 180 : Math.max(0, dias);
+
+    const faseNum = resp.possuiClausulaSuspensiva ? 2 : 1;
+
+    return {
+      id: resp.id,
+      numeroSiconv: resp.numeroSiconv,
+      ano: parseInt((resp.numeroSiconv || '').split('/')[1] || '2026', 10),
+      objeto: resp.objeto,
+      municipioId: resp.prefeituraId,
+      municipioNome: mun ? mun.nome : 'Município',
+      municipioUf: mun ? mun.uf : 'PB',
+      orgaoConcedente: resp.orgaoConcedente,
+      valorTotal: resp.valorGlobal,
+      valorRepasse: resp.valorRepasse,
+      valorContrapartida: resp.valorContrapartida,
+      percentualExecucao: 0,
+      saldoContaOp006: 0,
+      diasParaVencimento,
+      dataFimVigencia: resp.dataFimVigencia,
+      faseAtualNumero: faseNum,
+      statusGeral: diasParaVencimento <= 30 ? 'CRITICO' : (diasParaVencimento <= 60 ? 'ALERTA' : 'EM_DIA'),
+      fases: FASES_TEMPLATE_PADRAO(faseNum)
+    };
+  }
+
+  private obterIdSalvo(): string | null {
     try {
-      return localStorage.getItem(STORAGE_KEY_CONVENIO_ATIVO) || 'conv-914250';
+      return localStorage.getItem(STORAGE_KEY_CONVENIO_ATIVO);
     } catch {
-      return 'conv-914250';
+      return null;
     }
   }
 }

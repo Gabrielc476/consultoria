@@ -85,7 +85,7 @@ export interface DocumentoConvenioResumo {
             </div>
           } @empty {
             <div class="py-8 text-center text-xs text-gov-slate-500">
-              Nenhum documento pendente para este convênio.
+              Nenhum documento fiscal recebido para este convênio. Envie arquivos via WhatsApp ou esteira.
             </div>
           }
         </div>

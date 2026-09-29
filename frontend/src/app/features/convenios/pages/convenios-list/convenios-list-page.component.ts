@@ -6,11 +6,13 @@ import { ConvenioContextService } from '../../services/convenio-context.service'
 import { MunicipioContextService } from '../../../../core/context/municipio-context.service';
 import { CurrencyBrlPipe } from '../../../../shared/pipes/currency-brl.pipe';
 import { ConvenioCockpit } from '../../model/convenio-fase.model';
+import { CadastrarPrefeituraModalComponent } from '../../../../core/components/cadastrar-prefeitura-modal/cadastrar-prefeitura-modal.component';
+import { CadastrarConvenioModalComponent } from '../../components/cadastrar-convenio-modal/cadastrar-convenio-modal.component';
 
 @Component({
   selector: 'app-convenios-list-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, CurrencyBrlPipe],
+  imports: [CommonModule, FormsModule, RouterLink, CurrencyBrlPipe, CadastrarPrefeituraModalComponent, CadastrarConvenioModalComponent],
   template: `
     <div class="p-6 max-w-7xl mx-auto space-y-6 select-none font-sans">
       <!-- Topo: Título & Contexto do Município -->
@@ -33,7 +35,25 @@ import { ConvenioCockpit } from '../../model/convenio-fase.model';
         </div>
 
         <!-- Ação Rápida -->
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-2.5">
+          <button
+            type="button"
+            (click)="modalPrefeituraAberto.set(true)"
+            class="px-3.5 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-semibold text-gov-slate-200 border border-white/10 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>➕</span>
+            <span>Nova Prefeitura</span>
+          </button>
+
+          <button
+            type="button"
+            (click)="modalConvenioAberto.set(true)"
+            class="px-3.5 py-2 rounded-lg bg-gov-cobalt-600 hover:bg-gov-cobalt-500 text-xs font-semibold text-white shadow-sm transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>➕</span>
+            <span>Novo Convênio</span>
+          </button>
+
           <a
             routerLink="/radar-cauc"
             class="px-3.5 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-semibold text-gov-slate-200 border border-white/10 transition-colors inline-flex items-center gap-2"
@@ -43,7 +63,7 @@ import { ConvenioCockpit } from '../../model/convenio-fase.model';
               <line x1="12" y1="8" x2="12" y2="12"/>
               <line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
-            <span>Ver Radar CAUC & Prazos</span>
+            <span>Radar CAUC</span>
           </a>
         </div>
       </div>
@@ -217,16 +237,56 @@ import { ConvenioCockpit } from '../../model/convenio-fase.model';
             </div>
           </div>
         } @empty {
-          <div class="col-span-full py-16 text-center text-gov-slate-400">
-            <svg class="w-10 h-10 mx-auto text-gov-slate-600 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <div class="col-span-full py-16 text-center text-gov-slate-400 bg-white/5 border border-white/5 rounded-2xl p-8 space-y-4">
+            <svg class="w-10 h-10 mx-auto text-gov-slate-600 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
               <circle cx="11" cy="11" r="8"/>
               <path d="m21 21-4.3-4.3"/>
             </svg>
-            <p class="text-sm font-semibold text-gov-slate-300">Nenhum convênio encontrado com os filtros selecionados.</p>
-            <p class="text-xs text-gov-slate-500 mt-1">Alterne o município ativo no topo ou limpe o termo de busca.</p>
+            @if (municipioCtx.municipios().length === 0) {
+              <p class="text-sm font-semibold text-gov-slate-200">Nenhuma prefeitura convenente cadastrada para esta consultoria.</p>
+              <p class="text-xs text-gov-slate-400 max-w-md mx-auto">Cadastre o primeiro município para gerenciar convênios e contratos de repasse.</p>
+              <div class="pt-2">
+                <button
+                  type="button"
+                  (click)="modalPrefeituraAberto.set(true)"
+                  class="px-4 py-2 rounded-lg bg-gov-cobalt-600 hover:bg-gov-cobalt-500 text-xs font-semibold text-white transition-colors cursor-pointer"
+                >
+                  ➕ Cadastrar Primeira Prefeitura
+                </button>
+              </div>
+            } @else if (conveniosDoMunicipio().length === 0) {
+              <p class="text-sm font-semibold text-gov-slate-200">Nenhum convênio cadastrado para {{ municipioCtx.nomeMunicipioAtivoFormatado() }}.</p>
+              <p class="text-xs text-gov-slate-400 max-w-md mx-auto">Inicie o monitoramento cadastrando o primeiro convênio desta prefeitura.</p>
+              <div class="pt-2">
+                <button
+                  type="button"
+                  (click)="modalConvenioAberto.set(true)"
+                  class="px-4 py-2 rounded-lg bg-gov-cobalt-600 hover:bg-gov-cobalt-500 text-xs font-semibold text-white transition-colors cursor-pointer"
+                >
+                  ➕ Cadastrar Primeiro Convênio
+                </button>
+              </div>
+            } @else {
+              <p class="text-sm font-semibold text-gov-slate-300">Nenhum convênio encontrado com os filtros selecionados.</p>
+              <p class="text-xs text-gov-slate-500 mt-1">Alterne o município ativo no topo ou limpe o termo de busca.</p>
+            }
           </div>
         }
       </div>
+
+      <!-- Modais de Cadastro -->
+      @if (modalPrefeituraAberto()) {
+        <app-cadastrar-prefeitura-modal
+          (fechar)="modalPrefeituraAberto.set(false)"
+          (cadastrado)="modalPrefeituraAberto.set(false)"
+        ></app-cadastrar-prefeitura-modal>
+      }
+
+      @if (modalConvenioAberto()) {
+        <app-cadastrar-convenio-modal
+          (fechar)="modalConvenioAberto.set(false)"
+        ></app-cadastrar-convenio-modal>
+      }
     </div>
   `
 })
@@ -234,6 +294,9 @@ export class ConveniosListPageComponent {
   readonly convenioCtx = inject(ConvenioContextService);
   readonly municipioCtx = inject(MunicipioContextService);
   private readonly router = inject(Router);
+
+  public readonly modalPrefeituraAberto = signal(false);
+  public readonly modalConvenioAberto = signal(false);
 
   public readonly termoBusca = signal<string>('');
   public readonly filtroFase = signal<'TODAS' | 'PLANEJAMENTO' | 'OBRAS_OBTV' | 'PRESTACAO' | 'CRITICOS'>('TODAS');

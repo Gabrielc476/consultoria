@@ -12,5 +12,7 @@ public interface SpringDataConsultoriaRepository extends JpaRepository<Consultor
 
     Optional<ConsultoriaJpaEntity> findByCnpj(String cnpj);
 
+    Optional<ConsultoriaJpaEntity> findByEmailContato(String emailContato);
+
     boolean existsByCnpj(String cnpj);
 }

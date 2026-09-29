@@ -1,4 +1,6 @@
 import { TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
 import { WhatsAppService } from './whatsapp.service';
 
 describe('WhatsAppService', () => {
@@ -6,7 +8,8 @@ describe('WhatsAppService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [WhatsAppService]
+      imports: [HttpClientTestingModule],
+      providers: [WhatsAppService, provideRouter([])]
     });
     service = TestBed.inject(WhatsAppService);
   });
@@ -20,8 +23,8 @@ describe('WhatsAppService', () => {
 
   it('deve selecionar outro contato e zerar mensagens não lidas', () => {
     service.selecionarContato('chat-carlos-mendes');
-    expect(service.contatoAtivo().id).toBe('chat-carlos-mendes');
-    expect(service.contatoAtivo().mensagensNaoLidas).toBe(0);
+    expect(service.contatoAtivo()?.id).toBe('chat-carlos-mendes');
+    expect(service.contatoAtivo()?.mensagensNaoLidas).toBe(0);
   });
 
   it('deve enviar uma nova mensagem e adicioná-la à thread', () => {
@@ -39,5 +42,12 @@ describe('WhatsAppService', () => {
     const mensagens = service.mensagensDoChatAtivo();
     expect(mensagens.length).toBe(totalInicial + 1);
     expect(mensagens[mensagens.length - 1].texto).toContain('Alerta de Prazo Transferegov');
+  });
+
+  it('deve retornar null em contatoAtivo quando não houver contatos cadastrados', () => {
+    service.contatos.set([]);
+    service.contatoAtivoId.set(null);
+    expect(service.contatoAtivo()).toBeNull();
+    expect(service.mensagensDoChatAtivo()).toEqual([]);
   });
 });

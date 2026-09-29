@@ -1,22 +1,19 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Municipio, SituacaoCauc } from './municipio.model';
 import { API_ENDPOINTS } from '../api/api-endpoints';
+import { AuthService } from '../auth/auth.service';
 
 /**
  * =========================================================================
- * 📌 MAPEAMENTO DE PLACEHOLDER - TASK-FE-02
+ * 📌 MAPEAMENTO DE PREFEITURAS - MUNICÍPIO CONTEXT SERVICE
  * -------------------------------------------------------------------------
- * O QUE É MOCK:
- * - A lista inicial MOCK_MUNICIPIOS abaixo simula prefeituras atendidas
- *   pela consultoria enquanto o backend não estiver ativo ou populado.
- *
- * O QUE SUBSTITUI NO FUTURO:
- * - O endpoint GET /api/v1/prefeituras (Task-03 do clickup_tasks_backlog.md)
- *   populado com as prefeituras reais cadastradas para o tenant da consultoria.
+ * - Modo Demo / Specs Unitários: Carrega MOCK_MUNICIPIOS.
+ * - Sessão Real Autenticada: Carrega dados exclusivos do tenant via
+ *   GET /api/v1/prefeituras. Se o tenant for novo, inicializa com lista vazia.
  * =========================================================================
  */
-const MOCK_MUNICIPIOS: Municipio[] = [
+export const MOCK_MUNICIPIOS: Municipio[] = [
   {
     id: 'mun-patos-01',
     nome: 'Patos',
@@ -76,46 +73,82 @@ const STORAGE_KEY_MUNICIPIO_ATIVO = 'govflow_municipio_ativo_id';
 })
 export class MunicipioContextService {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
 
   readonly municipios = signal<Municipio[]>(MOCK_MUNICIPIOS);
-  readonly municipioAtivoId = signal<string | null>(this.obterIdSalvo());
+  readonly municipioAtivoId = signal<string | null>(this.obterIdSalvo() || 'mun-patos-01');
 
   readonly municipioAtivo = computed(() => {
+    const lista = this.municipios();
+    if (lista.length === 0) return null;
     const id = this.municipioAtivoId();
-    if (!id) return this.municipios()[0] || null;
-    return this.municipios().find(m => m.id === id) || this.municipios()[0] || null;
+    if (!id) return lista[0] || null;
+    return lista.find(m => m.id === id) || lista[0] || null;
   });
 
   readonly nomeMunicipioAtivoFormatado = computed(() => {
     const mun = this.municipioAtivo();
-    return mun ? `Prefeitura de ${mun.nome} - ${mun.uf}` : 'Todas as Prefeituras';
+    return mun ? `Prefeitura de ${mun.nome} - ${mun.uf}` : 'Nenhuma Prefeitura Selecionada';
   });
 
   constructor() {
     this.carregarMunicipios();
+    effect(() => {
+      // Reage quando o token de autenticação mudar (login, logout, demo)
+      this.auth.token();
+      this.carregarMunicipios();
+    });
   }
 
   carregarMunicipios(): void {
-    this.http.get<any[]>(API_ENDPOINTS.PREFEITURAS.BASE).subscribe({
+    if (this.auth.isModoDemo() || !this.auth.isAuthenticated()) {
+      this.municipios.set(MOCK_MUNICIPIOS);
+      const salvo = this.obterIdSalvo();
+      const existe = MOCK_MUNICIPIOS.find(m => m.id === salvo);
+      this.municipioAtivoId.set(existe ? salvo : 'mun-patos-01');
+      return;
+    }
+
+    // Sessão Real de Tenant
+    this.http.get<any>(API_ENDPOINTS.PREFEITURAS.BASE).subscribe({
       next: (dados) => {
-        if (dados && Array.isArray(dados) && dados.length > 0) {
-          const mapeados: Municipio[] = dados.map(item => ({
-            id: item.id || item.codigoIbge,
-            nome: item.nomeMunicipio || item.nome || item.razaoSocial,
-            uf: item.uf || 'PB',
-            codigoIbge: item.codigoIbge || '',
-            cnpj: item.cnpj || '',
-            conveniosAtivos: item.conveniosAtivos ?? 3,
-            prazosCriticos: item.prazosCriticos ?? 0,
-            situacaoCauc: (item.statusCauc as SituacaoCauc) || (item.situacaoCauc as SituacaoCauc) || 'REGULAR'
-          }));
-          this.municipios.set(mapeados);
+        const lista = Array.isArray(dados) ? dados : (dados?.content && Array.isArray(dados.content) ? dados.content : []);
+        const mapeados: Municipio[] = lista.map((item: any) => ({
+          id: item.id || item.codigoIbge,
+          nome: item.nomeMunicipio || item.nome || item.razaoSocial,
+          uf: item.uf || 'PB',
+          codigoIbge: item.codigoIbge || '',
+          cnpj: item.cnpj || '',
+          conveniosAtivos: item.conveniosAtivos ?? 0,
+          prazosCriticos: item.prazosCriticos ?? 0,
+          situacaoCauc: (item.statusCauc as SituacaoCauc) || (item.situacaoCauc as SituacaoCauc) || 'REGULAR'
+        }));
+        this.municipios.set(mapeados);
+        if (mapeados.length > 0) {
+          const salvo = this.obterIdSalvo();
+          const aindaExiste = mapeados.find(m => m.id === salvo);
+          this.selecionarMunicipio(aindaExiste ? salvo : mapeados[0].id);
+        } else {
+          this.selecionarMunicipio(null);
         }
       },
       error: () => {
-        // Fallback resiliente: Mantém MOCK_MUNICIPIOS
+        this.municipios.set([]);
+        this.selecionarMunicipio(null);
       }
     });
+  }
+
+  recarregarMunicipios(): void {
+    this.carregarMunicipios();
+  }
+
+  adicionarMunicipio(novo: Municipio): void {
+    this.municipios.update(lista => {
+      const semDuplicados = lista.filter(m => m.id !== novo.id && m.codigoIbge !== novo.codigoIbge);
+      return [novo, ...semDuplicados];
+    });
+    this.selecionarMunicipio(novo.id);
   }
 
   selecionarMunicipio(id: string | null): void {
@@ -129,9 +162,9 @@ export class MunicipioContextService {
 
   private obterIdSalvo(): string | null {
     try {
-      return localStorage.getItem(STORAGE_KEY_MUNICIPIO_ATIVO) || 'mun-patos-01';
+      return localStorage.getItem(STORAGE_KEY_MUNICIPIO_ATIVO);
     } catch {
-      return 'mun-patos-01';
+      return null;
     }
   }
 }

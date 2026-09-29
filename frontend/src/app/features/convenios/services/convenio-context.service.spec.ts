@@ -36,7 +36,16 @@ describe('ConvenioContextService', () => {
   it('deve alternar o convênio ativo e atualizar o município se pertencer a outro', () => {
     // Alterna para um convênio de Sousa
     service.selecionarConvenio('conv-921004');
-    expect(service.convenioAtivo().id).toBe('conv-921004');
+    expect(service.convenioAtivo()?.id).toBe('conv-921004');
     expect(municipioCtx.municipioAtivoId()).toBe('mun-sousa-02');
+  });
+
+  it('deve retornar lista vazia e convenioAtivo nulo quando o tenant não possui convênios', () => {
+    service.todosConvenios.set([]);
+    service.convenioAtivoId.set(null);
+
+    expect(service.todosConvenios().length).toBe(0);
+    expect(service.conveniosDoMunicipio().length).toBe(0);
+    expect(service.convenioAtivo()).toBeNull();
   });
 });

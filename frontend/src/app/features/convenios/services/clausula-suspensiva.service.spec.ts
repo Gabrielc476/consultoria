@@ -4,6 +4,7 @@ import { provideHttpClientTesting, HttpTestingController } from '@angular/common
 import { ClausulaSuspensivaService } from './clausula-suspensiva.service';
 import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
 import { DossieClausulaSuspensiva } from '../model/clausula-suspensiva.model';
+import { AuthService } from '../../../core/auth/auth.service';
 
 describe('ClausulaSuspensivaService', () => {
   let service: ClausulaSuspensivaService;
@@ -73,6 +74,36 @@ describe('ClausulaSuspensivaService', () => {
     expect(resultado).toBeDefined();
     expect(resultado?.convenioId).toBe(mockConvenioId);
     expect(resultado?.condicionantes.length).toBe(3);
+  });
+
+  it('deve retornar DOSSIE_VAZIO sem chaves S3 de Patos caso chamada HTTP falhe para tenant real autenticado', () => {
+    const authService = TestBed.inject(AuthService);
+    authService.salvarSessao({
+      token: 'real-tenant-jwt-token',
+      tokenType: 'Bearer',
+      analistaId: 'analista-1',
+      nome: 'João Consultor',
+      email: 'joao@consultoria.com.br',
+      tenantId: 'tenant-123'
+    });
+
+    const mockConvenioId = 'conv-tenant-real';
+    let resultado: DossieClausulaSuspensiva | undefined;
+
+    service.obterDossiePorConvenioId(mockConvenioId, '123456/2026').subscribe(data => {
+      resultado = data;
+    });
+
+    const req = httpMock.expectOne(API_ENDPOINTS.CONVENIOS.CLAUSULA_SUSPENSIVA(mockConvenioId));
+    req.error(new ProgressEvent('Network Error'));
+
+    expect(resultado).toBeDefined();
+    expect(resultado?.convenioId).toBe(mockConvenioId);
+    expect(resultado?.condicionantes.every(c => !c.s3KeyDocumento)).toBeTrue();
+    expect(resultado?.condicionantes.every(c => c.status === 'PENDENTE')).toBeTrue();
+    expect(resultado?.objeto).toBe('-');
+
+    authService.logout();
   });
 
   it('deve submeter condicionante para análise da Caixa', () => {

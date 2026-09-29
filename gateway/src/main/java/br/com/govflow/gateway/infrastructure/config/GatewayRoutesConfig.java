@@ -35,6 +35,9 @@ public class GatewayRoutesConfig {
                 .route("core-convenios", r -> r
                         .path("/api/v1/convenios/**")
                         .uri(routes.getCoreUri()))
+                .route("core-agentes", r -> r
+                        .path("/api/v1/agentes/**", "/api/v1/agentes")
+                        .uri(routes.getCoreUri()))
                 .route("whatsapp-service", r -> r
                         .path("/api/v1/whatsapp/**")
                         .uri(routes.getWhatsappUri()))

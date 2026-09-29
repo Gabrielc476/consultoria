@@ -41,6 +41,13 @@ public class ConvenioRepositoryAdapter implements ConvenioRepositoryPort {
     }
 
     @Override
+    public List<Convenio> listarPorTenant(UUID tenantId) {
+        return repository.findByTenantId(tenantId).stream()
+                .map(mapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public List<Convenio> listarComClausulaSuspensivaAtiva() {
         return repository.findByPossuiClausulaSuspensivaTrueAndS3KeyTermoRetiradaSuspensivaIsNull().stream()
                 .map(mapper::toDomain)

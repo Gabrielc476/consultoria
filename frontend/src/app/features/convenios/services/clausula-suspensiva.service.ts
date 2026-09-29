@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { API_ENDPOINTS } from '../../../core/api/api-endpoints';
+import { AuthService } from '../../../core/auth/auth.service';
 import {
   AprovarCondicionantePayload,
   AtualizarCondicionantePayload,
@@ -13,6 +14,51 @@ import {
   SuperarClausulaPayload,
   TipoCondicionante
 } from '../model/clausula-suspensiva.model';
+
+export const DOSSIE_VAZIO: (convenioId: string, siconv?: string) => DossieClausulaSuspensiva = (
+  convenioId: string,
+  siconv = ''
+) => ({
+  convenioId,
+  numeroSiconv: siconv,
+  numeroProcesso: '-',
+  orgaoConcedente: '-',
+  objeto: '-',
+  valorGlobal: 0,
+  valorRepasse: 0,
+  valorContrapartida: 0,
+  possuiClausulaSuspensiva: true,
+  prazoOriginal: '',
+  prorrogacaoSolicitada: false,
+  prazoFatalEfetivo: '',
+  diasRestantes: 0,
+  criticidade: 'REGULAR',
+  criticidadeDescricao: 'Sem pendências',
+  superada: false,
+  condicionantes: [
+    {
+      id: `cond-eng-${convenioId}`,
+      tipo: 'ENGENHARIA_PROJETOS_SINAPI',
+      descricaoTipo: 'Engenharia, Projetos & Orçamento SINAPI',
+      status: 'PENDENTE',
+      statusDescricao: 'Pendente de Submissão'
+    },
+    {
+      id: `cond-amb-${convenioId}`,
+      tipo: 'LICENCIAMENTO_AMBIENTAL',
+      descricaoTipo: 'Licenciamento Ambiental',
+      status: 'PENDENTE',
+      statusDescricao: 'Pendente de Submissão'
+    },
+    {
+      id: `cond-tit-${convenioId}`,
+      tipo: 'TITULARIDADE_IMOVEL',
+      descricaoTipo: 'Comprovação de Titularidade do Imóvel',
+      status: 'PENDENTE',
+      statusDescricao: 'Pendente de Submissão'
+    }
+  ]
+});
 
 export const MOCK_DOSSIE_PADRAO: (convenioId: string, siconv?: string) => DossieClausulaSuspensiva = (
   convenioId: string,
@@ -83,11 +129,17 @@ export const MOCK_DOSSIE_PADRAO: (convenioId: string, siconv?: string) => Dossie
 })
 export class ClausulaSuspensivaService {
   private readonly http = inject(HttpClient);
+  private readonly authService = inject(AuthService, { optional: true });
+
+  private isDemo(): boolean {
+    if (!this.authService) return true;
+    return this.authService.isModoDemo() || !this.authService.isAuthenticated();
+  }
 
   obterDossiePorConvenioId(convenioId: string, numeroSiconv?: string): Observable<DossieClausulaSuspensiva> {
     return this.http.get<DossieClausulaSuspensiva>(API_ENDPOINTS.CONVENIOS.CLAUSULA_SUSPENSIVA(convenioId)).pipe(
       catchError(() => {
-        return of(MOCK_DOSSIE_PADRAO(convenioId, numeroSiconv));
+        return of(this.isDemo() ? MOCK_DOSSIE_PADRAO(convenioId, numeroSiconv) : DOSSIE_VAZIO(convenioId, numeroSiconv));
       })
     );
   }
@@ -95,7 +147,7 @@ export class ClausulaSuspensivaService {
   obterDossiePorNumeroSiconv(numeroSiconv: string): Observable<DossieClausulaSuspensiva> {
     return this.http.get<DossieClausulaSuspensiva>(`${API_ENDPOINTS.CONVENIOS.BASE}/siconv/${numeroSiconv}/clausula-suspensiva`).pipe(
       catchError(() => {
-        return of(MOCK_DOSSIE_PADRAO(numeroSiconv, numeroSiconv));
+        return of(this.isDemo() ? MOCK_DOSSIE_PADRAO(numeroSiconv, numeroSiconv) : DOSSIE_VAZIO(numeroSiconv, numeroSiconv));
       })
     );
   }
@@ -181,7 +233,7 @@ export class ClausulaSuspensivaService {
   solicitarProrrogacao(convenioId: string, payload: SolicitarProrrogacaoPayload): Observable<DossieClausulaSuspensiva> {
     return this.http.post<DossieClausulaSuspensiva>(API_ENDPOINTS.CONVENIOS.PRORROGAR(convenioId), payload).pipe(
       catchError(() => {
-        const mock = MOCK_DOSSIE_PADRAO(convenioId);
+        const mock = this.isDemo() ? MOCK_DOSSIE_PADRAO(convenioId) : DOSSIE_VAZIO(convenioId);
         mock.prorrogacaoSolicitada = true;
         mock.novoPrazoProrrogado = payload.novoPrazoProrrogado;
         mock.prazoFatalEfetivo = payload.novoPrazoProrrogado;
@@ -196,7 +248,7 @@ export class ClausulaSuspensivaService {
   superarClausula(convenioId: string, payload: SuperarClausulaPayload): Observable<DossieClausulaSuspensiva> {
     return this.http.post<DossieClausulaSuspensiva>(API_ENDPOINTS.CONVENIOS.SUPERAR(convenioId), payload).pipe(
       catchError(() => {
-        const mock = MOCK_DOSSIE_PADRAO(convenioId);
+        const mock = this.isDemo() ? MOCK_DOSSIE_PADRAO(convenioId) : DOSSIE_VAZIO(convenioId);
         mock.superada = true;
         mock.s3KeyTermoRetirada = payload.s3KeyTermoRetirada;
         mock.condicionantes.forEach(c => (c.status = 'APROVADO'));
@@ -230,7 +282,7 @@ export class ClausulaSuspensivaService {
 
     return this.http.post<DossieClausulaSuspensiva>(API_ENDPOINTS.CONVENIOS.UPLOAD_TERMO_RETIRADA(convenioId), formData).pipe(
       catchError(() => {
-        const mock = MOCK_DOSSIE_PADRAO(convenioId);
+        const mock = this.isDemo() ? MOCK_DOSSIE_PADRAO(convenioId) : DOSSIE_VAZIO(convenioId);
         mock.superada = true;
         mock.s3KeyTermoRetirada = `clausula-suspensiva/${convenioId}/termo-retirada/${file.name}`;
         mock.condicionantes.forEach(c => (c.status = 'APROVADO'));
@@ -242,7 +294,7 @@ export class ClausulaSuspensivaService {
   deferirProrrogacao(convenioId: string, payload: SolicitarProrrogacaoPayload): Observable<DossieClausulaSuspensiva> {
     return this.http.post<DossieClausulaSuspensiva>(API_ENDPOINTS.CONVENIOS.DEFERIR_PRORROGACAO(convenioId), payload).pipe(
       catchError(() => {
-        const mock = MOCK_DOSSIE_PADRAO(convenioId);
+        const mock = this.isDemo() ? MOCK_DOSSIE_PADRAO(convenioId) : DOSSIE_VAZIO(convenioId);
         mock.prorrogacaoSolicitada = false;
         mock.novoPrazoProrrogado = payload.novoPrazoProrrogado;
         mock.prazoFatalEfetivo = payload.novoPrazoProrrogado;
