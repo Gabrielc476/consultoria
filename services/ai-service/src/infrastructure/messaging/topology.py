@@ -15,20 +15,25 @@ async def declare_topology(channel: AbstractChannel, settings: Settings) -> None
         ExchangeType.TOPIC,
         durable=True,
     )
-    dlx = await channel.declare_exchange(
-        settings.exchange_documentos_dlx,
+    dlx_whatsapp = await channel.declare_exchange(
+        "govflow.dlx",
+        ExchangeType.TOPIC,
+        durable=True,
+    )
+    dlx_events = await channel.declare_exchange(
+        "govflow.events.dlx",
         ExchangeType.TOPIC,
         durable=True,
     )
 
     queue_dlq = await channel.declare_queue(settings.queue_dlq, durable=True)
-    await queue_dlq.bind(dlx, routing_key="#")
+    await queue_dlq.bind(dlx_whatsapp, routing_key="#")
 
     queue_extrair = await channel.declare_queue(
         settings.queue_extrair,
         durable=True,
         arguments={
-            "x-dead-letter-exchange": settings.exchange_documentos_dlx,
+            "x-dead-letter-exchange": "govflow.dlx",
             "x-dead-letter-routing-key": "whatsapp.documento.extrair.dlq",
         },
     )
@@ -37,5 +42,10 @@ async def declare_topology(channel: AbstractChannel, settings: Settings) -> None
     queue_processados = await channel.declare_queue(
         settings.queue_processados,
         durable=True,
+        arguments={
+            "x-dead-letter-exchange": "govflow.events.dlx",
+            "x-dead-letter-routing-key": "documento.extraido.dlq",
+        },
     )
     await queue_processados.bind(exchange, routing_key=settings.routing_key_extraido)
+    await queue_processados.bind(exchange, routing_key=settings.routing_key_classificado)

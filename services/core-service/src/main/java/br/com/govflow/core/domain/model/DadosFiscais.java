@@ -53,7 +53,7 @@ public record DadosFiscais(
     }
 
     /**
-     * Valida o preenchimento de campos obrigatórios conforme as regras fiscais de liquidação.
+     * Valida o preenchimento de campos obrigatórios conforme as regras do arquétipo documental.
      */
     public void validarCamposObrigatorios() {
         List<String> faltantes = new ArrayList<>();
@@ -67,23 +67,52 @@ public record DadosFiscais(
         if (dataEmissao == null) {
             faltantes.add("dataEmissao");
         }
-        if (cnpjCredor == null || cnpjCredor.trim().isEmpty()) {
-            faltantes.add("cnpjCredor");
-        } else {
-            try {
-                new Cnpj(cnpjCredor);
-            } catch (Exception e) {
-                faltantes.add("cnpjCredor (CNPJ inválido: " + e.getMessage() + ")");
+
+        // Validação estrita para Documentos Fiscais de Liquidação (NF-e, NFS-e, Recibo)
+        if (tipoDocumento == null || tipoDocumento.isFiscal()) {
+            if (cnpjCredor == null || cnpjCredor.trim().isEmpty()) {
+                faltantes.add("cnpjCredor");
+            } else {
+                try {
+                    new Cnpj(cnpjCredor);
+                } catch (Exception e) {
+                    faltantes.add("cnpjCredor (CNPJ inválido: " + e.getMessage() + ")");
+                }
             }
-        }
-        if (razaoSocialCredor == null || razaoSocialCredor.trim().isEmpty()) {
-            faltantes.add("razaoSocialCredor");
-        }
-        if (valorBruto == null || valorBruto.compareTo(BigDecimal.ZERO) <= 0) {
-            faltantes.add("valorBruto (deve ser maior que zero)");
-        }
-        if (valorLiquido == null || valorLiquido.compareTo(BigDecimal.ZERO) < 0) {
-            faltantes.add("valorLiquido (não pode ser negativo)");
+            if (razaoSocialCredor == null || razaoSocialCredor.trim().isEmpty()) {
+                faltantes.add("razaoSocialCredor");
+            }
+            if (valorBruto == null || valorBruto.compareTo(BigDecimal.ZERO) <= 0) {
+                faltantes.add("valorBruto (deve ser maior que zero)");
+            }
+            if (valorLiquido == null || valorLiquido.compareTo(BigDecimal.ZERO) < 0) {
+                faltantes.add("valorLiquido (não pode ser negativo)");
+            }
+        } else if (tipoDocumento.isMedicao()) {
+            // Regras para Boletim de Medição de Obras (Fase 04)
+            if (cnpjCredor != null && !cnpjCredor.trim().isEmpty()) {
+                try {
+                    new Cnpj(cnpjCredor);
+                } catch (Exception e) {
+                    faltantes.add("cnpjCredor (CNPJ inválido: " + e.getMessage() + ")");
+                }
+            }
+            if (valorBruto == null || valorBruto.compareTo(BigDecimal.ZERO) <= 0) {
+                faltantes.add("valorBruto (deve ser maior que zero na medição)");
+            }
+        } else {
+            // Regras flexíveis para Documentos Administrativos, Ambientais, Jurídicos e Agnósticos:
+            // Se CNPJ for informado, valida o dígito verificador se for numérico
+            if (cnpjCredor != null && !cnpjCredor.trim().isEmpty()) {
+                String clean = cnpjCredor.replaceAll("\\D", "");
+                if (clean.length() == 14) {
+                    try {
+                        new Cnpj(cnpjCredor);
+                    } catch (Exception e) {
+                        faltantes.add("cnpjCredor (CNPJ inválido: " + e.getMessage() + ")");
+                    }
+                }
+            }
         }
 
         if (!faltantes.isEmpty()) {
@@ -93,8 +122,13 @@ public record DadosFiscais(
 
     /**
      * Valida a integridade aritmética entre valor bruto, deduções/retenções e valor líquido.
+     * Aplicada exclusivamente para documentos do arquétipo fiscal.
      */
     public void validarConsistenciaMatematica() {
+        if (tipoDocumento != null && !tipoDocumento.isFiscal()) {
+            return;
+        }
+
         if (valorBruto == null || valorLiquido == null) {
             return;
         }

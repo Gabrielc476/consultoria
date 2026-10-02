@@ -48,6 +48,31 @@ public class DocumentoJpaEntity extends BaseTenantEntity {
     @Column(name = "status", length = 30, nullable = false)
     private String status;
 
+    @Column(name = "fase_ciclo_vida", length = 40, nullable = false)
+    private String faseCicloVida = "FASE_05_EXECUCAO_FINANCEIRA";
+
+    @Column(name = "categoria_documento", length = 50, nullable = false)
+    private String categoriaDocumento = "DOCUMENTO_HABIL";
+
+    @Column(name = "pasta_virtual", length = 255, nullable = false)
+    private String pastaVirtual = "/";
+
+    @Column(name = "origem_canal", length = 30, nullable = false)
+    private String origemCanal = "UPLOAD_MANUAL";
+
+    @Column(name = "hash_sha256", length = 64)
+    private String hashSha256;
+
+    @Column(name = "tags")
+    private String[] tags;
+
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(name = "metadados_json", columnDefinition = "jsonb")
+    private String metadadosJson;
+
+    @Column(name = "criado_por_usuario_id")
+    private UUID criadoPorUsuarioId;
+
     @Column(name = "tipo_documento_habil", length = 30)
     private String tipoDocumentoHabil;
 
@@ -338,6 +363,70 @@ public class DocumentoJpaEntity extends BaseTenantEntity {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getFaseCicloVida() {
+        return faseCicloVida;
+    }
+
+    public void setFaseCicloVida(String faseCicloVida) {
+        this.faseCicloVida = faseCicloVida;
+    }
+
+    public String getCategoriaDocumento() {
+        return categoriaDocumento;
+    }
+
+    public void setCategoriaDocumento(String categoriaDocumento) {
+        this.categoriaDocumento = categoriaDocumento;
+    }
+
+    public String getPastaVirtual() {
+        return pastaVirtual;
+    }
+
+    public void setPastaVirtual(String pastaVirtual) {
+        this.pastaVirtual = pastaVirtual;
+    }
+
+    public String getOrigemCanal() {
+        return origemCanal;
+    }
+
+    public void setOrigemCanal(String origemCanal) {
+        this.origemCanal = origemCanal;
+    }
+
+    public String getHashSha256() {
+        return hashSha256;
+    }
+
+    public void setHashSha256(String hashSha256) {
+        this.hashSha256 = hashSha256;
+    }
+
+    public String[] getTags() {
+        return tags;
+    }
+
+    public void setTags(String[] tags) {
+        this.tags = tags;
+    }
+
+    public String getMetadadosJson() {
+        return metadadosJson;
+    }
+
+    public void setMetadadosJson(String metadadosJson) {
+        this.metadadosJson = metadadosJson;
+    }
+
+    public UUID getCriadoPorUsuarioId() {
+        return criadoPorUsuarioId;
+    }
+
+    public void setCriadoPorUsuarioId(UUID criadoPorUsuarioId) {
+        this.criadoPorUsuarioId = criadoPorUsuarioId;
     }
 
     public Instant getUpdatedAt() {

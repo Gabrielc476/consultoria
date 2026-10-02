@@ -184,3 +184,70 @@ _Avoid_: Desbloqueio de certidão, Ação contra prefeitura.
 **TomadaDeContasEspecial (TCE)**:  
 Processo administrativo formal de exceção (IN TCU nº 71/2012) instaurado pelo Concedente e julgado pelo TCU para ressarcimento de dano ao erário, aplicação de multas e declaração de inelegibilidade pessoal do gestor.  
 _Avoid_: Processo administrativo comum, Auditoria de rotina.
+
+---
+
+### GED & Ficheiro Digital do Convênio (Módulo 2)
+
+**FicheiroDigital**:  
+Repositório eletrônico e visão agregada oficial de todos os arquivos e peças processuais vinculados a um Convênio, estruturado e organizado de forma determinística nas 10 Fases do Ciclo de Vida da Transferência Voluntária. Substitui em definitivo a gestão dispersa de pastas locais do Windows das consultorias.  
+_Avoid_: Repositório de arquivos avulsos, Pasta do convênio, Drive compartilhado.
+
+**FaseCicloVida**:  
+Cada uma das 10 etapas oficiais pelas quais um instrumento formal de transferência voluntária ou especial transita: Fase 00 (Proposta e Plano de Trabalho), Fase 01 (Celebração e Formalização), Fase 02 (Cláusula Suspensiva e Engenharia), Fase 03 (Licitação e Contratação), Fase 04 (Execução Física e Medições), Fase 05 (Execução Financeira e Pagamentos), Fase 06 (Alterações Contratuais e Aditivos), Fase 07 (Prestação de Contas Final - RCO), Fase 08 (Encerramento e Devolução de Saldo) e Fase 09 (Passivo Jurídico e TCE).  
+_Avoid_: Etapa de projeto, Passo de cadastro, Fase informal.
+
+**CategoriaDocumento**:  
+Taxonomia e classificação arquivística formal atribuída ao documento (ex: `PROPOSTA_PLANO_TRABALHO`, `TERMO_CONVENIO`, `PROJETO_ENGENHARIA`, `DOCUMENTO_HABIL`, `ORDEM_BANCARIA_OBTV`, `BOLETIM_MEDICAO`, etc.), governando regras de conformidade, indexação por IA e sugestão de pasta no repositório.  
+_Avoid_: Tipo de anexo, Extensão de arquivo.
+
+**PastaFase**:  
+A pasta virtual raiz associada a uma Fase do Ciclo de Vida dentro do Ficheiro Digital do convênio, contendo contadores atômicos de documentos arquivados, volumetria consolidada em bytes e a coleção de documentos ativos.  
+_Avoid_: Diretório do disco, Subpasta solta.
+
+**DocumentoAuditoria**:  
+Trilha imutável de auditoria registrada em tabela própria (`tb_documentos_auditoria`) para cada evento de ciclo de vida do documento (upload, classificação por IA, movimentação entre fases/pastas, substituição ou exclusão lógica), registrando tenant, usuário/agente operador, timestamp, justificativa e estado anterior/novo.  
+_Avoid_: Log de sistema descartável, Histórico simples.
+
+**HashSha256**:  
+Resumo criptográfico calculado em tempo real durante o streaming de upload no MinIO/S3 e gravado na base de dados para atestar a integridade e não repúdio do documento municipal.  
+_Avoid_: Checksum simples, ID do arquivo.
+
+**StreamingZip**:  
+Processo não bloqueante de exportação em lote (dossiê completo ou pasta de fase específica) transmitido diretamente na resposta HTTP via `StreamingResponseBody`, sem bufferização de grandes payloads na memória Heap da JVM e preservando a árvore oficial de pastas SICONV.  
+_Avoid_: Download de zip em memória, Compactação estática em disco temporário.
+
+**StatusDocumento**:  
+O estado do ciclo de vida documental na esteira e no Ficheiro Digital (`RECEBIDO`, `EM_ANALISE_IA`, `CLASSIFICADO`, `ARQUIVADO`, `REJEITADO`). Indica aos agentes e consultores o nível de processamento e prontidão do arquivo.  
+_Avoid_: Estado solto, Flag de arquivo.
+
+**EmAnaliseIA**:  
+O estado transitório ativo no qual o motor de inteligência artificial multimodal (OCR + LLM) está identificando metadados, fase e campos fiscais de um arquivo recém-recebido, permitindo auditoria humana concorrente e exibindo o nome original do arquivo com badge indicador visual.  
+_Avoid_: Arquivo travado, Processando genérico.
+
+**ContatoVinculado**:  
+Contato externo cadastrado e ativo em `tb_contatos` que possui vínculo formal comprovado com um ou mais convênios em `tb_contato_convenios`. Apenas documentos e mídias originados de Contatos Vinculados são admitidos para extração por IA ou encaminhados à Caixa de Triagem; quaisquer arquivos de números desconhecidos ou não vinculados são sumariamente descartados na borda.  
+_Avoid_: Contato solto, Remetente avulso, Número qualquer.
+
+**AuditorPolimorfico**:  
+A interface side-by-side de conferência documental (`/documentos/:id/revisar`) que adapta dinamicamente seus pilares de integridade, formulários de extração e cálculos conforme a Categoria Documental e Fase do Ciclo de Vida: exibe campos fiscais e retenções tributárias para `DOCUMENTO_HABIL` (Fase 05) e aferição físico-financeira, ART e atesto técnico para `BOLETIM_MEDICAO` (Fase 04).  
+_Avoid_: Tela engessada de nota fiscal, Formulário único para tudo.
+
+**BoletimMedicao**:  
+Documento oficial comprobatório da execução física de obras e serviços de engenharia (Fase 04), composto por número do boletim, contrato municipal, período medido, apuração físico-financeira acumulada, percentual executado e atesto formal com ART do engenheiro fiscal. Não possui retenções tributárias diretas nem exige nota de empenho na sua conferência física.  
+_Avoid_: Nota fiscal de medição, Relatório informal de obra.
+
+**NotificacaoTempoReal**:  
+Infraestrutura reativa no frontend (via `NotificacaoDocumentoService`) com polling a cada 5 segundos, sinos dinâmicos no cabeçalho com atalho direto de auditoria ("Auditar Lado a Lado"), badges vivos com contadores de pendências na barra lateral (Esteira e Triagem), síntese sonora via Web Audio API e toasts de alerta imediato quando novos documentos ou ambiguidades são processados.  
+_Avoid_: Polling pesado bloqueante, Alerta estático manual.
+
+---
+
+### Estado Atual dos Módulos (Milestones)
+
+- **Módulo 1: Identidade, Organização e Acesso (IAM & Onboarding)**: ✅ **100% Concluído e Validado** (Migrações Flyway, Auth JWT, isolamento Multi-Tenant e vínculos N:N).
+- **Módulo 2: GED & Ficheiro Digital do Convênio**: ✅ **100% Concluído e Validado na Interface Real** (Tickets GED-01 a GED-08, MinIO/S3, Presigned URLs, streaming de ZIP, Explorer das 10 Fases e Auditor Side-by-Side Polimórfico de Engenharia e Fiscal).
+- **Módulo 3: Comunicação Omnicanal, WhatsApp & IA de Contexto**: ✅ **100% Concluído e Validado** (Tickets WPP-01 a WPP-06, Contatos 1:N, Ingestão Agnóstica, Contexto Multimodal, Caixa de Triagem e Feedback Reativo em Tempo Real para o Agente).
+- **Módulo 4: Cockpit de Ciclo de Vida & Hub Operacional**: 🚀 **Próximo Módulo** (Esteira Kanban das 10 Fases, Alertas CAUC e Linha do Tempo).
+- **Módulo 5: Integração Transferegov & Inteligência**: ⏳ Na fila de execução.
+

@@ -5,7 +5,7 @@ from uuid import UUID
 import aio_pika
 from aio_pika.abc import AbstractChannel
 
-from domain.schemas.events import DocumentoExtraidoEvent
+from domain.schemas.events import DocumentoClassificadoEvent, DocumentoExtraidoEvent
 from infrastructure.config.settings import Settings
 
 
@@ -31,6 +31,25 @@ class RabbitMQPublisher:
         await exchange.publish(
             message,
             routing_key=self._settings.routing_key_extraido,
+        )
+
+    async def publish_documento_classificado(self, event: DocumentoClassificadoEvent) -> None:
+        exchange = await self._channel.get_exchange(self._settings.exchange_documentos)
+        body = event.model_dump(by_alias=True, mode="json")
+        message = aio_pika.Message(
+            body=json.dumps(body, default=str).encode("utf-8"),
+            content_type="application/json",
+            delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+            headers=self._build_headers(
+                tenant_id=event.tenant_id,
+                correlation_id=event.correlation_id,
+                event_type=event.event_type,
+                event_version=event.event_version,
+            ),
+        )
+        await exchange.publish(
+            message,
+            routing_key=self._settings.routing_key_classificado,
         )
 
     @staticmethod

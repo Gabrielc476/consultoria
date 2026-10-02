@@ -40,7 +40,9 @@ public class ObterArquivoDocumentoService implements ObterArquivoDocumentoUseCas
         String s3Key = doc.getS3Key();
         String contentType = (doc.getContentType() != null && !doc.getContentType().isBlank())
                 ? doc.getContentType()
-                : "application/pdf";
+                : (doc.getNomeArquivoOriginal() != null && (doc.getNomeArquivoOriginal().endsWith(".html") || doc.getNomeArquivoOriginal().endsWith(".htm"))
+                    ? "text/html"
+                    : "application/pdf");
         String nomeOriginal = (doc.getNomeArquivoOriginal() != null && !doc.getNomeArquivoOriginal().isBlank())
                 ? doc.getNomeArquivoOriginal()
                 : "documento.pdf";
@@ -55,6 +57,16 @@ public class ObterArquivoDocumentoService implements ObterArquivoDocumentoUseCas
 
         log.warn("Arquivo do documento {} não localizado no bucket {} com chave {}. Gerando payload de contingência.",
                 documentoId, bucket, s3Key);
+
+        if (nomeOriginal.toLowerCase().endsWith(".html") || nomeOriginal.toLowerCase().endsWith(".htm") || "text/html".equalsIgnoreCase(contentType)) {
+            byte[] fallbackHtml = gerarHtmlPlaceholder(doc);
+            return new ArquivoConteudo(
+                    new ByteArrayInputStream(fallbackHtml),
+                    "text/html;charset=UTF-8",
+                    nomeOriginal,
+                    fallbackHtml.length
+            );
+        }
 
         // Fallback: Gera um PDF básico em memória com os dados do documento para permitir testes mesmo sem MinIO
         byte[] fallbackPdf = gerarPdfPlaceholder(doc);
@@ -241,6 +253,52 @@ public class ObterArquivoDocumentoService implements ObterArquivoDocumentoUseCas
                 .replace("(", "\\(")
                 .replace(")", "\\)")
                 .replaceAll("[^\\x20-\\x7E]", " ");
+    }
+
+    private byte[] gerarHtmlPlaceholder(Documento doc) {
+        String nome = doc.getNomeArquivoOriginal() != null ? doc.getNomeArquivoOriginal() : "documento.html";
+        String status = doc.getStatus() != null ? doc.getStatus().name() : "EM_ANALISE_IA";
+        String numDoc = "Em identificação pela IA...";
+        String credor = "Identificando credor...";
+        String valor = "Calculando...";
+
+        if (doc.getExtracaoSugerida() != null) {
+            var ext = doc.getExtracaoSugerida();
+            if (ext.numeroDocumento() != null && !ext.numeroDocumento().isBlank()) numDoc = ext.numeroDocumento();
+            if (ext.razaoSocialCredor() != null && !ext.razaoSocialCredor().isBlank()) credor = ext.razaoSocialCredor();
+            if (ext.valorBruto() != null) valor = String.format(java.util.Locale.GERMAN, "R$ %,.2f", ext.valorBruto());
+        }
+
+        String html = "<!DOCTYPE html><html lang=\"pt-BR\"><head><meta charset=\"UTF-8\">"
+                + "<style>body{font-family:ui-sans-serif,system-ui,sans-serif;background:#0b0f19;color:#e2e8f0;padding:2rem;line-height:1.5;}"
+                + ".card{max-width:700px;margin:0 auto;background:#111827;border:1px solid rgba(255,255,255,0.1);border-radius:1rem;padding:2rem;box-shadow:0 20px 25px -5px rgba(0,0,0,0.5);}"
+                + ".badge{display:inline-block;padding:0.25rem 0.75rem;border-radius:9999px;font-size:0.75rem;font-weight:600;background:rgba(59,130,246,0.2);color:#93c5fd;border:1px solid rgba(59,130,246,0.3);margin-bottom:1rem;}"
+                + ".pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:#60a5fa;margin-right:6px;border-radius:50%;animation:pulse 2s infinite;}"
+                + "@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}"
+                + "h2{font-size:1.25rem;color:#fff;margin:0 0 0.5rem;font-family:monospace;}"
+                + ".meta{font-size:0.875rem;color:#94a3b8;margin-bottom:1.5rem;}"
+                + ".grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;background:rgba(255,255,255,0.02);padding:1rem;border-radius:0.75rem;border:1px solid rgba(255,255,255,0.05);}"
+                + ".item-label{font-size:0.75rem;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;}"
+                + ".item-value{font-size:0.9rem;font-weight:600;color:#f8fafc;font-family:monospace;}"
+                + ".banner{margin-top:1.5rem;padding:1rem;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);border-radius:0.75rem;font-size:0.85rem;color:#bfdbfe;display:flex;align-items:center;gap:0.75rem;}"
+                + "</style></head><body>"
+                + "<div class=\"card\">"
+                + "<div class=\"badge\"><span class=\"pulse\"></span>EM ANÁLISE POR IA</div>"
+                + "<h2>" + nome + "</h2>"
+                + "<div class=\"meta\">Documento anexado e em fila de processamento multimodal</div>"
+                + "<div class=\"grid\">"
+                + "<div><div class=\"item-label\">Número Fiscal</div><div class=\"item-value\">" + numDoc + "</div></div>"
+                + "<div><div class=\"item-label\">Status</div><div class=\"item-value\">" + status + "</div></div>"
+                + "<div><div class=\"item-label\">Credor / Fornecedor</div><div class=\"item-value\">" + credor + "</div></div>"
+                + "<div><div class=\"item-label\">Valor Previsto</div><div class=\"item-value\">" + valor + "</div></div>"
+                + "</div>"
+                + "<div class=\"banner\">"
+                + "<span>🤖</span>"
+                + "<div>O motor de Inteligência Artificial está extraindo texto e metadados fiscais deste arquivo. Você já pode conferir o documento original e auditar os campos.</div>"
+                + "</div>"
+                + "</div></body></html>";
+
+        return html.getBytes(StandardCharsets.UTF_8);
     }
 }
 

@@ -32,11 +32,20 @@ public class GatewayRoutesConfig {
                 .route("core-cauc", r -> r
                         .path("/api/v1/cauc/**")
                         .uri(routes.getCoreUri()))
+                .route("core-ficheiro", r -> r
+                        .path("/api/v1/convenios/*/ficheiro/**", "/api/v1/convenios/*/ficheiro")
+                        .uri(routes.getCoreUri()))
                 .route("core-convenios", r -> r
                         .path("/api/v1/convenios/**")
                         .uri(routes.getCoreUri()))
                 .route("core-agentes", r -> r
                         .path("/api/v1/agentes/**", "/api/v1/agentes")
+                        .uri(routes.getCoreUri()))
+                .route("core-contatos", r -> r
+                        .path("/api/v1/contatos/**", "/api/v1/contatos")
+                        .uri(routes.getCoreUri()))
+                .route("core-triagem", r -> r
+                        .path("/api/v1/triagem/**", "/api/v1/triagem")
                         .uri(routes.getCoreUri()))
                 .route("whatsapp-service", r -> r
                         .path("/api/v1/whatsapp/**")

@@ -27,6 +27,10 @@ export class ToastService {
     this.adicionar({ id: this.gerarId(), tipo: 'aviso', titulo, mensagem, duracaoMs });
   }
 
+  public info(titulo: string, mensagem?: string, duracaoMs = 4000): void {
+    this.adicionar({ id: this.gerarId(), tipo: 'info', titulo, mensagem, duracaoMs });
+  }
+
   public remover(id: string): void {
     this._toasts.update(lista => lista.filter(t => t.id !== id));
   }

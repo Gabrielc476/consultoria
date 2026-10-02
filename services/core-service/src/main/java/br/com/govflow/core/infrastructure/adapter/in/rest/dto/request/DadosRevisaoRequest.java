@@ -17,8 +17,8 @@ public record DadosRevisaoRequest(
         @Schema(description = "Tipo do documento", example = "NOTA_FISCAL_SERVICOS")
         String tipoDocumento,
 
-        @NotBlank(message = "Número da nota fiscal é obrigatório.")
-        @Schema(description = "Número da NF", example = "000123")
+        @NotBlank(message = "Número do documento é obrigatório.")
+        @Schema(description = "Número do documento / protocolo / processo", example = "000123")
         String numeroDocumento,
 
         @Schema(description = "Série do documento", example = "1")
@@ -27,36 +27,31 @@ public record DadosRevisaoRequest(
         @Schema(description = "Chave de acesso da NF-e (44 dígitos)", example = "35240512345678000190550010000001231000001234")
         String chaveAcessoNfe,
 
-        @NotNull(message = "Data de emissão é obrigatória.")
-        @Schema(description = "Data de emissão da NF", example = "2026-05-10")
+        @Schema(description = "Data de emissão", example = "2026-05-10")
         LocalDate dataEmissao,
 
-        @NotBlank(message = "CNPJ do credor é obrigatório.")
-        @Schema(description = "CNPJ do prestador/fornecedor", example = "12.345.678/0001-90")
+        @Schema(description = "CNPJ do prestador/fornecedor/emissor", example = "12.345.678/0001-90")
         String cnpjCredor,
 
-        @NotBlank(message = "Razão social do credor é obrigatória.")
-        @Schema(description = "Razão social", example = "Construtora Progresso Ltda")
+        @Schema(description = "Razão social ou órgão emissor", example = "Construtora Progresso Ltda")
         String razaoSocialCredor,
 
-        @Schema(description = "Descrição dos serviços/materiais")
+        @Schema(description = "Descrição dos serviços/objeto")
         String descricaoServico,
 
         @Schema(description = "Número do empenho municipal", example = "2026NE00012")
         String numeroEmpenho,
 
-        @NotNull(message = "Valor bruto é obrigatório.")
-        @Positive(message = "Valor bruto deve ser maior que zero.")
-        @Schema(description = "Valor bruto total da NF", example = "10000.00")
+        @PositiveOrZero(message = "Valor bruto não pode ser negativo.")
+        @Schema(description = "Valor bruto total do documento", example = "10000.00")
         BigDecimal valorBruto,
 
         @PositiveOrZero(message = "Total de deduções não pode ser negativo.")
         @Schema(description = "Soma total das deduções e retenções", example = "1100.00")
         BigDecimal valorTotalDeducoes,
 
-        @NotNull(message = "Valor líquido é obrigatório.")
         @PositiveOrZero(message = "Valor líquido não pode ser negativo.")
-        @Schema(description = "Valor líquido a pagar", example = "8900.00")
+        @Schema(description = "Valor líquido", example = "8900.00")
         BigDecimal valorLiquido,
 
         @Valid

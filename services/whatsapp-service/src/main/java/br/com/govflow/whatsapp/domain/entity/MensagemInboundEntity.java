@@ -18,6 +18,9 @@ public class MensagemInboundEntity {
     @Column(name = "prefeitura_id")
     private UUID prefeituraId;
 
+    @Column(name = "contato_id")
+    private UUID contatoId;
+
     @Column(name = "instance_name", nullable = false, length = 100)
     private String instanceName;
 
@@ -35,6 +38,9 @@ public class MensagemInboundEntity {
 
     @Column(name = "content_text", columnDefinition = "TEXT")
     private String contentText;
+
+    @Column(name = "audio_transcription", columnDefinition = "TEXT")
+    private String audioTranscription;
 
     @Column(name = "s3_bucket", length = 100)
     private String s3Bucket;
@@ -55,6 +61,12 @@ public class MensagemInboundEntity {
     @Column(name = "raw_payload", columnDefinition = "jsonb")
     private String rawPayload;
 
+    @Column(name = "remetente_novo", nullable = false)
+    private boolean remetenteNovo = false;
+
+    @Column(name = "from_me", nullable = false)
+    private boolean fromMe = false;
+
     @Column(name = "processed", nullable = false)
     private boolean processed = false;
 
@@ -65,6 +77,14 @@ public class MensagemInboundEntity {
     private Instant createdAt = Instant.now();
 
     public MensagemInboundEntity() {
+    }
+
+    public boolean isFromMe() {
+        return fromMe;
+    }
+
+    public void setFromMe(boolean fromMe) {
+        this.fromMe = fromMe;
     }
 
     // Getters and Setters
@@ -90,6 +110,14 @@ public class MensagemInboundEntity {
 
     public void setPrefeituraId(UUID prefeituraId) {
         this.prefeituraId = prefeituraId;
+    }
+
+    public UUID getContatoId() {
+        return contatoId;
+    }
+
+    public void setContatoId(UUID contatoId) {
+        this.contatoId = contatoId;
     }
 
     public String getInstanceName() {
@@ -140,6 +168,14 @@ public class MensagemInboundEntity {
         this.contentText = contentText;
     }
 
+    public String getAudioTranscription() {
+        return audioTranscription;
+    }
+
+    public void setAudioTranscription(String audioTranscription) {
+        this.audioTranscription = audioTranscription;
+    }
+
     public String getS3Bucket() {
         return s3Bucket;
     }
@@ -186,6 +222,14 @@ public class MensagemInboundEntity {
 
     public void setRawPayload(String rawPayload) {
         this.rawPayload = rawPayload;
+    }
+
+    public boolean isRemetenteNovo() {
+        return remetenteNovo;
+    }
+
+    public void setRemetenteNovo(boolean remetenteNovo) {
+        this.remetenteNovo = remetenteNovo;
     }
 
     public boolean isProcessed() {

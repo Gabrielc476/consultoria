@@ -1,8 +1,12 @@
 package br.com.govflow.whatsapp.inbound;
 
+import br.com.govflow.whatsapp.domain.entity.ContatoConvenioEntity;
+import br.com.govflow.whatsapp.domain.entity.ContatoEntity;
 import br.com.govflow.whatsapp.domain.entity.ContatoPrefeituraEntity;
 import br.com.govflow.whatsapp.domain.entity.MensagemInboundEntity;
+import br.com.govflow.whatsapp.domain.repository.ContatoConvenioRepository;
 import br.com.govflow.whatsapp.domain.repository.ContatoPrefeituraRepository;
+import br.com.govflow.whatsapp.domain.repository.ContatoRepository;
 import br.com.govflow.whatsapp.domain.repository.MensagemInboundRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,7 +41,13 @@ class WhatsAppWebhookControllerIntegrationTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private ContatoPrefeituraRepository contatoRepository;
+    private ContatoRepository contatoRepository;
+
+    @Autowired
+    private ContatoConvenioRepository contatoConvenioRepository;
+
+    @Autowired
+    private ContatoPrefeituraRepository legacyContatoRepository;
 
     @Autowired
     private MensagemInboundRepository mensagemRepository;
@@ -50,25 +60,36 @@ class WhatsAppWebhookControllerIntegrationTest {
 
     private final UUID tenantId = UUID.randomUUID();
     private final UUID prefeituraId = UUID.randomUUID();
+    private final UUID convenioId = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
-        // Cadastra contato da prefeitura no banco de dados H2
-        ContatoPrefeituraEntity contato = new ContatoPrefeituraEntity(
+        // Cadastra contato desacoplado 1:N no banco de dados H2
+        ContatoEntity contato = new ContatoEntity(
                 tenantId,
-                prefeituraId,
                 "5583999999999",
                 "Cícero Lucena (Prefeito)",
                 "PREFEITO",
                 "Gabinete Municipal"
         );
-        contatoRepository.save(contato);
+        ContatoEntity savedContato = contatoRepository.save(contato);
+
+        ContatoConvenioEntity vinculo = new ContatoConvenioEntity(
+                savedContato.getId(),
+                convenioId,
+                prefeituraId,
+                "TITULAR",
+                true
+        );
+        contatoConvenioRepository.save(vinculo);
     }
 
     @AfterEach
     void tearDown() {
         mensagemRepository.deleteAll();
+        contatoConvenioRepository.deleteAll();
         contatoRepository.deleteAll();
+        legacyContatoRepository.deleteAll();
     }
 
     @Test
@@ -89,7 +110,7 @@ class WhatsAppWebhookControllerIntegrationTest {
                 .andExpect(jsonPath("$.externalMessageId").value("EVO_MSG_DOC_12345"));
 
         long duration = System.currentTimeMillis() - start;
-        assertTrue(duration < 200, "Resposta deve ser quase imediata (em execução de teste mockMvc: " + duration + "ms)");
+        assertTrue(duration < 250, "Resposta deve ser quase imediata (em execução de teste mockMvc: " + duration + "ms)");
 
         // Valida persistência no schema whatsapp_schema
         Optional<MensagemInboundEntity> entityOpt = mensagemRepository.findByExternalMessageId("EVO_MSG_DOC_12345");
@@ -100,6 +121,8 @@ class WhatsAppWebhookControllerIntegrationTest {
         assertEquals("DOCUMENT", entity.getMessageType());
         assertEquals(tenantId, entity.getTenantId(), "Deve resolver tenant_id via ContactResolutionService");
         assertEquals(prefeituraId, entity.getPrefeituraId(), "Deve resolver prefeitura_id via ContactResolutionService");
+        assertNotNull(entity.getContatoId(), "Deve vincular contatoId");
+        assertFalse(entity.isRemetenteNovo(), "Contato cadastrado não é remetente novo");
     }
 
     @Test

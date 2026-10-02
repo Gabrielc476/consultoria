@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { RevisaoStateService } from '../../services/revisao-state.service';
 import { AuthService } from '../../../../core/auth/auth.service';
+import { StatusPillComponent } from '../../../../shared/ui/status-pill/status-pill.component';
 
 @Component({
   selector: 'app-review-header',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, StatusPillComponent],
   template: `
     <header class="h-14 bg-gov-slate-900 border-b border-gov-slate-800 px-4 flex items-center justify-between text-gov-slate-100 select-none z-40">
       <!-- Lado Esquerdo: Logo e Navegação -->
@@ -21,19 +22,25 @@ import { AuthService } from '../../../../core/auth/auth.service';
 
         <div class="flex items-center gap-2 text-xs text-gov-slate-300">
           <span class="text-gov-slate-400 font-medium">Conferência Lado a Lado:</span>
-          <span class="font-semibold text-white">{{ state.documentoAtual()?.nomeArquivoOriginal || 'Carregando...' }}</span>
+          <span class="font-semibold text-white truncate max-w-[280px]" [title]="state.documentoAtual()?.nomeArquivoOriginal">
+            {{ state.documentoAtual()?.nomeArquivoOriginal || 'Carregando...' }}
+          </span>
         </div>
       </div>
 
-      <!-- Centro: Informações do Convênio / Prefeitura -->
+      <!-- Centro: Informações do Convênio / Prefeitura, Categoria e Status -->
       <div class="hidden md:flex items-center gap-3 px-3 py-1 rounded-full bg-gov-slate-800/80 border border-gov-slate-700 text-xs">
         <span class="text-gov-slate-400">Convênio:</span>
         <span class="font-mono font-semibold text-gov-cobalt-300">
           {{ state.documentoAtual()?.convenioId ? state.documentoAtual()?.convenioId?.substring(0, 8) : 'Geral Transferegov' }}
         </span>
         <span class="text-gov-slate-500">•</span>
-        <span class="text-gov-slate-400">Status:</span>
-        <span class="font-semibold text-amber-400">Human-in-the-Loop</span>
+        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold flex items-center gap-1.5 bg-gov-cobalt-950/80 text-gov-cobalt-300 border border-gov-cobalt-500/30">
+          <span>{{ state.iconeArquetipo() }}</span>
+          <span>{{ state.rotuloCategoria() }}</span>
+        </span>
+        <span class="text-gov-slate-500">•</span>
+        <app-status-pill [status]="state.documentoAtual()?.status"></app-status-pill>
       </div>
 
       <!-- Lado Direito: Drawer de Pendências e Perfil -->

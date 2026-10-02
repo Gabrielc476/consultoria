@@ -159,7 +159,7 @@ graph TD
 
 #### Backlog Detalhado de Tickets do Módulo 2
 
-- **[TICKET-GED-01] Migração de Banco de Dados: Generalização de Documentos e Tabelas Especializadas**
+- **[TICKET-GED-01] [x] Concluído: Migração de Banco de Dados: Generalização de Documentos e Tabelas Especializadas**
   - **Serviço**: `flyway` / `core_schema`
   - **Arquivo**: `flyway/sql/V20__generalize_documentos_and_create_ficheiro_tables.sql`
   - **Entregáveis**:
@@ -172,7 +172,7 @@ graph TD
     - Criar tabela satélite `core_schema.tb_documentos_habeis_dados` (1:1 com `tb_documentos` para reter campos tributários e fiscais de notas fiscais).
     - Criar `core_schema.tb_documentos_auditoria` (trilha imutável de ações: `UPLOAD`, `CLASSIFICACAO`, `APROVACAO`, `REJEICAO`, `MOVIDO_DE_PASTA`, `DOWNLOAD`).
 
-- **[TICKET-GED-02] Domínio e Portas Hexagonais do Ficheiro Digital**
+- **[TICKET-GED-02] [x] Concluído: Domínio e Portas Hexagonais do Ficheiro Digital**
   - **Serviço**: `core-service`
   - **Arquivos**:
     - `domain/model/documento/Documento.java` (Aggregate Root universal).
@@ -182,7 +182,7 @@ graph TD
     - `application/port/out/DocumentoStoragePort.java`.
     - Entidades JPA e Mappers (`DocumentoJpaEntity`, `DocumentoHabilDadosJpaEntity`, `DocumentoAuditoriaJpaEntity`).
 
-- **[TICKET-GED-03] Backend Storage MinIO/S3: Estrutura Hierárquica e Presigned URLs**
+- **[TICKET-GED-03] [x] Concluído: Backend Storage MinIO/S3: Estrutura Hierárquica e Presigned URLs**
   - **Serviço**: `core-service`
   - **Arquivos**:
     - `infrastructure/adapter/out/storage/MinioDocumentoStorageAdapter.java`:
@@ -191,7 +191,7 @@ graph TD
       - Geração de presigned URL temporária (15 minutos) para renderização inline de PDFs e imagens no frontend (`/preview`).
       - Streaming de download seguro com validação de permissões de tenant e prefeituras do usuário.
 
-- **[TICKET-GED-04] Backend Engine de Download em Lote (Exportação ZIP)**
+- **[TICKET-GED-04] [x] Concluído: Backend Engine de Download em Lote (Exportação ZIP)**
   - **Serviço**: `core-service`
   - **Arquivos**:
     - `application/service/ExportarFicheiroZipService.java`:
@@ -200,7 +200,7 @@ graph TD
         `[SICONV_954120]/02_Clausula_Suspensiva/Projeto_Basico.pdf`, etc.
       - Endpoint `GET /api/v1/convenios/{id}/ficheiro/download-zip` e `GET /api/v1/convenios/{id}/ficheiro/fases/{fase}/download-zip`.
 
-- **[TICKET-GED-05] Pipeline de Ingestão e Arquivamento Automático (WhatsApp + IA)**
+- **[TICKET-GED-05] [x] Concluído: Pipeline de Ingestão e Arquivamento Automático (WhatsApp + IA)**
   - **Serviço**: `core-service` / `whatsapp-service` / `ai-service`
   - **Arquivos**:
     - `infrastructure/adapter/in/amqp/DocumentoClassificadoListener.java`:
@@ -212,7 +212,7 @@ graph TD
       - Se `confidenceScore <= 0.90`:
         - Insere o registro em `core_schema.tb_triagem_inbox` atribuído ao Agente responsável pela prefeitura do convênio sugerido.
 
-- **[TICKET-GED-06] Backend REST API: Endpoints do Ficheiro Digital e Operações de Pasta**
+- **[TICKET-GED-06] [x] Concluído: Backend REST API: Endpoints do Ficheiro Digital e Operações de Pasta**
   - **Serviço**: `core-service`
   - **Arquivos**:
     - `infrastructure/adapter/in/rest/FicheiroDigitalController.java`:
@@ -222,20 +222,20 @@ graph TD
       - `PATCH /api/v1/documentos/{id}/mover`: Move o documento entre fases ou pastas virtuais (correção rápida em 1 clique).
       - `DELETE /api/v1/documentos/{id}`: Soft delete com justificativa de auditoria.
 
-- **[TICKET-GED-07] Frontend Angular: Componente Explorer do Ficheiro Digital (Árvore e Pastas)**
+- **[TICKET-GED-07] [x] Concluído: Frontend Angular: Componente Explorer do Ficheiro Digital (Árvore e Pastas)**
   - **Serviço**: `frontend`
   - **Arquivos**:
     - `core/services/ficheiro-digital.service.ts`: Cliente HTTP com métodos de árvore, upload com barra de progresso, mover pasta e download ZIP.
-    - Criar componente standalone `FicheiroDigitalComponent` (`/convenios/:id/ficheiro`):
+    - Componente standalone `FicheiroDigitalComponent` (`/convenios/:id/ficheiro`):
       - Painel estilo "Windows Explorer / Google Drive": barra lateral com as 10 Fases numeradas, contadores de arquivos e alertas de pendências.
       - Visualização central em Grade de Cards ou Tabela detalhada (Nome, Categoria, Tamanho, Data, Autor/Origem, Status).
       - Zona de Drag-and-Drop para múltiplos arquivos com seleção automática de categoria.
       - Botões de exportação: "Baixar Convênio Completo (ZIP)" e "Baixar Pasta da Fase (ZIP)".
 
-- **[TICKET-GED-08] Frontend Angular: Visualizador Rápido Inline (PDF & Image Viewer)**
+- **[TICKET-GED-08] [x] Concluído: Frontend Angular: Visualizador Rápido Inline (PDF & Image Viewer)**
   - **Serviço**: `frontend`
   - **Arquivos**:
-    - Criar componente standalone `DocumentoPreviewModalComponent`:
+    - Componente standalone `DocumentoPreviewModalComponent`:
       - Renderizador em tela cheia/modal de arquivos PDF e imagens sem forçar download local.
       - Barra lateral retrátil com metadados do documento, hash SHA-256, histórico de auditoria e botão de mover pasta / reclassificar fase.
 
@@ -244,21 +244,21 @@ graph TD
 ### EPIC 3: Módulo 3 — Comunicação Omnicanal, WhatsApp & IA de Contexto
 *Objetivo: Desacoplar contatos de prefeitura exclusiva (permitindo relação 1:N convênios), implementar ingestão agnóstica de arquivos/áudios e análise de contexto de conversa com triagem web em caso de ambiguidade.*
 
-- **[TICKET-WPP-01] Migração de Banco de Dados: Contatos 1:N e Caixa de Triagem (Inbox)**
+- **[TICKET-WPP-01] [x] Concluído: Migração de Banco de Dados: Contatos 1:N e Caixa de Triagem (Inbox)**
   - **Serviço**: `flyway` / `whatsapp_schema` e `core_schema`
   - **Arquivo**: `flyway/sql/V21__decouple_whatsapp_contatos_and_create_triagem_inbox.sql`
   - **Ações**:
     - Criar `whatsapp_schema.tb_contatos` e tabela associativa `whatsapp_schema.tb_contato_convenios` (contato_id, convenio_id, prefeitura_id).
-    - Criar `core_schema.tb_triagem_inbox` para itens com ambiguidade de classificação.
+    - Criar `core_schema.tb_triagem_inbox` para itens com ambiguidade de classificação e view em `whatsapp_schema`.
 
-- **[TICKET-WPP-02] WhatsApp Service: Ingestão Agnóstica e Gravação de Histórico**
+- **[TICKET-WPP-02] [x] Concluído: WhatsApp Service: Ingestão Agnóstica e Gravação de Histórico**
   - **Serviço**: `whatsapp-service`
   - **Ações**:
     - Atualizar `ContactResolutionService` para buscar por telefone e retornar todos os convênios aos quais o remetente está associado (ou verificar se é o celular de um Agente cadastrado no IAM).
     - Garantir persistência durável no MinIO de qualquer formato de arquivo (PDF, imagens, planilhas, áudios OGG/MP3).
     - Emitir `DocumentoRecebidoEvent` e `AudioRecebidoEvent` enriquecidos com a lista de convênios candidatos.
 
-- **[TICKET-WPP-03] AI Service: Janela de Contexto de Conversa e Classificação Multimodal**
+- **[TICKET-WPP-03] [x] Concluído: AI Service: Janela de Contexto de Conversa e Classificação Multimodal**
   - **Serviço**: `ai-service`
   - **Ações**:
     - Implementar busca das últimas 5 mensagens da conversa do remetente (áudios transcritos + textos).
@@ -266,21 +266,22 @@ graph TD
     - Se certeza > 90%: postar no RabbitMQ como classificado para indexação direta no GED.
     - Se certeza <= 90%: postar evento para encaminhamento à Caixa de Triagem do Agente.
 
-- **[TICKET-WPP-04] Frontend Angular: Caixa de Triagem do Agente (Inbox)**
+- **[TICKET-WPP-04] [x] Concluído: Frontend Angular: Caixa de Triagem do Agente (Inbox)**
   - **Serviço**: `frontend`
   - **Ações**:
     - Criar tela de Triagem (`/triagem`) mostrando documentos e mensagens recebidas via WhatsApp com sugestões da IA.
     - Badges distintos para "Ambiguidade de Convênio" e "⚠️ Remetente Novo Não Cadastrado".
     - Botões de confirmação rápida com 1 clique para atribuir ao convênio e fase corretos.
 
-- **[TICKET-WPP-05] Backend Core: Endpoint Atômico de Cadastro de Contato e Arquivamento**
+- **[TICKET-WPP-05] [x] Concluído: Backend Core: Endpoint Atômico de Cadastro de Contato e Arquivamento**
   - **Serviço**: `core-service`
   - **Arquivos**:
-    - `application/service/CadastrarContatoETriarService.java`:
+    - `application/service/TriagemService.java`:
       - Endpoint `POST /api/v1/triagem/{inboxId}/cadastrar-contato-e-arquivar`.
       - Executa transacionalmente: criação do contato (`tb_contatos`), amarração N:N com convênios (`tb_contato_convenios`), atualização de mensagens anteriores e movimentação do documento para a pasta virtual do convênio no GED.
+      - Endpoints `GET /api/v1/triagem/pendentes`, `POST /api/v1/triagem/{inboxId}/confirmar-arquivamento`, `POST /api/v1/triagem/{inboxId}/ignorar`, `GET /api/v1/contatos` e `POST /api/v1/contatos`.
 
-- **[TICKET-WPP-06] Frontend Angular: Quick Drawer Lateral de Cadastro de Contato com 1 Clique**
+- **[TICKET-WPP-06] [x] Concluído: Frontend Angular: Quick Drawer Lateral de Cadastro de Contato com 1 Clique**
   - **Serviço**: `frontend`
   - **Arquivos**:
     - Criar componente standalone `CadastrarContatoDrawerComponent`:

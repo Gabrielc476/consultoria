@@ -46,12 +46,13 @@ class Settings(BaseSettings):
     rabbitmq_vhost: str = Field(default="/", alias="RABBITMQ_VHOST")
 
     exchange_documentos: str = "govflow.events"
-    exchange_documentos_dlx: str = "govflow.dlx"
+    exchange_documentos_dlx: str = "govflow.events.dlx"
     queue_extrair: str = "fila.documentos.extrair"
     queue_processados: str = "fila.documentos.processados"
     queue_dlq: str = "fila.documentos.extrair.dlq"
     routing_key_recebido: str = "whatsapp.documento.recebido"
     routing_key_extraido: str = "documento.extraido"
+    routing_key_classificado: str = "documento.classificado"
 
     ai_service_port: int = Field(default=8000, alias="AI_SERVICE_PORT")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")

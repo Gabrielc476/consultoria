@@ -28,6 +28,12 @@ public class RabbitMQCoreConfig {
     @Value("${govflow.rabbitmq.queue-documentos-processados-dlq:fila.documentos.processados.dlq}")
     private String queueProcessadosDlqName;
 
+    @Value("${govflow.rabbitmq.queue-documentos-classificados:fila.documentos.classificados}")
+    private String queueClassificadosName;
+
+    @Value("${govflow.rabbitmq.queue-documentos-classificados-dlq:fila.documentos.classificados.dlq}")
+    private String queueClassificadosDlqName;
+
     @Value("${govflow.rabbitmq.routing-key-documento-pronto:documento.pronto.transferegov}")
     private String routingKeyDocumentoPronto;
 
@@ -36,6 +42,9 @@ public class RabbitMQCoreConfig {
 
     public static final String ROUTING_KEY_DOCUMENTO_EXTRAIDO = "documento.extraido";
     public static final String ROUTING_KEY_DOCUMENTO_EXTRAIDO_DLQ = "documento.extraido.dlq";
+
+    public static final String ROUTING_KEY_DOCUMENTO_CLASSIFICADO = "documento.classificado";
+    public static final String ROUTING_KEY_DOCUMENTO_CLASSIFICADO_DLQ = "documento.classificado.dlq";
 
     @Bean
     public TopicExchange eventsExchange() {
@@ -72,6 +81,33 @@ public class RabbitMQCoreConfig {
         return BindingBuilder.bind(documentosProcessadosDlq)
                 .to(deadLetterExchange)
                 .with(ROUTING_KEY_DOCUMENTO_EXTRAIDO_DLQ);
+    }
+
+    @Bean
+    public Queue documentosClassificadosQueue() {
+        return QueueBuilder.durable(queueClassificadosName)
+                .withArgument("x-dead-letter-exchange", dlxName)
+                .withArgument("x-dead-letter-routing-key", ROUTING_KEY_DOCUMENTO_CLASSIFICADO_DLQ)
+                .build();
+    }
+
+    @Bean
+    public Queue documentosClassificadosDlq() {
+        return QueueBuilder.durable(queueClassificadosDlqName).build();
+    }
+
+    @Bean
+    public Binding documentosClassificadosBinding(Queue documentosClassificadosQueue, TopicExchange eventsExchange) {
+        return BindingBuilder.bind(documentosClassificadosQueue)
+                .to(eventsExchange)
+                .with(ROUTING_KEY_DOCUMENTO_CLASSIFICADO);
+    }
+
+    @Bean
+    public Binding documentosClassificadosDlqBinding(Queue documentosClassificadosDlq, TopicExchange deadLetterExchange) {
+        return BindingBuilder.bind(documentosClassificadosDlq)
+                .to(deadLetterExchange)
+                .with(ROUTING_KEY_DOCUMENTO_CLASSIFICADO_DLQ);
     }
 
     @Bean

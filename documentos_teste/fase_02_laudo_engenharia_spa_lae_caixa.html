@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Fase 02 - Laudo de Engenharia SPA/LAE Caixa - Convênio 914250/2023</title>
+  <style>
+    @page { size: A4; margin: 12mm 15mm; }
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+      color: #1a202c;
+      background-color: #f7fafc;
+      margin: 0;
+      padding: 20px;
+    }
+    .page-container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 30px 40px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e2e8f0;
+      box-sizing: border-box;
+    }
+    .header {
+      border-bottom: 2px solid #2b6cb0;
+      padding-bottom: 12px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-titles { text-align: center; flex-grow: 1; }
+    .header-titles h1 { font-size: 13px; text-transform: uppercase; margin: 0; color: #2d3748; }
+    .header-titles h2 { font-size: 15px; font-weight: 800; margin: 3px 0; color: #1a365d; }
+    .header-titles p { font-size: 11px; margin: 0; color: #718096; }
+    .document-title {
+      background: #edf2f7;
+      border-left: 4px solid #3182ce;
+      padding: 10px 14px;
+      margin-bottom: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .document-title h3 { margin: 0; font-size: 14px; color: #2b6cb0; font-weight: 700; text-transform: uppercase; }
+    .badge-fase {
+      background: #ebf8ff;
+      color: #2b6cb0;
+      border: 1px solid #bee3f8;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 18px;
+      font-size: 11px;
+    }
+    .info-item {
+      background: #f8fafc;
+      border: 1px solid #edf2f7;
+      border-radius: 4px;
+      padding: 8px 12px;
+    }
+    .info-label { font-weight: 700; color: #4a5568; text-transform: uppercase; font-size: 9.5px; display: block; margin-bottom: 2px; }
+    .info-val { color: #1a202c; font-weight: 600; }
+    .checklist-box {
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+      padding: 14px;
+      margin-bottom: 18px;
+      background: #fbfcfe;
+    }
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+      font-size: 11.5px;
+    }
+    .status-ok {
+      color: #276749;
+      background: #c6f6d5;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 10px;
+    }
+    .sign-section {
+      margin-top: 35px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      text-align: center;
+      font-size: 11px;
+    }
+    .sign-line { border-top: 1px solid #718096; padding-top: 6px; font-weight: 600; color: #2d3748; }
+    .print-btn-bar {
+      max-width: 800px;
+      margin: 0 auto 15px auto;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .btn-print {
+      background: #3182ce;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 12px;
+    }
+    @media print {
+      body { background: transparent; padding: 0; }
+      .page-container { box-shadow: none; border: none; padding: 0; max-width: 100%; }
+      .print-btn-bar { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-btn-bar">
+    <button class="btn-print" onclick="window.print()">🖨️ Salvar como PDF / Imprimir</button>
+  </div>
+
+  <div class="page-container">
+    <div class="header">
+      <div class="header-titles">
+        <h1>CAIXA ECONÔMICA FEDERAL • MANDATÁRIA DA UNIÃO</h1>
+        <h2>GERÊNCIA EXECUTIVA DE GOVERNO - GIGOV/JP (JOÃO PESSOA)</h2>
+        <p>Supervisão de Engenharia de Convênios Federais • LAE / SPA</p>
+      </div>
+    </div>
+
+    <div class="document-title">
+      <div>
+        <h3>Laudo de Análise de Engenharia (LAE / SPA)</h3>
+        <span style="font-size: 11px; color: #4a5568;">Síntese do Projeto Aprovado e Superação de Cláusula Suspensiva</span>
+      </div>
+      <div class="badge-fase">FASE 02 • CLÁUSULA SUSPENSIVA</div>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-item">
+        <span class="info-label">Convênio / Operação Caixa</span>
+        <span class="info-val">Convênio 914250/2023 • Operação 1084291-32</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Tomador / Município</span>
+        <span class="info-val">Prefeitura Municipal de Patos / PB</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Empreendimento</span>
+        <span class="info-val">Construção de Creche Proinfância Tipo 2 - Bairro Jatobá</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Parecer Técnico Caixa</span>
+        <span class="info-val">LAE nº 084/2024 - APROVADO SEM RESSALVAS</span>
+      </div>
+    </div>
+
+    <div class="checklist-box">
+      <div style="font-weight: 700; color: #2b6cb0; font-size: 12px; margin-bottom: 10px;">
+        VERIFICAÇÃO DAS CONDICIONANTES SUSPENSIVAS (MANDATÁRIA CAIXA)
+      </div>
+
+      <div class="checklist-item">
+        <span class="status-ok">APROVADO</span>
+        <div><strong>1. Projeto Básico e Orçamento SINAPI:</strong> Peças gráficas completas, ART de projeto CREA-PB 2024/09812, planilha orçamentária referenciada na tabela SINAPI 10/2023 com BDI de 22,5%.</div>
+      </div>
+
+      <div class="checklist-item">
+        <span class="status-ok">APROVADO</span>
+        <div><strong>2. Titularidade do Imóvel:</strong> Certidão de Registro de Imóveis (Cartório do 1º Ofício de Patos, Matrícula 14.882) atestando propriedade plena do Município.</div>
+      </div>
+
+      <div class="checklist-item">
+        <span class="status-ok">APROVADO</span>
+        <div><strong>3. Licenciamento Ambiental:</strong> Licença de Instalação (LI nº 042/2024 emitida pela SUDEMA-PB), válida por 24 meses para a área do empreendimento.</div>
+      </div>
+    </div>
+
+    <div style="background: #ebf8ff; border: 1px solid #bee3f8; border-radius: 6px; padding: 12px; font-size: 11px; color: #2c5282;">
+      <strong>CONCLUSÃO DO ENGENHEIRO FISCAL DA CAIXA:</strong><br>
+      Atesta-se a plena conformidade técnica e aprovação dos custos propostos no valor global de <strong>R$ 1.850.000,00</strong>. Declara-se formalmente <strong>SUPERADA A CLÁUSULA SUSPENSIVA</strong>, autorizando o Convenente a instaurar o competente processo licitatório.
+    </div>
+
+    <div class="sign-section">
+      <div>
+        <div class="sign-line">Eng. Rodrigo Mendes Albuquerque</div>
+        <div style="color: #718096; font-size: 10px;">Engenheiro Civil • CREA-PB 16.420-D • Caixa GIGOV/JP</div>
+      </div>
+      <div>
+        <div class="sign-line">Mariana Cavalcante de Melo</div>
+        <div style="color: #718096; font-size: 10px;">Gerente de Filial GIGOV/JP • Caixa Econômica Federal</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -21,7 +21,7 @@ import { BoundingBox } from '../../model/documento.model';
             {{ nomeArquivo() }}
           </span>
           <span class="px-1.5 py-0.5 rounded bg-gov-slate-800 text-gov-cobalt-400 font-mono text-[10px] uppercase font-bold border border-gov-slate-700">
-            {{ isPdf() ? 'PDF' : 'IMAGEM' }}
+            {{ isPdf() ? 'PDF' : (isHtml() ? 'HTML' : 'IMAGEM') }}
           </span>
         </div>
 
@@ -67,19 +67,40 @@ import { BoundingBox } from '../../model/documento.model';
             Ajustar
           </button>
 
-          <div class="h-3.5 w-px bg-gov-slate-700 mx-1"></div>
+          @if (isPdf()) {
+            <div class="h-3.5 w-px bg-gov-slate-700 mx-1"></div>
 
-          <!-- Alternar Modo Visualizador -->
-          <button
-            type="button"
-            (click)="alternarModoVisualizador()"
-            class="px-2 py-0.5 rounded border border-gov-slate-700 bg-gov-slate-800 hover:bg-gov-slate-700 text-gov-slate-300 text-[11px]"
-            title="Alternar entre visualizador interativo com caixas e nativo"
-          >
-            {{ modoVisualizador() === 'ngx' ? 'Interativo' : 'Nativo' }}
-          </button>
+            <!-- Alternar Modo Visualizador PDF -->
+            <button
+              type="button"
+              (click)="alternarModoVisualizador()"
+              class="px-2 py-0.5 rounded border border-gov-slate-700 bg-gov-slate-800 hover:bg-gov-slate-700 text-gov-slate-300 text-[11px]"
+              title="Alternar entre visualizador interativo com caixas e nativo"
+            >
+              {{ modoVisualizador() === 'ngx' ? 'Interativo' : 'Nativo' }}
+            </button>
+          }
         </div>
       </div>
+
+      <!-- Banner Informativo: Em Análise por IA -->
+      @if (emAnaliseIA()) {
+        <div class="px-4 py-2 bg-blue-950/70 border-b border-blue-500/30 flex items-center justify-between text-xs text-blue-200 z-10 animate-in fade-in duration-200">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="relative flex h-2.5 w-2.5 shrink-0">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500"></span>
+            </span>
+            <span class="font-bold text-white shrink-0">Em análise por IA:</span>
+            <span class="text-blue-300 truncate">
+              O motor multimodal está identificando os campos fiscais de <strong class="text-white">{{ nomeArquivo() }}</strong>. O arquivo original já está acessível abaixo para auditoria.
+            </span>
+          </div>
+          <span class="hidden md:inline-flex px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 text-[10px] font-mono border border-blue-500/30 shrink-0 font-semibold uppercase">
+            Processando Metadados
+          </span>
+        </div>
+      }
 
       <!-- Área de Visualização Principal do Documento -->
       <div class="relative flex-1 overflow-auto flex items-center justify-center p-3 bg-gov-slate-950/90">
@@ -134,6 +155,26 @@ import { BoundingBox } from '../../model/documento.model';
             <div class="flex flex-col items-center justify-center p-12 text-gov-slate-400">
               <div class="w-8 h-8 border-2 border-gov-cobalt-500 border-t-transparent rounded-full animate-spin mb-3"></div>
               <p class="text-xs text-gov-slate-400 font-medium">Carregando documento fiscal original...</p>
+            </div>
+          }
+        } @else if (isHtml()) {
+          <!-- Renderizador HTML Inline (Suporta arquivos HTML de convênios/medições) -->
+          @if (arquivoUrl()) {
+            <div
+              class="relative w-full h-full shadow-2xl rounded-lg border border-gov-slate-800 bg-white flex flex-col overflow-hidden transition-all"
+              [ngClass]="modoConfortoVisual() ? 'comfort-paper-filter' : ''"
+            >
+              <iframe
+                [src]="safeHtmlBlobUrl()"
+                class="w-full h-full min-h-[calc(100vh-140px)] border-0 bg-white"
+                title="Visualizador de Documento HTML GovFlow"
+                sandbox="allow-same-origin allow-scripts"
+              ></iframe>
+            </div>
+          } @else {
+            <div class="flex flex-col items-center justify-center p-12 text-gov-slate-400">
+              <div class="w-8 h-8 border-2 border-gov-cobalt-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+              <p class="text-xs text-gov-slate-400 font-medium">Carregando documento HTML...</p>
             </div>
           }
         } @else {
@@ -232,10 +273,41 @@ export class MediaWorkspaceComponent {
     this.campoAtivo.set(val || null);
   }
 
+  @Input()
+  set status(val: string | null | undefined) {
+    this.statusDoc.set(val || '');
+  }
+  public readonly statusDoc = signal<string>('');
+
   @Output() fieldSelected = new EventEmitter<string>();
 
   public readonly isPdf = computed(() => {
-    return this.contentType().includes('pdf') || this.nomeArquivo().toLowerCase().endsWith('.pdf');
+    const ct = this.contentType().toLowerCase();
+    const nome = this.nomeArquivo().toLowerCase();
+    return ct.includes('pdf') || nome.endsWith('.pdf');
+  });
+
+  public readonly isHtml = computed(() => {
+    const ct = this.contentType().toLowerCase();
+    const nome = this.nomeArquivo().toLowerCase();
+    return ct.includes('html') || nome.endsWith('.html') || nome.endsWith('.htm');
+  });
+
+  public readonly isImage = computed(() => {
+    const ct = this.contentType().toLowerCase();
+    const nome = this.nomeArquivo().toLowerCase();
+    return ct.startsWith('image/') || nome.endsWith('.png') || nome.endsWith('.jpg') || nome.endsWith('.jpeg') || nome.endsWith('.webp');
+  });
+
+  public readonly emAnaliseIA = computed(() => {
+    const s = this.statusDoc();
+    return s === 'EM_ANALISE_IA' || s === 'RECEBIDO' || Object.keys(this.boundingBoxes()).length === 0;
+  });
+
+  public readonly safeHtmlBlobUrl = computed<SafeResourceUrl | null>(() => {
+    const url = this.arquivoUrl();
+    if (!url) return null;
+    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   });
 
   public readonly zoomPercent = computed(() => {

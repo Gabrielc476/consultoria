@@ -1,10 +1,10 @@
 import logging
 from contextlib import asynccontextmanager
 from typing import Any, Dict, Optional
+from uuid import UUID
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
-from uuid import UUID
 
 from application.pipelines.document_pipeline import DocumentPipeline
 from domain.schemas.events import DocumentoRecebidoEvent, DocumentoRecebidoPayload
@@ -56,8 +56,22 @@ async def lifespan(app: FastAPI):
         pipeline: DocumentPipeline = app.state.pipeline
 
         async def handle_recebido(event: DocumentoRecebidoEvent) -> None:
+            # REGRA MANDATÓRIA: Apenas documentos de contatos vinculados a convênios são extraídos ou triados.
+            # O resto não precisa passar pelo sistema (não chama LLM e não publica eventos).
+            candidatos = event.payload.convenios_candidatos or []
+            if not candidatos or event.payload.remetente_novo:
+                logger.info(
+                    "Descartando documento %s: remetente %s não possui convênios vinculados. "
+                    "Apenas documentos de contatos vinculados passam pelo sistema.",
+                    event.payload.documento_id,
+                    event.payload.sender_phone,
+                )
+                return
+
             result = await pipeline.run(event)
             await publisher.publish_documento_extraido(result)
+            classificado = pipeline.classify(event, result)
+            await publisher.publish_documento_classificado(classificado)
 
         consumer = RabbitMQConsumer(connection, settings, handle_recebido)
         await consumer.start()
@@ -101,10 +115,12 @@ async def extract_document(request: Dict[str, Any]):
     pipeline: DocumentPipeline = app.state.pipeline
     event = DocumentoRecebidoEvent.parse_from_message(request)
     result = await pipeline.run(event)
+    classificado = pipeline.classify(event, result)
 
     publisher: Optional[RabbitMQPublisher] = getattr(app.state, "publisher", None)
     if publisher is not None and result.payload.processamento.status.startswith("SUCESSO"):
         await publisher.publish_documento_extraido(result)
+        await publisher.publish_documento_classificado(classificado)
 
     if result.payload.processamento.status.startswith("FALHA"):
         erro = result.payload.processamento.erro or {}
@@ -113,4 +129,6 @@ async def extract_document(request: Dict[str, Any]):
             detail=result.model_dump(by_alias=True, mode="json"),
         )
 
-    return result.model_dump(by_alias=True, mode="json")
+    response_data = result.model_dump(by_alias=True, mode="json")
+    response_data["classificacao"] = classificado.model_dump(by_alias=True, mode="json")
+    return response_data

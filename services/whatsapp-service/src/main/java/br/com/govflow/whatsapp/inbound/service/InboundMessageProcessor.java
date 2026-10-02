@@ -73,10 +73,26 @@ public class InboundMessageProcessor {
             return WebhookResponseDto.alreadyExists(dto.externalMessageId());
         }
 
-        // 4. Resolução de remetente (mapeamento prefeitura e tenant)
+        // 4. Resolução de remetente (mapeamento prefeitura e tenant 1:N)
         ContactResolutionService.ResolvedContact contact = contactResolutionService.resolve(dto.senderPhone());
 
-        // 5. Persistência inicial síncrona (< 20ms)
+        // TRAVA DE PRIVACIDADE MANDATÓRIA (EPIC 3 Privacy):
+        // Remetentes não cadastrados em whatsapp_schema.tb_contatos são sumariamente descartados.
+        // Nenhuma conversa pessoal, áudio ou anexo de remetente desconhecido é persistido no banco.
+        if (!contact.resolved()) {
+            log.info("Mensagem de remetente não cadastrado ({}) descartada para proteger a privacidade dos agentes.", dto.senderPhone());
+            return WebhookResponseDto.ignored("Remetente não cadastrado. Mensagem descartada por política de privacidade.");
+        }
+
+        // REGRA DE DOMÍNIO MANDATÓRIA:
+        // Apenas documentos/áudios de contatos vinculados a convênios são extraídos ou enviados para triagem.
+        // O resto não precisa passar pelo sistema (nem gravar em MinIO, nem publicar para IA, nem enviar para triagem).
+        boolean isMediaOrDoc = dto.isDocument() || dto.isAudio();
+        if (isMediaOrDoc && !contact.isContatoVinculado()) {
+            log.info("Mídia/documento recebido de contato não vinculado a convênio ({}) descartado. O resto não passa pelo sistema.", dto.senderPhone());
+            return WebhookResponseDto.ignored("Contato sem convênios vinculados. Mídia descartada conforme diretriz de triagem.");
+        }
+
         MensagemInboundEntity entity = new MensagemInboundEntity();
         entity.setInstanceName(dto.instanceName());
         entity.setExternalMessageId(dto.externalMessageId());
@@ -90,6 +106,8 @@ public class InboundMessageProcessor {
         entity.setRawPayload(dto.rawPayload());
         entity.setTenantId(contact.tenantId());
         entity.setPrefeituraId(contact.prefeituraId());
+        entity.setContatoId(contact.contatoId());
+        entity.setRemetenteNovo(contact.remetenteNovo());
         entity.setProcessed(false);
 
         MensagemInboundEntity savedEntity = mensagemRepository.save(entity);
@@ -99,7 +117,10 @@ public class InboundMessageProcessor {
                 savedEntity.getId(),
                 dto,
                 contact.tenantId(),
-                contact.prefeituraId()
+                contact.prefeituraId(),
+                contact.contatoId(),
+                contact.conveniosCandidatos(),
+                contact.remetenteNovo()
         ));
 
         long duration = System.currentTimeMillis() - startTime;

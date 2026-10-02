@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Fase 09 - Notificação de Diligência e Defesa Técnica - Convênio 914250/2023</title>
+  <style>
+    @page { size: A4; margin: 12mm 15mm; }
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+      color: #1a202c;
+      background-color: #f7fafc;
+      margin: 0;
+      padding: 20px;
+    }
+    .page-container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 30px 40px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e2e8f0;
+      box-sizing: border-box;
+    }
+    .header {
+      border-bottom: 2px solid #c53030;
+      padding-bottom: 12px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-titles { text-align: center; flex-grow: 1; }
+    .header-titles h1 { font-size: 13px; text-transform: uppercase; margin: 0; color: #2d3748; }
+    .header-titles h2 { font-size: 15px; font-weight: 800; margin: 3px 0; color: #9b2c2c; }
+    .header-titles p { font-size: 11px; margin: 0; color: #718096; }
+    .document-title {
+      background: #fff5f5;
+      border-left: 4px solid #e53e3e;
+      padding: 10px 14px;
+      margin-bottom: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .document-title h3 { margin: 0; font-size: 14px; color: #c53030; font-weight: 700; text-transform: uppercase; }
+    .badge-fase {
+      background: #fed7d7;
+      color: #9b2c2c;
+      border: 1px solid #feb2b2;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 18px;
+      font-size: 11px;
+    }
+    .info-item {
+      background: #f8fafc;
+      border: 1px solid #edf2f7;
+      border-radius: 4px;
+      padding: 8px 12px;
+    }
+    .info-label { font-weight: 700; color: #4a5568; text-transform: uppercase; font-size: 9.5px; display: block; margin-bottom: 2px; }
+    .info-val { color: #1a202c; font-weight: 600; }
+    .point-box {
+      border-left: 3px solid #e53e3e;
+      padding-left: 12px;
+      margin-bottom: 14px;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+    .point-title { font-weight: 700; color: #c53030; margin-bottom: 3px; }
+    .sign-section {
+      margin-top: 35px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      text-align: center;
+      font-size: 11px;
+    }
+    .sign-line { border-top: 1px solid #718096; padding-top: 6px; font-weight: 600; color: #2d3748; }
+    .print-btn-bar {
+      max-width: 800px;
+      margin: 0 auto 15px auto;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .btn-print {
+      background: #e53e3e;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 12px;
+    }
+    @media print {
+      body { background: transparent; padding: 0; }
+      .page-container { box-shadow: none; border: none; padding: 0; max-width: 100%; }
+      .print-btn-bar { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-btn-bar">
+    <button class="btn-print" onclick="window.print()">🖨️ Salvar como PDF / Imprimir</button>
+  </div>
+
+  <div class="page-container">
+    <div class="header">
+      <div class="header-titles">
+        <h1>MINISTÉRIO DA EDUCAÇÃO • FUNDO NACIONAL DE DESENVOLVIMENTO DA EDUCAÇÃO</h1>
+        <h2>DIRETORIA FINANCEIRA • COORDENAÇÃO-GERAL DE PRESTAÇÃO DE CONTAS</h2>
+        <p>Notificação Formal de Diligência Técnica e Financeira • Notificação nº 098/2026-FNDE</p>
+      </div>
+    </div>
+
+    <div class="document-title">
+      <div>
+        <h3>Notificação de Diligência / Glosa Preventiva</h3>
+        <span style="font-size: 11px; color: #742a2a;">Prazo Improrrogável de 30 (trinta) dias para manifestação sob pena de TCE</span>
+      </div>
+      <div class="badge-fase">FASE 09 • NOTIFICAÇÕES E PASSIVO</div>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-item">
+        <span class="info-label">Convênio Notificado</span>
+        <span class="info-val">Convênio Federal nº 914250/2023 / FNDE</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Notificado / Responsável</span>
+        <span class="info-val">Prefeito Constitucional de Patos / PB</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Data da Notificação</span>
+        <span class="info-val">15/06/2026</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Prazo Fatal de Resposta</span>
+        <span class="info-val" style="color: #c53030; font-weight: 700;">15/07/2026 (30 dias)</span>
+      </div>
+    </div>
+
+    <div class="point-box">
+      <div class="point-title">APONTAMENTO 01 - JUSTIFICATIVA DE RENDIMENTOS DE APLICAÇÃO</div>
+      <div>
+        Verificou-se divergência contábil de R$ 1.240,50 entre os extratos de aplicação bancária automática do mês de março/2025 e o demonstrativo de rendimentos da Prestação de Contas Final. Solicita-se a juntada da conciliação bancária analítica devidamente assinada pelo Contador Municipal.
+      </div>
+    </div>
+
+    <div class="point-box">
+      <div class="point-title">APONTAMENTO 02 - COMPROVAÇÃO DE PLACA DE INAUGURAÇÃO PADRÃO FNDE</div>
+      <div>
+        Faz-se necessária a complementação do relatório fotográfico com foto panorâmica e georreferenciada em alta resolução da placa de inauguração da Creche Proinfância instalada na fachada principal, em conformidade com o Manual de Identidade Visual do Governo Federal.
+      </div>
+    </div>
+
+    <div style="background: #fff5f5; border: 1px solid #feb2b2; border-radius: 6px; padding: 12px; font-size: 11px; color: #742a2a; margin-bottom: 20px;">
+      <strong>ALERTA DE PASSIVO E INSTAURAÇÃO DE TCE:</strong><br>
+      O não saneamento dos apontamentos no prazo assinalado ensejará o registro de inadimplência no CAUC/SIAFI, inscrição em Dívida Ativa da União e instauração de Tomada de Contas Especial (TCE) perante o Tribunal de Contas da União (TCU).
+    </div>
+
+    <div class="sign-section">
+      <div>
+        <div class="sign-line">Dr. Thiago Silveira Brandão</div>
+        <div style="color: #718096; font-size: 10px;">Auditor Federal de Controle • FNDE / MEC</div>
+      </div>
+      <div>
+        <div class="sign-line">Coordenação-Geral de Prestação de Contas</div>
+        <div style="color: #718096; font-size: 10px;">CGPCO • Ministério da Educação</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -2,7 +2,11 @@ package br.com.govflow.core.domain.model;
 
 public enum StatusDocumento {
     RECEBIDO,
+    EM_ANALISE_IA,
     EM_CONFERENCIA,
     PRONTO_PARA_TRANSFEREGOV,
-    REJEITADO
+    APROVADO,
+    SUBMETIDO_TRANSFEREGOV,
+    REJEITADO,
+    EXCLUIDO
 }

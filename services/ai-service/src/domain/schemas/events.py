@@ -37,6 +37,22 @@ class DocumentoRecebidoPayload(BaseModel):
         default=None,
         alias="vinculosOpcionais",
     )
+    convenios_candidatos_ids: List[UUID] = Field(
+        default_factory=list,
+        alias="conveniosCandidatosIds",
+    )
+    convenios_candidatos: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        alias="conveniosCandidatos",
+    )
+    historico_recente_conversa: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        alias="historicoRecenteConversa",
+    )
+    remetente_novo: bool = Field(default=False, alias="remetenteNovo")
+    contato_id: Optional[UUID] = Field(default=None, alias="contatoId")
+    sender_phone: Optional[str] = Field(default=None, alias="senderPhone")
+    sender_name: Optional[str] = Field(default=None, alias="senderName")
 
     model_config = {"populate_by_name": True}
 
@@ -117,6 +133,16 @@ class DocumentoRecebidoEvent(BaseModel):
         doc_id = UUID(str(doc_id_raw))
         pref_id_raw = data.get("prefeituraId")
         pref_id = UUID(str(pref_id_raw)) if pref_id_raw else None
+        sender_phone = data.get("senderPhone")
+        sender_name = data.get("senderName")
+        contato_id_raw = data.get("contatoId")
+        contato_id = UUID(str(contato_id_raw)) if contato_id_raw else None
+
+        candidatos_ids_raw = data.get("conveniosCandidatosIds") or []
+        candidatos_ids = [UUID(str(cid)) for cid in candidatos_ids_raw]
+        candidatos = data.get("conveniosCandidatos") or []
+        historico = data.get("historicoRecenteConversa") or []
+        remetente_novo = bool(data.get("remetenteNovo", False))
 
         payload_obj = DocumentoRecebidoPayload(
             documentoId=doc_id,
@@ -128,9 +154,16 @@ class DocumentoRecebidoEvent(BaseModel):
             origem=DocumentoOrigem(
                 canal="WHATSAPP",
                 prefeituraId=pref_id,
-                remetentePhone=data.get("senderPhone"),
+                remetentePhone=sender_phone,
                 cnpjPrefeitura=data.get("cnpjPrefeitura"),
             ),
+            conveniosCandidatosIds=candidatos_ids,
+            conveniosCandidatos=candidatos,
+            historicoRecenteConversa=historico,
+            remetenteNovo=remetente_novo,
+            contatoId=contato_id,
+            senderPhone=sender_phone,
+            senderName=sender_name,
         )
 
         return cls(
@@ -187,6 +220,7 @@ class DocumentoExtraidoPayload(BaseModel):
     documento_id: UUID = Field(alias="documentoId")
     s3_bucket: str = Field(alias="s3Bucket")
     s3_key: str = Field(alias="s3Key")
+    nome_arquivo_original: Optional[str] = Field(default=None, alias="nomeArquivoOriginal")
     processamento: ProcessamentoMeta
     extracao: Dict[str, Any]
     validacao_matematica: ValidacaoMatematicaResult = Field(alias="validacaoMatematica")
@@ -207,5 +241,64 @@ class DocumentoExtraidoEvent(BaseModel):
     tenant_id: UUID = Field(alias="tenantId")
     correlation_id: UUID = Field(alias="correlationId")
     payload: DocumentoExtraidoPayload
+
+    model_config = {"populate_by_name": True}
+
+
+class DocumentoClassificadoPayload(BaseModel):
+    documento_id: UUID = Field(alias="documentoId")
+    mensagem_inbound_id: Optional[UUID] = Field(default=None, alias="mensagemInboundId")
+    tenant_id: UUID = Field(alias="tenantId")
+    prefeitura_id: Optional[UUID] = Field(default=None, alias="prefeituraId")
+    convenio_id: Optional[UUID] = Field(default=None, alias="convenioId")
+    fase_ciclo_vida: Optional[str] = Field(default="04_EXECUCAO_FISICA_E_MEDICOES", alias="faseCicloVida")
+    categoria_documento: Optional[str] = Field(default="DOCUMENTO_HABIL", alias="categoriaDocumento")
+    confidence_score: float = Field(default=0.0, alias="confidenceScore")
+    motivo_ambiguidade: Optional[str] = Field(default=None, alias="motivoAmbiguidade")
+    direcionar_triagem: bool = Field(default=False, alias="direcionarTriagem")
+    remetente_phone: Optional[str] = Field(default=None, alias="remetentePhone")
+    remetente_name: Optional[str] = Field(default=None, alias="remetenteName")
+    remetente_novo: bool = Field(default=False, alias="remetenteNovo")
+    conteudo_resumo: Optional[str] = Field(default=None, alias="conteudoResumo")
+    s3_bucket: str = Field(default="", alias="s3Bucket")
+    s3_key: str = Field(default="", alias="s3Key")
+    nome_arquivo_original: Optional[str] = Field(default=None, alias="nomeArquivoOriginal")
+    extracao: Dict[str, Any] = Field(default_factory=dict)
+
+    model_config = {"populate_by_name": True}
+
+
+class DocumentoClassificadoEvent(BaseModel):
+    event_id: UUID = Field(default_factory=uuid4, alias="eventId")
+    event_type: str = Field(default="DocumentoClassificadoEvent", alias="eventType")
+    event_version: str = Field(default="1.0.0", alias="eventVersion")
+    occurred_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        alias="occurredAt",
+    )
+    tenant_id: UUID = Field(alias="tenantId")
+    correlation_id: UUID = Field(alias="correlationId")
+    payload: DocumentoClassificadoPayload
+
+    model_config = {"populate_by_name": True}
+
+
+class AudioRecebidoPayload(BaseModel):
+    mensagem_inbound_id: UUID = Field(alias="mensagemInboundId")
+    s3_bucket: str = Field(alias="s3Bucket")
+    s3_key: str = Field(alias="s3Key")
+    media_mimetype: str = Field(default="audio/ogg", alias="mediaMimetype")
+    sender_phone: Optional[str] = Field(default=None, alias="senderPhone")
+    sender_name: Optional[str] = Field(default=None, alias="senderName")
+
+    model_config = {"populate_by_name": True}
+
+
+class AudioRecebidoEvent(BaseModel):
+    event_id: UUID = Field(default_factory=uuid4, alias="eventId")
+    event_type: str = Field(default="AudioRecebidoEvent", alias="eventType")
+    tenant_id: UUID = Field(alias="tenantId")
+    correlation_id: UUID = Field(alias="correlationId")
+    payload: AudioRecebidoPayload
 
     model_config = {"populate_by_name": True}

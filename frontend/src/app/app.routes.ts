@@ -10,6 +10,8 @@ import { DocumentosListPageComponent } from './features/revisao-documento/pages/
 import { RadarCaucPageComponent } from './features/radar-cauc/pages/radar-cauc-page.component';
 import { RevisaoDetalhePageComponent } from './features/revisao-documento/pages/revisao-detalhe/revisao-detalhe-page.component';
 import { AgentesListPageComponent } from './features/agentes/pages/agentes-list/agentes-list-page.component';
+import { FicheiroDigitalComponent } from './features/convenios/pages/ficheiro-digital/ficheiro-digital.component';
+import { TriagemInboxPageComponent } from './features/triagem/pages/triagem-inbox/triagem-inbox-page.component';
 
 export const routes: Routes = [
   // 1. Autenticação & Onboarding (fora do AppShell)
@@ -53,8 +55,16 @@ export const routes: Routes = [
         component: ConvenioCockpitPageComponent
       },
       {
+        path: 'convenios/:id/ficheiro',
+        component: FicheiroDigitalComponent
+      },
+      {
         path: 'whatsapp',
         component: WhatsAppHubPageComponent
+      },
+      {
+        path: 'triagem',
+        component: TriagemInboxPageComponent
       },
       {
         path: 'documentos',

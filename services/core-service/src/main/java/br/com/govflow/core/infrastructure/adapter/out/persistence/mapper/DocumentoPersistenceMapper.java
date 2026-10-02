@@ -1,6 +1,9 @@
 package br.com.govflow.core.infrastructure.adapter.out.persistence.mapper;
 
 import br.com.govflow.core.domain.model.*;
+import br.com.govflow.core.domain.model.documento.*;
+import br.com.govflow.core.infrastructure.adapter.out.persistence.entity.DocumentoAuditoriaJpaEntity;
+import br.com.govflow.core.infrastructure.adapter.out.persistence.entity.DocumentoHabilDadosJpaEntity;
 import br.com.govflow.core.infrastructure.adapter.out.persistence.entity.DocumentoJpaEntity;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -10,9 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 @Component
 public class DocumentoPersistenceMapper {
@@ -30,7 +31,12 @@ public class DocumentoPersistenceMapper {
             return null;
         }
 
-        StatusDocumento status = StatusDocumento.valueOf(entity.getStatus());
+        StatusDocumento status;
+        try {
+            status = StatusDocumento.valueOf(entity.getStatus());
+        } catch (Exception e) {
+            status = StatusDocumento.RECEBIDO;
+        }
 
         ExtracaoSugerida extracao = null;
         if (entity.getDadosExtracaoJson() != null && !entity.getDadosExtracaoJson().isBlank()) {
@@ -60,7 +66,7 @@ public class DocumentoPersistenceMapper {
         }
 
         // Fallback de reconstrução para registros legados onde dadosRevisaoJson ainda não existia
-        if (dadosRevisao == null && status == StatusDocumento.PRONTO_PARA_TRANSFEREGOV && entity.getNumeroDocumento() != null) {
+        if (dadosRevisao == null && (status == StatusDocumento.PRONTO_PARA_TRANSFEREGOV || status == StatusDocumento.APROVADO) && entity.getNumeroDocumento() != null) {
             TipoDocumentoHabil tipo = entity.getTipoDocumentoHabil() != null ?
                     TipoDocumentoHabil.valueOf(entity.getTipoDocumentoHabil()) : null;
 
@@ -90,6 +96,21 @@ public class DocumentoPersistenceMapper {
                 entity.getTamanhoBytes()
         );
 
+        FaseCicloVida fase = FaseCicloVida.fromCodigoOuNome(entity.getFaseCicloVida());
+        CategoriaDocumento categoria = CategoriaDocumento.fromString(entity.getCategoriaDocumento());
+        OrigemCanal origem = OrigemCanal.fromString(entity.getOrigemCanal());
+
+        List<String> tags = entity.getTags() != null ? Arrays.asList(entity.getTags()) : Collections.emptyList();
+
+        Map<String, Object> metadados = new HashMap<>();
+        if (entity.getMetadadosJson() != null && !entity.getMetadadosJson().isBlank()) {
+            try {
+                metadados = objectMapper.readValue(entity.getMetadadosJson(), new TypeReference<Map<String, Object>>() {});
+            } catch (JsonProcessingException e) {
+                log.warn("Erro ao desserializar metadados_json do documento {}: {}", entity.getId(), e.getMessage());
+            }
+        }
+
         return new Documento(
                 entity.getId(),
                 entity.getTenantId(),
@@ -97,11 +118,20 @@ public class DocumentoPersistenceMapper {
                 entity.getConvenioId(),
                 entity.getContratoId(),
                 entity.getMedicaoId(),
+                fase,
+                categoria,
+                entity.getPastaVirtual() != null ? entity.getPastaVirtual() : "/",
+                origem,
+                entity.getHashSha256(),
+                tags,
+                metadados,
+                entity.getCriadoPorUsuarioId(),
                 armazenamento,
                 status,
                 extracao,
                 BoundingBoxesData.of(boxes),
                 dadosRevisao,
+                null,
                 entity.getMotivoRejeicao(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
@@ -129,6 +159,25 @@ public class DocumentoPersistenceMapper {
         entity.setMotivoRejeicao(domain.getMotivoRejeicao());
         entity.setCreatedAt(domain.getCreatedAt());
         entity.setUpdatedAt(domain.getUpdatedAt());
+
+        entity.setFaseCicloVida(domain.getFaseCicloVida() != null ? domain.getFaseCicloVida().name() : FaseCicloVida.FASE_05_EXECUCAO_FINANCEIRA.name());
+        entity.setCategoriaDocumento(domain.getCategoriaDocumento() != null ? domain.getCategoriaDocumento().name() : CategoriaDocumento.DOCUMENTO_HABIL.name());
+        entity.setPastaVirtual(domain.getPastaVirtual() != null ? domain.getPastaVirtual() : "/");
+        entity.setOrigemCanal(domain.getOrigemCanal() != null ? domain.getOrigemCanal().name() : OrigemCanal.UPLOAD_MANUAL.name());
+        entity.setHashSha256(domain.getHashSha256());
+        entity.setCriadoPorUsuarioId(domain.getCriadoPorUsuarioId());
+
+        if (domain.getTags() != null && !domain.getTags().isEmpty()) {
+            entity.setTags(domain.getTags().toArray(new String[0]));
+        }
+
+        if (domain.getMetadadosJson() != null && !domain.getMetadadosJson().isEmpty()) {
+            try {
+                entity.setMetadadosJson(objectMapper.writeValueAsString(domain.getMetadadosJson()));
+            } catch (JsonProcessingException e) {
+                log.error("Erro ao serializar metadados_json do documento {}", domain.getId(), e);
+            }
+        }
 
         // Se houver dados revisados pelo analista, eles têm prioridade nos campos fiscais relacionais
         if (domain.getDadosRevisao() != null) {
@@ -188,6 +237,85 @@ public class DocumentoPersistenceMapper {
             entity.setConfidenceScoreGeral(BigDecimal.ZERO);
         }
 
+        return entity;
+    }
+
+    public DocumentoAuditoria toDomain(DocumentoAuditoriaJpaEntity entity) {
+        if (entity == null) return null;
+        return new DocumentoAuditoria(
+                entity.getId(),
+                entity.getTenantId(),
+                entity.getDocumentoId(),
+                entity.getUsuarioId(),
+                entity.getAcao(),
+                entity.getJustificativa(),
+                entity.getSnapshotAnteriorJson(),
+                entity.getSnapshotAtualJson(),
+                entity.getRealizadoEm()
+        );
+    }
+
+    public DocumentoAuditoriaJpaEntity toEntity(DocumentoAuditoria domain) {
+        if (domain == null) return null;
+        DocumentoAuditoriaJpaEntity entity = new DocumentoAuditoriaJpaEntity();
+        entity.setId(domain.getId());
+        entity.setTenantId(domain.getTenantId());
+        entity.setDocumentoId(domain.getDocumentoId());
+        entity.setUsuarioId(domain.getUsuarioId());
+        entity.setAcao(domain.getAcao());
+        entity.setJustificativa(domain.getJustificativa());
+        entity.setSnapshotAnteriorJson(domain.getSnapshotAnteriorJson());
+        entity.setSnapshotAtualJson(domain.getSnapshotAtualJson());
+        entity.setRealizadoEm(domain.getRealizadoEm());
+        return entity;
+    }
+
+    public DocumentoHabilDados toDomain(DocumentoHabilDadosJpaEntity entity) {
+        if (entity == null) return null;
+        TipoDocumentoHabil tipo = entity.getTipoDocumentoHabil() != null ?
+                TipoDocumentoHabil.valueOf(entity.getTipoDocumentoHabil()) : TipoDocumentoHabil.NOTA_FISCAL_SERVICOS;
+
+        return new DocumentoHabilDados(
+                entity.getDocumentoId(),
+                tipo,
+                entity.getNumeroDocumento(),
+                entity.getSerieDocumento(),
+                entity.getChaveAcessoNfe(),
+                entity.getDataEmissao(),
+                entity.getCnpjCredor(),
+                entity.getRazaoSocialCredor(),
+                entity.getDescricaoServico(),
+                entity.getValorBruto(),
+                entity.getValorTotalDeducoes(),
+                entity.getValorLiquido(),
+                entity.isStatusValidacaoMatematica(),
+                entity.getConfidenceScoreIa(),
+                entity.getDadosExtracaoIaJson(),
+                entity.getBoundingBoxesJson(),
+                entity.getDadosRevisaoJson()
+        );
+    }
+
+    public DocumentoHabilDadosJpaEntity toEntity(DocumentoHabilDados domain) {
+        if (domain == null) return null;
+        DocumentoHabilDadosJpaEntity entity = new DocumentoHabilDadosJpaEntity();
+        entity.setDocumentoId(domain.getDocumentoId());
+        entity.setTipoDocumentoHabil(domain.getTipoDocumentoHabil() != null ? domain.getTipoDocumentoHabil().name() : TipoDocumentoHabil.NOTA_FISCAL_SERVICOS.name());
+        entity.setNumeroDocumento(domain.getNumeroDocumento());
+        entity.setSerieDocumento(domain.getSerieDocumento());
+        entity.setChaveAcessoNfe(domain.getChaveAcessoNfe());
+        entity.setDataEmissao(domain.getDataEmissao());
+        entity.setCnpjCredor(domain.getCnpjCredor());
+        entity.setRazaoSocialCredor(domain.getRazaoSocialCredor());
+        entity.setDescricaoServico(domain.getDescricaoServico());
+        entity.setValorBruto(domain.getValorBruto());
+        entity.setValorTotalDeducoes(domain.getValorTotalDeducoes());
+        entity.setValorLiquido(domain.getValorLiquido());
+        entity.setStatusValidacaoMatematica(domain.isStatusValidacaoMatematica());
+        entity.setConfidenceScoreIa(domain.getConfidenceScoreIa());
+        entity.setDadosExtracaoIaJson(domain.getDadosExtracaoIaJson());
+        entity.setBoundingBoxesJson(domain.getBoundingBoxesJson());
+        entity.setDadosRevisaoJson(domain.getDadosRevisaoJson());
         return entity;
     }
 }

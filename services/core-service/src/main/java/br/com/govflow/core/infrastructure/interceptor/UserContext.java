@@ -86,6 +86,10 @@ public final class UserContext {
         return data.prefeiturasAtribuidasIds().contains(prefeituraId);
     }
 
+    public static boolean temAcessoPrefeitura(UUID prefeituraId) {
+        return hasAccessToPrefeitura(prefeituraId);
+    }
+
     public static void clear() {
         CURRENT_USER.remove();
     }

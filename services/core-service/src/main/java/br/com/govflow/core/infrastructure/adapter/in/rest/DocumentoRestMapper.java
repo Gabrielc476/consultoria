@@ -31,6 +31,8 @@ public class DocumentoRestMapper {
                 domain.getContentType(),
                 domain.getTamanhoBytes(),
                 domain.getStatus().name(),
+                domain.getFaseCicloVida() != null ? domain.getFaseCicloVida().name() : null,
+                domain.getCategoriaDocumento() != null ? domain.getCategoriaDocumento().name() : null,
                 extracaoResponse,
                 boxesResponse,
                 revisaoResponse,

@@ -3,6 +3,9 @@ import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../auth/auth.service';
 import { WhatsAppService } from '../../../features/whatsapp/services/whatsapp.service';
+import { TriagemService } from '../../../features/triagem/services/triagem.service';
+
+import { NotificacaoDocumentoService } from '../../services/notificacao-documento.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -85,20 +88,47 @@ import { WhatsAppService } from '../../../features/whatsapp/services/whatsapp.se
             }
           </a>
 
+          <!-- Caixa de Triagem Omnicanal -->
+          <a
+            routerLink="/triagem"
+            routerLinkActive="bg-gov-cobalt-600/15 text-gov-cobalt-300 font-semibold border border-gov-cobalt-500/30 shadow-sm"
+            class="flex items-center justify-between px-3 py-2.5 rounded-lg text-gov-slate-300 hover:text-white hover:bg-white/5 transition-all group cursor-pointer"
+          >
+            <div class="flex items-center gap-3">
+              <svg class="w-4 h-4 shrink-0 transition-colors group-hover:text-white text-gov-cobalt-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
+                <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+              </svg>
+              <span>Caixa de Triagem</span>
+            </div>
+            @if (totalTriagem() > 0) {
+              <span class="w-4 h-4 rounded-full bg-amber-500 text-white font-bold text-[9px] flex items-center justify-center shadow-sm">
+                {{ totalTriagem() }}
+              </span>
+            }
+          </a>
+
           <!-- Esteira de Documentos (WhatsApp / OCR) -->
           <a
             routerLink="/documentos"
             routerLinkActive="bg-gov-cobalt-600/15 text-gov-cobalt-300 font-semibold border border-gov-cobalt-500/30 shadow-sm"
-            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gov-slate-300 hover:text-white hover:bg-white/5 transition-all group cursor-pointer"
+            class="flex items-center justify-between px-3 py-2.5 rounded-lg text-gov-slate-300 hover:text-white hover:bg-white/5 transition-all group cursor-pointer"
           >
-            <svg class="w-4 h-4 shrink-0 transition-colors group-hover:text-white text-gov-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
-              <line x1="10" y1="9" x2="8" y2="9"/>
-            </svg>
-            <span>Esteira de Documentos</span>
+            <div class="flex items-center gap-3">
+              <svg class="w-4 h-4 shrink-0 transition-colors group-hover:text-white text-gov-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <line x1="10" y1="9" x2="8" y2="9"/>
+              </svg>
+              <span>Esteira de Documentos</span>
+            </div>
+            @if (totalEsteira() > 0) {
+              <span class="w-4 h-4 rounded-full bg-gov-cobalt-500 text-white font-bold text-[9px] flex items-center justify-center shadow-sm" title="Documentos prontos para conferência">
+                {{ totalEsteira() }}
+              </span>
+            }
           </a>
 
           <!-- Radar CAUC & Prazos (LRF 25) -->
@@ -178,8 +208,12 @@ import { WhatsAppService } from '../../../features/whatsapp/services/whatsapp.se
 export class SidebarComponent {
   readonly auth = inject(AuthService);
   private readonly whatsapp = inject(WhatsAppService);
+  private readonly triagem = inject(TriagemService);
+  private readonly notificacoes = inject(NotificacaoDocumentoService);
 
   readonly totalNaoLidas = computed(() => this.whatsapp.totalNaoLidas());
+  readonly totalTriagem = computed(() => this.notificacoes.totalTriagemPendentes() || this.triagem.totalPendentes());
+  readonly totalEsteira = computed(() => this.notificacoes.totalDocumentosEsteira());
   readonly isModoDemo = computed(() => this.auth.isModoDemo());
 
   readonly cargoUsuario = computed(() => {

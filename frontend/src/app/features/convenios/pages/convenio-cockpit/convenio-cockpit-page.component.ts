@@ -17,41 +17,6 @@ import { AuthService } from '../../../../core/auth/auth.service';
 import { RevisaoApiService } from '../../../revisao-documento/services/revisao-api.service';
 import { Documento } from '../../../revisao-documento/model/documento.model';
 
-const MOCK_DOCS: DocumentoConvenioResumo[] = [
-  {
-    id: 'doc-nf-004821',
-    numeroDocumento: 'NF-e 004821',
-    tipo: 'Nota Fiscal de Serviços',
-    credorRazaoSocial: 'Construtora Alvorada Ltda',
-    valorBruto: 84500.0,
-    dataRecebimento: 'Hoje, 09:14',
-    origem: 'WHATSAPP',
-    confiancaScore: 0.985,
-    status: 'EM_CONFERENCIA'
-  },
-  {
-    id: 'doc-bm-003',
-    numeroDocumento: 'BM-03/2026',
-    tipo: 'Boletim de Medição (Eng.)',
-    credorRazaoSocial: 'Construtora Alvorada Ltda',
-    valorBruto: 84500.0,
-    dataRecebimento: 'Hoje, 09:15',
-    origem: 'WHATSAPP',
-    confiancaScore: 0.942,
-    status: 'EM_CONFERENCIA'
-  },
-  {
-    id: 'doc-darf-01',
-    numeroDocumento: 'GPS / DARF INSS',
-    tipo: 'Guia de Recolhimento',
-    credorRazaoSocial: 'Receita Federal do Brasil',
-    valorBruto: 9295.0,
-    dataRecebimento: 'Ontem, 16:40',
-    origem: 'WHATSAPP',
-    confiancaScore: 0.99,
-    status: 'PRONTO_PARA_TRANSFEREGOV'
-  }
-];
 
 const MOCK_PRAZOS: PrazoConvenioItem[] = [
   {
@@ -187,6 +152,17 @@ const MOCK_PRAZOS: PrazoConvenioItem[] = [
 
           <!-- Ações do Topo -->
           <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+            <a
+              [routerLink]="['/convenios', conv.id, 'ficheiro']"
+              class="px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white shadow-md shadow-blue-500/20 transition-all inline-flex items-center gap-2 cursor-pointer"
+              title="Acessar repositório estruturado do Ficheiro Digital nas 10 Fases"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+              </svg>
+              <span>Ficheiro Digital (GED)</span>
+            </a>
+
             <button
               type="button"
               (click)="modalNovoConvenioAberto.set(true)"
@@ -391,9 +367,7 @@ export class ConvenioCockpitPageComponent implements OnInit {
   public buscaConvenio = '';
 
   readonly convenio = computed(() => this.convenioCtx.convenioAtivo());
-  readonly documentos = signal<DocumentoConvenioResumo[]>(
-    this.authService.isModoDemo() || !this.authService.isAuthenticated() ? MOCK_DOCS : []
-  );
+  readonly documentos = signal<DocumentoConvenioResumo[]>([]);
   readonly prazos = signal<PrazoConvenioItem[]>(
     this.authService.isModoDemo() || !this.authService.isAuthenticated() ? MOCK_PRAZOS : []
   );
@@ -423,11 +397,6 @@ export class ConvenioCockpitPageComponent implements OnInit {
   }
 
   carregarDocumentos(convenioId?: string): void {
-    if (this.authService.isModoDemo() || !this.authService.isAuthenticated()) {
-      this.documentos.set(MOCK_DOCS);
-      return;
-    }
-
     this.revisaoApi.listarDocumentos().subscribe({
       next: (page) => {
         const docs = (page.content || page.items || []);

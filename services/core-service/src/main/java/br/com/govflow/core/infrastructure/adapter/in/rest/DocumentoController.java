@@ -65,7 +65,10 @@ public class DocumentoController {
             MediaType.APPLICATION_PDF_VALUE,
             MediaType.IMAGE_JPEG_VALUE,
             MediaType.IMAGE_PNG_VALUE,
-            MediaType.APPLICATION_OCTET_STREAM_VALUE
+            MediaType.TEXT_HTML_VALUE,
+            MediaType.TEXT_PLAIN_VALUE,
+            MediaType.APPLICATION_OCTET_STREAM_VALUE,
+            MediaType.ALL_VALUE
     })
     @Operation(
             summary = "Obter arquivo original do documento (PDF / Imagem)",

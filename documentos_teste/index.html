@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GovFlow • Painel de Documentos de Teste (10 Fases Oficiais)</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #0b1120;
+      color: #e2e8f0;
+      margin: 0;
+      padding: 30px 20px;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 35px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 25px;
+    }
+    .header h1 {
+      font-size: 24px;
+      font-weight: 800;
+      color: #ffffff;
+      margin: 0 0 8px 0;
+      letter-spacing: -0.5px;
+    }
+    .header p {
+      font-size: 13px;
+      color: #94a3b8;
+      max-width: 650px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(460px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: #111827;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: #3b82f6;
+    }
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f8fafc;
+      margin: 0 0 4px 0;
+    }
+    .card-sub {
+      font-size: 11px;
+      color: #94a3b8;
+      margin: 0;
+    }
+    .badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .b-00 { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .b-01 { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .b-02 { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .b-03 { background: rgba(139, 92, 246, 0.15); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.3); }
+    .b-04 { background: rgba(14, 165, 233, 0.15); color: #38bdf8; border: 1px solid rgba(14, 165, 233, 0.3); }
+    .b-05 { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+    .b-06 { background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
+    .b-07 { background: rgba(20, 184, 166, 0.15); color: #2dd4bf; border: 1px solid rgba(20, 184, 166, 0.3); }
+    .b-08 { background: rgba(100, 116, 139, 0.15); color: #cbd5e1; border: 1px solid rgba(100, 116, 139, 0.3); }
+    .b-09 { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .card-desc {
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.4;
+      margin: 10px 0 16px 0;
+    }
+    .btn-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: #1e293b;
+      color: #38bdf8;
+      text-decoration: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      transition: all 0.15s ease;
+    }
+    .btn-action:hover {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #0284c7;
+    }
+    .tip-box {
+      margin-top: 35px;
+      padding: 16px 20px;
+      border-radius: 10px;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      font-size: 12px;
+      color: #bfdbfe;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>GovFlow • Central de Documentos de Teste das 10 Fases</h1>
+      <p>
+        Conjunto documental padronizado e calibrado para o <strong>Convênio nº 914250/2023</strong> (Creche Proinfância - Patos/PB). Abra qualquer arquivo no navegador, pressione <strong>Ctrl+P</strong> (ou o botão de impressão) para salvar em PDF e teste o envio pelo WhatsApp ou upload na esteira!
+      </p>
+    </div>
+
+    <div class="card-grid">
+
+      <!-- Fase 00 -->
+      <div class="card">
+        <div>
+          <div class="card-top">
+            <div>
+              <h3 class="card-title">00. Proposta e Plano de Trabalho</h3>
+              <p class="card-sub">Categoria: PROPOSTA_PLANO_TRABALHO</p>
+            </div>
+            <span class="badge b-00">Fase 00</span>
+          </div>
+          <div class="card-desc">
+            Plano de trabalho oficial nº 012458/2023 com detalhamento de metas físicas, justificativa social e cronograma de desembolso no SICONV.
+          </div>
+        </div>
+        <div>
+          <a href="fase_00_proposta_plano_de_trabalho.html" target="_blank" class="btn-action">
+            📄 Abrir / Salvar em PDF
+          </a>
+        </div>
+      </div>
+
+      <!-- Fase 01 -->
+      <div class="card">
+        <div>
+          <div class="card-top">
+            <div>
+              <h3 class="card-title">01. Termo de Convênio Celebrado</h3>
+              <p class="card-sub">Categoria: TERMO_CONVENIO</p>
+            </div>
+            <span class="badge b-01">Fase 01</span>
+          </div>
+          <div class="card-desc">
+            Termo de Convênio formalizado com publicação no DOU, fixando regras de repasse, conta vinculada Op 006 e prazo de eficácia inicial.
+          </div>
+        </div>
+        <div>
+          <a href="fase_01_termo_de_convenio_celebrado.html" target="_blank" class="btn-action">
+            📄 Abrir / Salvar em PDF
+          </a>
+        </div>
+      </div>
+
+      <!-- Fase 02 -->
+      <div class="card">
+        <div>
+          <div class="card-top">
+            <div>
+              <h3 class="card-title">02. Laudo de Engenharia SPA/LAE Caixa</h3>
+              <p class="card-sub">Categoria: SPA_LAE_CAIXA / PROJETO_ENGENHARIA</p>
+            </div>
+            <span class="badge b-02">Fase 02</span>
+          </div>
+          <div class="card-desc">
+            Laudo de Análise de Engenharia da Caixa GIGOV/JP aprovando os projetos SINAPI, licença ambiental SUDEMA e superando a cláusula suspensiva.
+          </div>
+        </div>
+        <div>
+          <a href="fase_02_laudo_engenharia_spa_lae_caixa.html" target="_blank" class="btn-action">
+            📄 Abrir / Salvar em PDF
+          </a>
+        </div>
+      </div>
+
+      <!-- Fase 03 -->
+      <div class="card">
+        <div>
+          <div class="card-top">
+            <div>
+              <h3 class="card-title">03. Contrato Administrativo de Obras</h3>
+              <p class="card-sub">Categoria: CONTRATO_ADMINISTRATIVO</p>
+            </div>
+            <span class="badge b-03">Fase 03</span>
+          </div>
+          <div class="card-desc">
+            Contrato nº 042/2024 de execução da obra assinado com a Construtora Alvorada Ltda após homologação de certame e emissão de AIO Caixa.
+          </div>
+        </div>
+        <div>
+          <a href="fase_03_contrato_administrativo_execucao.html" target="_blank" class="btn-action">
+            📄 Abrir / Salvar em PDF
+          </a>
+        </div>
+      </div>
+
+      <!-- Fase 04 -->
+      <div class="card">
+        <div>
+          <div class="card-top">
+            <div>
+              <h3 class="card-title">04. Boletim de Medição BM-04</h3>
+              <p class="card-sub">Categoria: BOLETIM_MEDICAO</p>
+            </div>
+            <span class="badge b-04">Fase 04</span>
+          </div>
+          <div class="card-desc">
+            Boletim de medição física e serviços de engenharia no valor de R$ 182.400,00 com atesto formal do Engenheiro Fiscal do Município.
+          </div>
+        </div>
+        <div>
+          <a href="fase_04_boletim_medicao_bm04.html" target="_blank" class="btn-action">
+            📄 Abrir / Salvar em PDF
+          </a>
+        </div>
+      </div>
+
+      <!-- Fase 05 -->
+      <div class="card">
+        <div>
+          <div class="card-top">
+            <div>
+              <h3 class="card-title">05. Nota Fiscal Eletrônica NFS-e nº 2045</h3>
+              <p class="card-sub">Categoria: DOCUMENTO_HABIL</p>
+            </div>
+            <span class="badge b-05">Fase 05</span>
+          </div>
+          <div class="card-desc">
+            Documento hábil fiscal referente à 4ª medição, discriminando valor bruto R$ 182.400,00, retenções (INSS e ISS) e líquido a pagar de R$ 166.896,00.
+          </div>
+        </div>
+        <div>
+          <a href="fase_05_nota_fiscal_servicos_nfe.html" target="_blank" class="btn-action">
+            📄 Abrir / Salvar em PDF
+          </a>
+        </div>
+      </div>
+
+      <!-- Fase 06 -->
+      <div class="card">
+        <div>
+          <div class="card-top">
+            <div>
+              <h3 class="card-title">06. 1º Termo Aditivo de Vigência</h3>
+              <p class="card-sub">Categoria: TERMO_ADITIVO</p>
+            </div>
+            <span class="badge b-06">Fase 06</span>
+          </div>
+          <div class="card-desc">
+            Aditivo de prorrogação de prazo de vigência (+180 dias) devido a chuvas atípicas, fundamentado em laudo técnico de reprogramação da Caixa.
+          </div>
+        </div>
+        <div>
+          <a href="fase_06_termo_aditivo_prazo_vigencia.html" target="_blank" class="btn-action">
+            📄 Abrir / Salvar em PDF
+          </a>
+        </div>
+      </div>
+
+      <!-- Fase 07 -->
+      <div class="card">
+        <div>
+          <div class="card-top">
+            <div>
+              <h3 class="card-title">07. Termo de Recebimento Definitivo</h3>
+              <p class="card-sub">Categoria: TERMO_RECEBIMENTO</p>
+            </div>
+            <span class="badge b-07">Fase 07</span>
+          </div>
+          <div class="card-desc">
+            Atesto formal de conclusão e entrega de 100% da obra da creche emitido pela comissão técnica para instruir a Prestação de Contas Final (RCO).
+          </div>
+        </div>
+        <div>
+          <a href="fase_07_termo_recebimento_definitivo.html" target="_blank" class="btn-action">
+            📄 Abrir / Salvar em PDF
+          </a>
+        </div>
+      </div>
+
+      <!-- Fase 08 -->
+      <div class="card">
+        <div>
+          <div class="card-top">
+            <div>
+              <h3 class="card-title">08. GRU Devolução de Saldo Remanescente</h3>
+              <p class="card-sub">Categoria: GUIA_RECOLHIMENTO_UNIAO</p>
+            </div>
+            <span class="badge b-08">Fase 08</span>
+          </div>
+          <div class="card-desc">
+            Guia de Recolhimento da União no valor de R$ 23.493,10 com comprovante de liquidação para baixa no SIAFI e atesto de saldo zero na conta bancária.
+          </div>
+        </div>
+        <div>
+          <a href="fase_08_gru_recolhimento_saldo_remanescente.html" target="_blank" class="btn-action">
+            📄 Abrir / Salvar em PDF
+          </a>
+        </div>
+      </div>
+
+      <!-- Fase 09 -->
+      <div class="card">
+        <div>
+          <div class="card-top">
+            <div>
+              <h3 class="card-title">09. Notificação de Diligência do FNDE</h3>
+              <p class="card-sub">Categoria: NOTIFICACAO_DILIGENCIA</p>
+            </div>
+            <span class="badge b-09">Fase 09</span>
+          </div>
+          <div class="card-desc">
+            Notificação oficial do órgão repassador apontando esclarecimentos sobre conciliação bancária de rendimentos e fotografia da placa de obra.
+          </div>
+        </div>
+        <div>
+          <a href="fase_09_notificacao_diligencia_defesa.html" target="_blank" class="btn-action">
+            📄 Abrir / Salvar em PDF
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="tip-box">
+      💡 <strong>Como testar:</strong>
+      <ol style="margin: 8px 0 0 18px; padding: 0;">
+        <li>Clique no botão <strong>"Abrir / Salvar em PDF"</strong> de qualquer um dos documentos acima.</li>
+        <li>No navegador, clique no botão azul <em>"Salvar como PDF / Imprimir"</em> no topo (ou aperte <code>Ctrl+P</code>) e escolha <em>"Salvar como PDF"</em>.</li>
+        <li>Envie o PDF gerado pelo WhatsApp de um contato vinculado (ou faça upload direto na interface do GovFlow).</li>
+        <li>O pipeline multimodal (MinIO ➔ RabbitMQ ➔ AI Service ➔ Core Service) extrairá os dados e o novo sistema de notificações em tempo real alertará o agente instantaneamente na esteira!</li>
+      </ol>
+    </div>
+  </div>
+</body>
+</html>

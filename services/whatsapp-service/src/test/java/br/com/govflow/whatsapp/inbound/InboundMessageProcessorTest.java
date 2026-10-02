@@ -85,8 +85,12 @@ class InboundMessageProcessorTest {
         when(parser.supports(eq("EVOLUTION"), any(JsonNode.class))).thenReturn(true);
         when(parser.parse(any(JsonNode.class))).thenReturn(Optional.of(dto));
         when(mensagemRepository.existsByExternalMessageId("MSG_UNIQUE_001")).thenReturn(false);
+        UUID convenioId = UUID.randomUUID();
+        br.com.govflow.whatsapp.routing.dto.ConvenioCandidatoDto cand =
+                new br.com.govflow.whatsapp.routing.dto.ConvenioCandidatoDto(convenioId, prefeituraId, "Fiscal", true);
+
         when(contactResolutionService.resolve("5583999999999")).thenReturn(
-                new ContactResolutionService.ResolvedContact(tenantId, prefeituraId, "Prefeito", "PREFEITO", true)
+                new ContactResolutionService.ResolvedContact(UUID.randomUUID(), tenantId, prefeituraId, "Prefeito", "PREFEITO", "Prefeitura", List.of(cand), true, false)
         );
 
         UUID generatedId = UUID.randomUUID();
@@ -118,6 +122,40 @@ class InboundMessageProcessorTest {
         assertEquals(generatedId, capturedEvent.mensagemInboundId());
         assertEquals(tenantId, capturedEvent.tenantId());
         assertEquals(prefeituraId, capturedEvent.prefeituraId());
+    }
+
+    @Test
+    @DisplayName("Regra Mandatória: documento de contato sem convênio vinculado deve ser sumariamente descartado")
+    void deveDescartarDocumentoDeContatoNaoVinculado() throws Exception {
+        JsonNode rootNode = objectMapper.readTree("{\"event\":\"messages.upsert\"}");
+        InboundMessageDto dto = new InboundMessageDto(
+                "govflow-consultoria",
+                "MSG_DOC_SEM_CONVENIO",
+                "5583988887777",
+                "Contato Sem Convenio",
+                "DOCUMENT",
+                "Nota Fiscal",
+                "http://media/doc.pdf",
+                "application/pdf",
+                "nf.pdf",
+                1024L,
+                "{}",
+                false
+        );
+
+        when(parser.supports(eq("EVOLUTION"), any(JsonNode.class))).thenReturn(true);
+        when(parser.parse(any(JsonNode.class))).thenReturn(Optional.of(dto));
+        when(mensagemRepository.existsByExternalMessageId("MSG_DOC_SEM_CONVENIO")).thenReturn(false);
+        // Contato resolvido mas com ZERO convênios vinculados
+        when(contactResolutionService.resolve("5583988887777")).thenReturn(
+                new ContactResolutionService.ResolvedContact(UUID.randomUUID(), tenantId, prefeituraId, "Contato Sem Convenio", "Outro", "Empresa", List.of(), true, false)
+        );
+
+        WebhookResponseDto response = processor.processWebhook(rootNode);
+
+        assertEquals("IGNORED", response.status());
+        verify(mensagemRepository, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test

@@ -36,6 +36,7 @@ import { ToastContainerComponent } from '../../../../shared/ui/toast/toast-conta
             [url]="state.arquivoBlobUrl() || ''"
             [mimeType]="state.documentoAtual()?.contentType"
             [filename]="state.documentoAtual()?.nomeArquivoOriginal"
+            [status]="state.documentoAtual()?.status"
             [boxes]="state.boundingBoxes()"
             [fieldScores]="state.confidenceScores()"
             [activeField]="state.campoEmFoco()"

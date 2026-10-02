@@ -18,6 +18,8 @@ public record DocumentoResponse(
         String contentType,
         Long tamanhoBytes,
         String status,
+        String faseCicloVida,
+        String categoriaDocumento,
         ExtracaoSugeridaResponse extracaoSugerida,
         Map<String, BoundingBoxResponse> boundingBoxes,
         DadosRevisaoResponse dadosRevisao,

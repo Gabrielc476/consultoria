@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Boletim de Medição BM-03 - Convênio 914250/2023</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 12mm 15mm;
+    }
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+      color: #1a202c;
+      background-color: #f7fafc;
+      margin: 0;
+      padding: 20px;
+    }
+    .page-container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 30px 40px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      border: 1px solid #e2e8f0;
+      box-sizing: border-box;
+    }
+    .header {
+      border-bottom: 2px solid #2b6cb0;
+      padding-bottom: 12px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-titles {
+      text-align: center;
+      flex-grow: 1;
+    }
+    .header-titles h1 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 0;
+      color: #2d3748;
+    }
+    .header-titles h2 {
+      font-size: 15px;
+      font-weight: 800;
+      margin: 3px 0;
+      color: #1a365d;
+    }
+    .header-titles p {
+      font-size: 11px;
+      margin: 0;
+      color: #718096;
+    }
+    .document-title {
+      background: #edf2f7;
+      border-left: 4px solid #3182ce;
+      padding: 10px 14px;
+      margin-bottom: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .document-title h3 {
+      margin: 0;
+      font-size: 14px;
+      color: #2b6cb0;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .badge-fase {
+      background: #ebf8ff;
+      color: #2b6cb0;
+      border: 1px solid #bee3f8;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 18px;
+      font-size: 11px;
+    }
+    .info-item {
+      background: #f8fafc;
+      border: 1px solid #edf2f7;
+      border-radius: 4px;
+      padding: 8px 12px;
+    }
+    .info-label {
+      font-weight: 700;
+      color: #4a5568;
+      text-transform: uppercase;
+      font-size: 9.5px;
+      display: block;
+      margin-bottom: 2px;
+    }
+    .info-value {
+      color: #1a202c;
+      font-weight: 600;
+    }
+    .highlight {
+      color: #2b6cb0;
+      font-weight: 700;
+    }
+    .full-width {
+      grid-column: span 2;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10.5px;
+      margin-bottom: 18px;
+    }
+    th {
+      background-color: #2b6cb0;
+      color: white;
+      text-align: left;
+      padding: 7px 10px;
+      font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+    td {
+      padding: 7px 10px;
+      border-bottom: 1px solid #e2e8f0;
+      color: #2d3748;
+    }
+    tr:nth-child(even) {
+      background-color: #f7fafc;
+    }
+    .text-right {
+      text-align: right;
+    }
+    .total-row td {
+      font-weight: 800;
+      background: #edf2f7;
+      color: #1a365d;
+      border-top: 2px solid #cbd5e0;
+    }
+    .parecer-box {
+      border: 1px solid #cbd5e0;
+      background: #fffaf0;
+      border-left: 4px solid #dd6b20;
+      padding: 10px 14px;
+      font-size: 11px;
+      margin-bottom: 25px;
+      border-radius: 2px;
+    }
+    .parecer-title {
+      font-weight: 700;
+      color: #c05621;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      font-size: 10px;
+    }
+    .signatures {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-top: 35px;
+      font-size: 11px;
+      text-align: center;
+    }
+    .sig-line {
+      border-top: 1px solid #4a5568;
+      padding-top: 5px;
+      margin-top: 35px;
+    }
+    .sig-name {
+      font-weight: 700;
+      color: #2d3748;
+    }
+    .sig-role {
+      color: #718096;
+      font-size: 10px;
+    }
+    .footer-stamp {
+      margin-top: 25px;
+      padding-top: 10px;
+      border-top: 1px dashed #cbd5e0;
+      font-size: 9px;
+      color: #a0aec0;
+      display: flex;
+      justify-content: space-between;
+    }
+    .print-banner {
+      background: #2b6cb0;
+      color: white;
+      text-align: center;
+      padding: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .print-banner button {
+      background: white;
+      color: #2b6cb0;
+      border: none;
+      padding: 6px 14px;
+      font-weight: 700;
+      font-size: 11px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    @media print {
+      body {
+        padding: 0;
+        background: transparent;
+      }
+      .page-container {
+        border: none;
+        box-shadow: none;
+        padding: 0;
+      }
+      .print-banner {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Barra de Ação Rápida para o Usuário -->
+  <div class="print-banner">
+    <span>📄 Documento Modelo Oficial GovFlow • Convênio #914250/2023</span>
+    <button onclick="window.print()">🖨️ Salvar como PDF / Imprimir (Ctrl + P)</button>
+  </div>
+
+  <div class="page-container">
+    
+    <!-- Cabeçalho Institucional -->
+    <div class="header">
+      <div style="font-size: 24px;">🏛️</div>
+      <div class="header-titles">
+        <h1>República Federativa do Brasil • Estado da Paraíba</h1>
+        <h2>PREFEITURA MUNICIPAL DE PATOS</h2>
+        <p>Secretaria Municipal de Obras Públicas e Planejamento Urbano (SMOP)</p>
+      </div>
+      <div style="font-size: 24px;">📋</div>
+    </div>
+
+    <!-- Título do Documento -->
+    <div class="document-title">
+      <div>
+        <h3>Boletim de Medição de Obras Nº 03 (BM-03)</h3>
+        <span style="font-size: 10px; color: #718096;">Comprovante de Execução Física e Fiscalização Técnica</span>
+      </div>
+      <div class="badge-fase">
+        FASE 04: EXECUÇÃO FÍSICA E MEDIÇÕES
+      </div>
+    </div>
+
+    <!-- Metadados do Convênio e da Contratação -->
+    <div class="info-grid">
+      <div class="info-item">
+        <span class="info-label">Convênio Federal Transferegov</span>
+        <span class="info-value highlight">SICONV Nº 914250/2023</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Processo Administrativo</span>
+        <span class="info-value">00124/2023</span>
+      </div>
+
+      <div class="info-item full-width">
+        <span class="info-label">Objeto do Convênio</span>
+        <span class="info-value">Construção de Creche Proinfância Tipo 2 - Bairro Jatobá - Patos/PB</span>
+      </div>
+
+      <div class="info-item">
+        <span class="info-label">Órgão Concedente</span>
+        <span class="info-value">FNDE / Ministério da Educação</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Tomador / Proponente</span>
+        <span class="info-value">Prefeitura Municipal de Patos - PB</span>
+      </div>
+
+      <div class="info-item">
+        <span class="info-label">Empresa Construtora Contratada</span>
+        <span class="info-value">Construtora Alvorada Ltda (CNPJ: 14.285.912/0001-44)</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Contrato de Execução de Obras</span>
+        <span class="info-value">Contrato Administrativo nº 042/2023</span>
+      </div>
+
+      <div class="info-item">
+        <span class="info-label">Valor Global do Convênio</span>
+        <span class="info-value">R$ 1.500.000,00 (Repasse: R$ 1.400.000,00 | Contrapartida: R$ 100.000,00)</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">Anotação de Responsabilidade Técnica (ART)</span>
+        <span class="info-value highlight">ART CREA-PB Nº 2026048192-OB</span>
+      </div>
+    </div>
+
+    <!-- Tabela Detalhada de Serviços Medidos -->
+    <table aria-label="Tabela de Medição de Obras">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Discriminação do Serviço Concluído</th>
+          <th>Unid.</th>
+          <th class="text-right">Qtd. Medida</th>
+          <th class="text-right">Preço Unit.</th>
+          <th class="text-right">Total (R$)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>01.01</td>
+          <td>Alvenaria de vedação de blocos cerâmicos furados 9x19x19cm</td>
+          <td>m²</td>
+          <td class="text-right">480,00</td>
+          <td class="text-right">R$ 68,50</td>
+          <td class="text-right">R$ 32.880,00</td>
+        </tr>
+        <tr>
+          <td>02.04</td>
+          <td>Concretagem de laje maciça e vigas de coroamento (fck 25 MPa)</td>
+          <td>m³</td>
+          <td class="text-right">38,00</td>
+          <td class="text-right">R$ 940,00</td>
+          <td class="text-right">R$ 35.720,00</td>
+        </tr>
+        <tr>
+          <td>03.02</td>
+          <td>Estrutura metálica de cobertura galvanizada e telhas termoacústicas</td>
+          <td>m²</td>
+          <td class="text-right">310,00</td>
+          <td class="text-right">R$ 165,00</td>
+          <td class="text-right">R$ 51.150,00</td>
+        </tr>
+        <tr>
+          <td>04.01</td>
+          <td>Instalações hidrossanitárias prediais embutidas para creche tipo 2</td>
+          <td>cj</td>
+          <td class="text-right">1,00</td>
+          <td class="text-right">R$ 25.450,00</td>
+          <td class="text-right">R$ 25.450,00</td>
+        </tr>
+        <tr class="total-row">
+          <td colspan="5">VALOR TOTAL DESTA 3ª MEDIÇÃO (BM-03)</td>
+          <td class="text-right highlight">R$ 145.200,00</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Parecer da Fiscalização Técnica de Engenharia -->
+    <div class="parecer-box">
+      <div class="parecer-title">🔍 Laudo Técnico de Fiscalização e Vistoria In Loco</div>
+      <p style="margin: 0; line-height: 1.5;">
+        Atestamos que os serviços acima relacionados foram devidamente executados pela contratada <strong>Construtora Alvorada Ltda</strong>, em rigorosa conformidade com o Projeto Básico, Especificações Técnicas do FNDE e Planilha Orçamentária SINAPI. O percentual físico acumulado atinge <strong>34,0%</strong> do cronograma físico-financeiro. Atestamos a aptidão da presente medição para inserção no sistema Transferegov e autorização de emissão da respectiva Nota Fiscal de prestação de serviços para liquidação (Fase 05).
+      </p>
+    </div>
+
+    <!-- Assinaturas Técnicas -->
+    <div class="signatures">
+      <div>
+        <div class="sig-line">
+          <div class="sig-name">Eng. Roberto Farias</div>
+          <div class="sig-role">Responsável Técnico • Construtora Alvorada</div>
+          <div class="sig-role">CREA-PB nº 16.482-D | ART 2026048192</div>
+        </div>
+      </div>
+      <div>
+        <div class="sig-line">
+          <div class="sig-name">Eng. Carlos Mendes</div>
+          <div class="sig-role">Fiscal Municipal de Obras • SMOP Patos-PB</div>
+          <div class="sig-role">CREA-PB nº 12.940-D | Matrícula 84.102</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rodapé Técnico com Hash e Timestamp -->
+    <div class="footer-stamp">
+      <span>Autenticador GovFlow ID: <code>GF-BM03-914250-2026-F04</code></span>
+      <span>Assinado digitalmente conforme MP 2.200-2/2001 • ICP-Brasil</span>
+      <span>Patos-PB, 25 de Setembro de 2026</span>
+    </div>
+
+  </div>
+
+</body>
+</html>

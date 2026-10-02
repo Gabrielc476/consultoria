@@ -344,3 +344,103 @@ def test_schema_coercion_handles_null_retencoes_and_optional_fields():
     assert extraction.numero_empenho is None
     assert extraction.valor_bruto.valor == "500.00"
 
+
+def test_classify_remetente_novo_direciona_triagem():
+    settings = Settings(GEMINI_API_KEY="test-key")
+    pipeline = DocumentPipeline(
+        settings=settings,
+        storage=FakeStorage(),
+        llm_strategy_factory=lambda: None,
+    )
+    event = _event()
+    event.payload.remetente_novo = True
+    event.payload.sender_phone = "+5583977775555"
+    event.payload.sender_name = "Fiscal Desconhecido"
+    event.payload.convenios_candidatos = []
+
+    extraido = _build_sample_extraido(event)
+    classificado = pipeline.classify(event, extraido)
+
+    assert classificado.payload.direcionar_triagem is True
+    assert classificado.payload.confidence_score <= 0.90
+    assert "Remetente novo" in classificado.payload.motivo_ambiguidade
+    assert classificado.payload.remetente_novo is True
+
+
+def test_classify_single_candidate_alta_confianca():
+    settings = Settings(GEMINI_API_KEY="test-key")
+    pipeline = DocumentPipeline(
+        settings=settings,
+        storage=FakeStorage(),
+        llm_strategy_factory=lambda: None,
+    )
+    event = _event()
+    cid = uuid4()
+    pid = uuid4()
+    event.payload.remetente_novo = False
+    event.payload.convenios_candidatos = [
+        {"convenioId": str(cid), "prefeituraId": str(pid), "papelEspecifico": "FISCAL", "principal": True}
+    ]
+
+    extraido = _build_sample_extraido(event)
+    classificado = pipeline.classify(event, extraido)
+
+    assert classificado.payload.direcionar_triagem is False
+    assert classificado.payload.confidence_score > 0.90
+    assert classificado.payload.convenio_id == cid
+    assert classificado.payload.motivo_ambiguidade is None
+
+
+def test_classify_contexto_conversa_bm_fase_4():
+    settings = Settings(GEMINI_API_KEY="test-key")
+    pipeline = DocumentPipeline(
+        settings=settings,
+        storage=FakeStorage(),
+        llm_strategy_factory=lambda: None,
+    )
+    event = _event()
+    cid = uuid4()
+    pid = uuid4()
+    event.payload.remetente_novo = False
+    event.payload.convenios_candidatos = [
+        {"convenioId": str(cid), "prefeituraId": str(pid), "papelEspecifico": "FISCAL", "principal": True}
+    ]
+    event.payload.historico_recente_conversa = [
+        {"tipo": "AUDIO", "audioTranscription": "Segue a segunda medição da creche municipal", "texto": None}
+    ]
+
+    extraido = _build_sample_extraido(event)
+    classificado = pipeline.classify(event, extraido)
+
+    assert classificado.payload.fase_ciclo_vida == "04_EXECUCAO_FISICA_E_MEDICOES"
+    assert classificado.payload.categoria_documento == "BOLETIM_MEDICAO"
+    assert classificado.payload.confidence_score >= 0.95
+
+
+def _build_sample_extraido(event):
+    from decimal import Decimal
+    from domain.schemas.events import DocumentoExtraidoEvent, DocumentoExtraidoPayload, ProcessamentoMeta, ValidacaoMatematicaResult
+    return DocumentoExtraidoEvent(
+        tenantId=event.tenant_id,
+        correlationId=event.correlation_id,
+        payload=DocumentoExtraidoPayload(
+            documentoId=event.payload.documento_id,
+            s3Bucket=event.payload.s3_bucket,
+            s3Key=event.payload.s3_key,
+            processamento=ProcessamentoMeta(
+                status="SUCESSO",
+                provider="GEMINI",
+                modelo="test",
+                fallbackUsado=False,
+                latenciaMs=100,
+            ),
+            extracao={"descricao_servico": {"valor": "Construção Creche"}},
+            validacaoMatematica=ValidacaoMatematicaResult(
+                totalRetencoes=Decimal("0.00"),
+                consistente=True,
+            ),
+            confidenceScoreGeral=0.98,
+        ),
+    )
+
+

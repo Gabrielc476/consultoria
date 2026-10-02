@@ -49,6 +49,32 @@ export const API_ENDPOINTS = {
     UPLOAD_TERMO_RETIRADA: (id: string) => `${API_BASE_URL}/convenios/${id}/clausula-suspensiva/termo-retirada`,
     DOWNLOAD_DOCUMENTO: (id: string, tipo: string) => `${API_BASE_URL}/convenios/${id}/clausula-suspensiva/documentos/${tipo}/download`,
     DOWNLOAD_TERMO_RETIRADA: (id: string) => `${API_BASE_URL}/convenios/${id}/clausula-suspensiva/termo-retirada/download`,
+  },
+  FICHEIRO: {
+    OBTER: (convenioId: string) => `${API_BASE_URL}/convenios/${convenioId}/ficheiro`,
+    FASES_DOCUMENTOS: (convenioId: string, fase: string) => `${API_BASE_URL}/convenios/${convenioId}/ficheiro/fases/${fase}`,
+    UPLOAD: (convenioId: string) => `${API_BASE_URL}/convenios/${convenioId}/ficheiro/upload`,
+    DOWNLOAD_ZIP_CONVENIO: (convenioId: string) => `${API_BASE_URL}/convenios/${convenioId}/ficheiro/download-zip`,
+    DOWNLOAD_ZIP_FASE: (convenioId: string, fase: string) => `${API_BASE_URL}/convenios/${convenioId}/ficheiro/fases/${fase}/download-zip`,
+    PREVIEW: (documentoId: string) => `${API_BASE_URL}/documentos/${documentoId}/preview`,
+    MOVER: (documentoId: string) => `${API_BASE_URL}/documentos/${documentoId}/mover`,
+    EXCLUIR: (documentoId: string) => `${API_BASE_URL}/documentos/${documentoId}`,
+    HISTORICO_AUDITORIA: (documentoId: string) => `${API_BASE_URL}/documentos/${documentoId}/historico-auditoria`,
+  },
+  TRIAGEM: {
+    PENDENTES: `${API_BASE_URL}/triagem/pendentes`,
+    CADASTRAR_CONTATO_E_ARQUIVAR: (inboxId: string) => `${API_BASE_URL}/triagem/${inboxId}/cadastrar-contato-e-arquivar`,
+    CONFIRMAR_ARQUIVAMENTO: (inboxId: string) => `${API_BASE_URL}/triagem/${inboxId}/confirmar-arquivamento`,
+    IGNORAR: (inboxId: string) => `${API_BASE_URL}/triagem/${inboxId}/ignorar`,
+  },
+  CONTATOS: {
+    BASE: `${API_BASE_URL}/contatos`,
+  },
+  WHATSAPP: {
+    CHATS_RECENTES: `${API_BASE_URL}/whatsapp/chats-recentes`,
+    MENSAGENS: (phone: string) => `${API_BASE_URL}/whatsapp/conversas/${phone}/mensagens`,
+    SINCRONIZAR_HISTORICO: (phone: string) => `${API_BASE_URL}/whatsapp/conversas/${phone}/sincronizar-historico`,
+    ENVIAR: (phone: string) => `${API_BASE_URL}/whatsapp/conversas/${phone}/enviar`,
   }
 };
 

@@ -5,6 +5,7 @@ import { MunicipioContextService } from '../../context/municipio-context.service
 import { ConvenioContextService } from '../../../features/convenios/services/convenio-context.service';
 import { AuthService } from '../../auth/auth.service';
 import { CadastrarPrefeituraModalComponent } from '../../components/cadastrar-prefeitura-modal/cadastrar-prefeitura-modal.component';
+import { NotificacaoDocumentoService } from '../../services/notificacao-documento.service';
 
 /**
  * =========================================================================
@@ -158,19 +159,77 @@ import { CadastrarPrefeituraModalComponent } from '../../components/cadastrar-pr
           <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
         </button>
 
-        <!-- Sininho de Notificações com Badge -->
-        <button
-          type="button"
-          (click)="irParaRadar()"
-          class="relative p-2 rounded-lg text-gov-slate-400 hover:text-white hover:bg-white/5 transition-colors focus:outline-none cursor-pointer"
-          title="Ver Alertas e Prazos Críticos"
-        >
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
-          </svg>
-          <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500"></span>
-        </button>
+        <!-- Sininho de Notificações com Badge e Dropdown -->
+        <div class="relative">
+          <button
+            type="button"
+            (click)="notificacoes.alternarDropdown()"
+            class="relative p-2 rounded-lg text-gov-slate-400 hover:text-white hover:bg-white/5 transition-colors focus:outline-none cursor-pointer"
+            title="Notificações e novos documentos"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+            </svg>
+            @if (totalNaoLidasNotificacoes() > 0) {
+              <span class="absolute top-1 right-1 px-1 min-w-[16px] h-4 rounded-full bg-rose-500 text-white font-bold text-[9px] flex items-center justify-center animate-pulse">
+                {{ totalNaoLidasNotificacoes() }}
+              </span>
+            }
+          </button>
+
+          <!-- Dropdown Flutuante de Notificações -->
+          @if (notificacoes.dropdownAberto()) {
+            <div class="absolute right-0 mt-2 w-80 sm:w-96 bg-[#111827] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden divide-y divide-white/5 animate-in fade-in duration-100">
+              <div class="px-4 py-2.5 bg-gov-slate-900 flex items-center justify-between">
+                <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                  <span>🔔</span> Notificações do Sistema
+                </span>
+                <button
+                  type="button"
+                  (click)="notificacoes.marcarTodasComoLidas()"
+                  class="text-[10px] text-gov-cobalt-400 hover:text-gov-cobalt-300 font-medium cursor-pointer"
+                >
+                  Marcar lidas
+                </button>
+              </div>
+
+              <div class="max-h-80 overflow-y-auto divide-y divide-gov-slate-800/60">
+                @for (item of notificacoes.notificacoes(); track item.id) {
+                  <div
+                    (click)="notificacoes.abrirDocumento(item)"
+                    class="p-3 hover:bg-white/5 transition-colors cursor-pointer flex items-start gap-2.5"
+                    [ngClass]="{ 'bg-gov-cobalt-950/30': !item.lida }"
+                  >
+                    <span class="text-base shrink-0">
+                      {{ item.tipo === 'ESTEIRA' ? '📄' : '📥' }}
+                    </span>
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center justify-between gap-1">
+                        <span class="text-xs font-semibold text-white truncate">{{ item.titulo }}</span>
+                        <span class="text-[9px] text-gov-slate-400 font-mono shrink-0">
+                          {{ item.horario | date:'HH:mm' }}
+                        </span>
+                      </div>
+                      <p class="text-[11px] text-gov-slate-300 line-clamp-2 mt-0.5">{{ item.descricao }}</p>
+                      @if (!item.lida) {
+                        <span class="inline-block mt-1 text-[9px] font-semibold text-gov-cobalt-400">
+                          Clique para auditar →
+                        </span>
+                      }
+                    </div>
+                  </div>
+                }
+
+                @if (notificacoes.notificacoes().length === 0) {
+                  <div class="p-6 text-center text-xs text-gov-slate-400">
+                    Nenhuma notificação recente.
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
 
         <!-- Divisor Sutil -->
         <div class="w-px h-6 bg-white/10"></div>
@@ -209,6 +268,11 @@ export class HeaderComponent {
   readonly convenioCtx = inject(ConvenioContextService);
   readonly auth = inject(AuthService);
   readonly router = inject(Router);
+  readonly notificacoes = inject(NotificacaoDocumentoService);
+
+  readonly totalNaoLidasNotificacoes = computed(() => {
+    return this.notificacoes.notificacoes().filter(n => !n.lida).length;
+  });
 
   readonly menuMunicipiosAberto = signal(false);
   readonly modalNovaPrefeituraAberto = signal(false);

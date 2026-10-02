@@ -10,6 +10,7 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.S3Configuration;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 import java.net.URI;
 
@@ -18,6 +19,9 @@ public class S3ClientConfig {
 
     @Value("${aws.s3.endpoint:http://localhost:9000}")
     private String endpoint;
+
+    @Value("${aws.s3.presigned-endpoint:${aws.s3.endpoint:http://localhost:9000}}")
+    private String presignedEndpoint;
 
     @Value("${aws.s3.region:us-east-1}")
     private String region;
@@ -44,5 +48,23 @@ public class S3ClientConfig {
                         .build());
 
         return builder.build();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public S3Presigner s3Presigner() {
+        String targetEndpoint = (presignedEndpoint != null && !presignedEndpoint.isBlank())
+                ? presignedEndpoint
+                : endpoint;
+
+        return S3Presigner.builder()
+                .region(Region.of(region))
+                .endpointOverride(URI.create(targetEndpoint))
+                .credentialsProvider(StaticCredentialsProvider.create(
+                        AwsBasicCredentials.create(accessKey, secretKey)))
+                .serviceConfiguration(S3Configuration.builder()
+                        .pathStyleAccessEnabled(pathStyleAccess)
+                        .build())
+                .build();
     }
 }
