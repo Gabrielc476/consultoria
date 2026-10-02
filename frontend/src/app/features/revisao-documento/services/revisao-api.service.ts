@@ -62,4 +62,12 @@ export class RevisaoApiService {
       responseType: 'blob'
     });
   }
+
+  public enviarParaTriagem(id: string, motivo?: string): Observable<Documento> {
+    let params = new HttpParams();
+    if (motivo) {
+      params = params.set('motivo', motivo);
+    }
+    return this.http.put<Documento>(API_ENDPOINTS.DOCUMENTOS.ENVIAR_TRIAGEM(id), null, { params });
+  }
 }

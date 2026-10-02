@@ -63,6 +63,54 @@ import { ToastService } from '../../../../core/ui/toast.service';
           </div>
 
           <div class="flex items-center gap-2 shrink-0">
+            <!-- Controles Específicos para Imagem -->
+            <div *ngIf="isImage() && rawUrl()" class="flex items-center gap-1 bg-white/5 p-1 rounded-lg border border-white/10">
+              <button
+                type="button"
+                (click)="rotacionar(-90)"
+                class="px-2 py-1 rounded hover:bg-white/10 text-slate-300 hover:text-white text-xs font-bold transition-colors cursor-pointer"
+                title="Girar 90° Anti-horário"
+              >
+                ↺
+              </button>
+              <button
+                type="button"
+                (click)="rotacionar(90)"
+                class="px-2 py-1 rounded hover:bg-white/10 text-slate-300 hover:text-white text-xs font-bold transition-colors cursor-pointer"
+                title="Girar 90° Horário"
+              >
+                ↻
+              </button>
+              <div class="h-3 w-px bg-white/10 mx-0.5"></div>
+              <button
+                type="button"
+                (click)="ajustarZoom(-0.15)"
+                class="px-2 py-1 rounded hover:bg-white/10 text-slate-300 hover:text-white text-xs font-bold transition-colors cursor-pointer"
+                title="Reduzir Zoom"
+              >
+                -
+              </button>
+              <span class="font-mono text-xs text-slate-300 min-w-[36px] text-center">
+                {{ Math.round(zoomLevel() * 100) }}%
+              </span>
+              <button
+                type="button"
+                (click)="ajustarZoom(0.15)"
+                class="px-2 py-1 rounded hover:bg-white/10 text-slate-300 hover:text-white text-xs font-bold transition-colors cursor-pointer"
+                title="Aumentar Zoom"
+              >
+                +
+              </button>
+              <button
+                type="button"
+                (click)="resetarVisao()"
+                class="px-2 py-1 rounded hover:bg-white/10 text-slate-400 hover:text-white text-[11px] transition-colors cursor-pointer"
+                title="Ajustar e Centralizar"
+              >
+                Ajustar
+              </button>
+            </div>
+
             <!-- Botão Nova Aba -->
             <a
               *ngIf="rawUrl()"
@@ -157,16 +205,40 @@ import { ToastService } from '../../../../core/ui/toast.service';
               title="Visualizador de Documento GovFlow"
             ></iframe>
 
-            <!-- Renderizador de Imagem Inline -->
+            <!-- Renderizador de Imagem Inline com Rotação, Zoom e Pan -->
             <div
               *ngIf="!carregandoPreview() && !erroPreview() && isImage() && rawUrl()"
-              class="w-full h-full flex items-center justify-center p-4 overflow-auto"
+              class="relative w-full h-full flex items-center justify-center overflow-hidden p-2"
+              [class.cursor-grab]="!isDragging()"
+              [class.cursor-grabbing]="isDragging()"
+              (mousedown)="iniciarArrasto($event)"
+              (mousemove)="arrastar($event)"
+              (mouseup)="finalizarArrasto()"
+              (mouseleave)="finalizarArrasto()"
+              (wheel)="aoRolarMouse($event)"
+              (dblclick)="alternarZoomDuplo($event)"
             >
-              <img
-                [src]="rawUrl()"
-                [alt]="documento.nomeArquivoOriginal"
-                class="max-w-full max-h-full object-contain rounded-lg shadow-2xl border border-white/10"
-              />
+              <div
+                class="relative transition-transform duration-75 select-none inline-block shadow-2xl rounded-lg border border-white/10"
+                [style.transform]="transformImageStyle()"
+                [style.transform-origin]="'center center'"
+              >
+                <img
+                  [src]="rawUrl()"
+                  [alt]="documento.nomeArquivoOriginal"
+                  class="max-w-none block select-none pointer-events-none rounded max-h-[80vh]"
+                />
+              </div>
+
+              <!-- Dica Operacional Flutuante -->
+              <div class="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-[10px] text-slate-400 font-medium pointer-events-none flex items-center gap-2 shadow-lg z-20">
+                <span>🖱️ Arraste para mover</span>
+                <span>•</span>
+                <span>🔍 Roda amplia/reduz</span>
+                <span>•</span>
+                <span>⚡ 2x clique zoom</span>
+                <span *ngIf="rotacao() !== 0" class="text-amber-400 font-mono font-bold">• {{ rotacao() }}°</span>
+              </div>
             </div>
 
             <!-- Arquivo não visualizável inline -->
@@ -474,22 +546,101 @@ export class DocumentoPreviewModalComponent implements OnInit {
     }
   }
 
-  isPdf(): boolean {
+  readonly Math = Math;
+  readonly zoomLevel = signal<number>(1.0);
+  readonly rotacao = signal<number>(0);
+  readonly panX = signal<number>(0);
+  readonly panY = signal<number>(0);
+  readonly isDragging = signal<boolean>(false);
+  private dragStartX = 0;
+  private dragStartY = 0;
+  private initialPanX = 0;
+  private initialPanY = 0;
+
+  isImage(): boolean {
     const ct = this.documento?.contentType?.toLowerCase() || '';
     const nome = this.documento?.nomeArquivoOriginal?.toLowerCase() || '';
-    return ct.includes('pdf') || nome.endsWith('.pdf');
+    return ct.startsWith('image/') ||
+      nome.endsWith('.png') ||
+      nome.endsWith('.jpg') ||
+      nome.endsWith('.jpeg') ||
+      nome.endsWith('.webp') ||
+      nome.endsWith('.bmp') ||
+      nome.endsWith('.svg');
   }
 
   isHtml(): boolean {
+    if (this.isImage()) return false;
     const ct = this.documento?.contentType?.toLowerCase() || '';
     const nome = this.documento?.nomeArquivoOriginal?.toLowerCase() || '';
     return ct.includes('html') || nome.endsWith('.html') || nome.endsWith('.htm');
   }
 
-  isImage(): boolean {
+  isPdf(): boolean {
+    if (this.isImage() || this.isHtml()) return false;
     const ct = this.documento?.contentType?.toLowerCase() || '';
     const nome = this.documento?.nomeArquivoOriginal?.toLowerCase() || '';
-    return ct.startsWith('image/') || nome.endsWith('.png') || nome.endsWith('.jpg') || nome.endsWith('.jpeg') || nome.endsWith('.webp');
+    return ct.includes('pdf') || nome.endsWith('.pdf');
+  }
+
+  rotacionar(delta: number): void {
+    this.rotacao.update(r => (r + delta + 360) % 360);
+  }
+
+  resetarRotacao(): void {
+    this.rotacao.set(0);
+  }
+
+  ajustarZoom(delta: number): void {
+    this.zoomLevel.update(z => Math.max(0.3, Math.min(4.0, Math.round((z + delta) * 100) / 100)));
+  }
+
+  resetarVisao(): void {
+    this.zoomLevel.set(1.0);
+    this.rotacao.set(0);
+    this.panX.set(0);
+    this.panY.set(0);
+  }
+
+  iniciarArrasto(e: MouseEvent): void {
+    if (e.button !== 0) return;
+    this.isDragging.set(true);
+    this.dragStartX = e.clientX;
+    this.dragStartY = e.clientY;
+    this.initialPanX = this.panX();
+    this.initialPanY = this.panY();
+    e.preventDefault();
+  }
+
+  arrastar(e: MouseEvent): void {
+    if (!this.isDragging()) return;
+    this.panX.set(this.initialPanX + (e.clientX - this.dragStartX));
+    this.panY.set(this.initialPanY + (e.clientY - this.dragStartY));
+  }
+
+  finalizarArrasto(): void {
+    this.isDragging.set(false);
+  }
+
+  aoRolarMouse(e: WheelEvent): void {
+    if (!this.isImage()) return;
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 0.15 : -0.15;
+    this.ajustarZoom(delta);
+  }
+
+  alternarZoomDuplo(e: MouseEvent): void {
+    if (!this.isImage()) return;
+    e.preventDefault();
+    if (this.zoomLevel() > 1.2) {
+      this.resetarVisao();
+    } else {
+      this.zoomLevel.set(2.0);
+    }
+  }
+
+  transformImageStyle(): string {
+    return `translate(${this.panX()}px, ${this.panY()}px) scale(${this.zoomLevel()}) rotate(${this.rotacao()}deg)`;
   }
 
   emAnaliseIA(): boolean {

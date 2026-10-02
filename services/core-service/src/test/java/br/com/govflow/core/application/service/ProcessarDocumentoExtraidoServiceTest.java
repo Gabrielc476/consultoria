@@ -33,6 +33,9 @@ class ProcessarDocumentoExtraidoServiceTest {
     @Mock
     private DocumentoRepositoryPort documentoRepository;
 
+    @Mock
+    private br.com.govflow.core.infrastructure.adapter.out.persistence.repository.SpringDataTriagemInboxRepository triagemInboxRepository;
+
     @InjectMocks
     private ProcessarDocumentoExtraidoService service;
 

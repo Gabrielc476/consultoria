@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { TriagemService } from '../../services/triagem.service';
 import { TriagemItem } from '../../model/triagem.model';
 import { CadastrarContatoDrawerComponent } from '../../components/cadastrar-contato-drawer/cadastrar-contato-drawer.component';
@@ -158,22 +159,35 @@ import { ToastService } from '../../../../core/ui/toast.service';
               <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 text-xs">
                 
                 <!-- Coluna 1: Documento Anexo -->
-                <div class="p-3.5 rounded-xl bg-[#0A0E17] border border-white/5 space-y-2">
-                  <div class="flex items-center justify-between">
-                    <span class="text-gov-slate-400 font-semibold text-[11px] uppercase tracking-wider">Documento Anexo</span>
-                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-gov-slate-300 border border-white/5">
-                      {{ formatarTamanho(item.documentoTamanhoBytes) }}
+                <div class="p-3.5 rounded-xl bg-[#0A0E17] border border-white/5 space-y-2 flex flex-col justify-between">
+                  <div>
+                    <div class="flex items-center justify-between">
+                      <span class="text-gov-slate-400 font-semibold text-[11px] uppercase tracking-wider">Documento Anexo</span>
+                      <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-gov-slate-300 border border-white/5">
+                        {{ formatarTamanho(item.documentoTamanhoBytes) }}
+                      </span>
+                    </div>
+                    <div class="flex items-center gap-2 text-white font-medium mt-1">
+                      <span class="text-base">{{ isImageItem(item) ? '🖼️' : '📄' }}</span>
+                      <span class="truncate text-xs" [title]="item.documentoNomeOriginal || 'Arquivo'">
+                        {{ item.documentoNomeOriginal || 'Documento sem nome' }}
+                      </span>
+                    </div>
+                    <span class="text-[10px] font-mono text-gov-slate-500 block truncate mt-0.5">
+                      {{ item.documentoContentType || 'application/octet-stream' }}
                     </span>
                   </div>
-                  <div class="flex items-center gap-2 text-white font-medium">
-                    <span class="text-base">📄</span>
-                    <span class="truncate" [title]="item.documentoNomeOriginal || 'Arquivo'">
-                      {{ item.documentoNomeOriginal || 'Documento sem nome' }}
-                    </span>
-                  </div>
-                  <span class="text-[10px] font-mono text-gov-slate-500 block truncate">
-                    MIME: {{ item.documentoContentType || 'application/octet-stream' }}
-                  </span>
+
+                  @if (item.documentoId) {
+                    <button
+                      type="button"
+                      (click)="abrirPreview(item)"
+                      class="w-full py-1.5 px-2 rounded-lg bg-gov-cobalt-600/20 hover:bg-gov-cobalt-600/35 text-gov-cobalt-300 hover:text-white border border-gov-cobalt-500/30 text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer mt-2"
+                    >
+                      <span>👁️</span>
+                      <span>Visualizar {{ isImageItem(item) ? 'Foto/Imagem' : 'Documento' }}</span>
+                    </button>
+                  }
                 </div>
 
                 <!-- Coluna 2: Trecho da Conversa / Áudio Transcrito -->
@@ -278,6 +292,140 @@ import { ToastService } from '../../../../core/ui/toast.service';
         </div>
       }
 
+      <!-- Modal de Pré-visualização do Arquivo na Triagem -->
+      @if (itemEmPreview(); as item) {
+        <div
+          class="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-black/85 backdrop-blur-md select-none font-sans overflow-hidden animate-in fade-in duration-200"
+          (click)="fecharPreview()"
+        >
+          <div
+            class="bg-[#111827] border border-white/10 rounded-2xl w-full max-w-5xl h-[88vh] flex flex-col shadow-2xl overflow-hidden"
+            (click)="$event.stopPropagation()"
+          >
+            <!-- Header do Modal -->
+            <header class="px-5 py-3 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+              <div class="flex items-center gap-3 min-w-0">
+                <span class="text-xl">{{ isImageItem(item) ? '🖼️' : '📄' }}</span>
+                <div class="truncate">
+                  <h3 class="text-sm font-bold text-white truncate max-w-md">
+                    {{ item.documentoNomeOriginal || 'Arquivo sem nome' }}
+                  </h3>
+                  <p class="text-[11px] text-gov-slate-400">
+                    Enviado por <span class="text-white">{{ item.senderName || item.phoneNumber }}</span> em {{ formatarData(item.createdAt) }}
+                  </p>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2">
+                @if (isImageItem(item)) {
+                  <div class="flex items-center gap-1 bg-white/5 p-1 rounded-lg border border-white/10">
+                    <button
+                      type="button"
+                      (click)="rotacionarPreview(-90)"
+                      class="px-2 py-0.5 rounded hover:bg-white/10 text-slate-300 text-xs font-bold transition-colors cursor-pointer"
+                      title="Girar 90° Anti-horário"
+                    >
+                      ↺
+                    </button>
+                    <button
+                      type="button"
+                      (click)="rotacionarPreview(90)"
+                      class="px-2 py-0.5 rounded hover:bg-white/10 text-slate-300 text-xs font-bold transition-colors cursor-pointer"
+                      title="Girar 90° Horário"
+                    >
+                      ↻
+                    </button>
+                    <div class="h-3 w-px bg-white/10 mx-0.5"></div>
+                    <button
+                      type="button"
+                      (click)="ajustarZoomPreview(-0.15)"
+                      class="px-2 py-0.5 rounded hover:bg-white/10 text-slate-300 text-xs font-bold transition-colors cursor-pointer"
+                      title="Reduzir Zoom"
+                    >
+                      -
+                    </button>
+                    <span class="font-mono text-xs text-slate-300 min-w-[36px] text-center">
+                      {{ Math.round(zoomPreview() * 100) }}%
+                    </span>
+                    <button
+                      type="button"
+                      (click)="ajustarZoomPreview(0.15)"
+                      class="px-2 py-0.5 rounded hover:bg-white/10 text-slate-300 text-xs font-bold transition-colors cursor-pointer"
+                      title="Aumentar Zoom"
+                    >
+                      +
+                    </button>
+                    <button
+                      type="button"
+                      (click)="resetarVisaoPreview()"
+                      class="px-2 py-0.5 rounded hover:bg-white/10 text-slate-400 text-[11px] transition-colors cursor-pointer"
+                      title="Ajustar e Centralizar"
+                    >
+                      Ajustar
+                    </button>
+                  </div>
+                }
+
+                <a
+                  [href]="obterUrlConteudo(item)"
+                  target="_blank"
+                  class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-medium border border-white/10 transition-colors"
+                >
+                  Abrir Original ↗
+                </a>
+
+                <button
+                  type="button"
+                  (click)="fecharPreview()"
+                  class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+            </header>
+
+            <!-- Corpo do Modal -->
+            <main class="flex-1 bg-[#080d1a] relative overflow-hidden flex items-center justify-center p-3">
+              @if (isImageItem(item)) {
+                <div
+                  class="relative w-full h-full flex items-center justify-center overflow-hidden"
+                  [class.cursor-grab]="!isDraggingPreview()"
+                  [class.cursor-grabbing]="isDraggingPreview()"
+                  (mousedown)="iniciarArrastoPreview($event)"
+                  (mousemove)="arrastarPreview($event)"
+                  (mouseup)="finalizarArrastoPreview()"
+                  (mouseleave)="finalizarArrastoPreview()"
+                >
+                  <div
+                    class="relative transition-transform duration-75 select-none inline-block shadow-2xl rounded-lg border border-white/10"
+                    [style.transform]="transformPreviewStyle()"
+                    [style.transform-origin]="'center center'"
+                  >
+                    <img
+                      [src]="obterUrlConteudo(item)"
+                      [alt]="item.documentoNomeOriginal"
+                      class="max-w-none block select-none pointer-events-none rounded max-h-[75vh]"
+                    />
+                  </div>
+
+                  <!-- Dica -->
+                  <div class="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-[10px] text-slate-400 font-medium pointer-events-none flex items-center gap-2 shadow-lg z-20">
+                    <span>🖱️ Arraste para mover</span>
+                    <span *ngIf="rotacaoPreview() !== 0" class="text-amber-400 font-mono font-bold">• {{ rotacaoPreview() }}°</span>
+                  </div>
+                </div>
+              } @else {
+                <iframe
+                  [src]="obterSafeUrl(item)"
+                  class="w-full h-full rounded-xl border border-white/10 bg-white"
+                  title="Pré-visualização do Documento"
+                ></iframe>
+              }
+            </main>
+          </div>
+        </div>
+      }
+
       <!-- Componente Quick Drawer de Cadastro de Contato Lateral -->
       <app-cadastrar-contato-drawer
         [item]="itemSelecionado()"
@@ -290,13 +438,27 @@ import { ToastService } from '../../../../core/ui/toast.service';
   `
 })
 export class TriagemInboxPageComponent implements OnInit, OnDestroy {
+  readonly Math = Math;
   readonly triagemService = inject(TriagemService);
   private readonly toast = inject(ToastService);
+  private readonly sanitizer = inject(DomSanitizer);
   private timer: any = null;
 
   readonly termoBusca = signal<string>('');
   readonly itemSelecionado = signal<TriagemItem | null>(null);
   readonly drawerAberto = signal<boolean>(false);
+
+  // Estados de Pré-visualização Inline
+  readonly itemEmPreview = signal<TriagemItem | null>(null);
+  readonly zoomPreview = signal<number>(1.0);
+  readonly rotacaoPreview = signal<number>(0);
+  readonly panPreviewX = signal<number>(0);
+  readonly panPreviewY = signal<number>(0);
+  readonly isDraggingPreview = signal<boolean>(false);
+  private dragPreviewStartX = 0;
+  private dragPreviewStartY = 0;
+  private initialPanPreviewX = 0;
+  private initialPanPreviewY = 0;
 
   readonly itensFiltrados = computed(() => {
     const termo = this.termoBusca().toLowerCase().trim();
@@ -408,5 +570,73 @@ export class TriagemInboxPageComponent implements OnInit, OnDestroy {
   formatarFase(fase?: string): string {
     if (!fase) return '04 - Execução Física e Medições';
     return fase.replace(/_/g, ' ');
+  }
+
+  abrirPreview(item: TriagemItem): void {
+    this.itemEmPreview.set(item);
+    this.resetarVisaoPreview();
+  }
+
+  fecharPreview(): void {
+    this.itemEmPreview.set(null);
+  }
+
+  isImageItem(item: TriagemItem): boolean {
+    const ct = (item.documentoContentType || '').toLowerCase();
+    const nome = (item.documentoNomeOriginal || '').toLowerCase();
+    return ct.startsWith('image/') ||
+      nome.endsWith('.png') ||
+      nome.endsWith('.jpg') ||
+      nome.endsWith('.jpeg') ||
+      nome.endsWith('.webp') ||
+      nome.endsWith('.bmp') ||
+      nome.endsWith('.svg');
+  }
+
+  obterUrlConteudo(item: TriagemItem): string {
+    return `/api/v1/documentos/${item.documentoId}/conteudo`;
+  }
+
+  obterSafeUrl(item: TriagemItem): SafeResourceUrl {
+    return this.sanitizer.bypassSecurityTrustResourceUrl(this.obterUrlConteudo(item));
+  }
+
+  rotacionarPreview(delta: number): void {
+    this.rotacaoPreview.update(r => (r + delta + 360) % 360);
+  }
+
+  ajustarZoomPreview(delta: number): void {
+    this.zoomPreview.update(z => Math.max(0.3, Math.min(4.0, Math.round((z + delta) * 100) / 100)));
+  }
+
+  resetarVisaoPreview(): void {
+    this.zoomPreview.set(1.0);
+    this.rotacaoPreview.set(0);
+    this.panPreviewX.set(0);
+    this.panPreviewY.set(0);
+  }
+
+  iniciarArrastoPreview(e: MouseEvent): void {
+    if (e.button !== 0) return;
+    this.isDraggingPreview.set(true);
+    this.dragPreviewStartX = e.clientX;
+    this.dragPreviewStartY = e.clientY;
+    this.initialPanPreviewX = this.panPreviewX();
+    this.initialPanPreviewY = this.panPreviewY();
+    e.preventDefault();
+  }
+
+  arrastarPreview(e: MouseEvent): void {
+    if (!this.isDraggingPreview()) return;
+    this.panPreviewX.set(this.initialPanPreviewX + (e.clientX - this.dragPreviewStartX));
+    this.panPreviewY.set(this.initialPanPreviewY + (e.clientY - this.dragPreviewStartY));
+  }
+
+  finalizarArrastoPreview(): void {
+    this.isDraggingPreview.set(false);
+  }
+
+  transformPreviewStyle(): string {
+    return `translate(${this.panPreviewX()}px, ${this.panPreviewY()}px) scale(${this.zoomPreview()}) rotate(${this.rotacaoPreview()}deg)`;
   }
 }

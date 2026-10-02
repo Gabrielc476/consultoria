@@ -17,6 +17,7 @@ export const API_ENDPOINTS = {
     APROVAR: (id: string) => `${API_BASE_URL}/documentos/${id}/aprovar`,
     REJEITAR: (id: string) => `${API_BASE_URL}/documentos/${id}/rejeitar`,
     AUDITORIA: (id: string) => `${API_BASE_URL}/documentos/${id}/auditoria`,
+    ENVIAR_TRIAGEM: (id: string) => `${API_BASE_URL}/documentos/${id}/enviar-triagem`,
   },
   PREFEITURAS: {
     BASE: `${API_BASE_URL}/prefeituras`,

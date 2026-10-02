@@ -649,6 +649,10 @@ export class RevisaoStateService {
             mime = 'image/png';
           } else if (nomeLower.endsWith('.jpg') || nomeLower.endsWith('.jpeg')) {
             mime = 'image/jpeg';
+          } else if (nomeLower.endsWith('.webp')) {
+            mime = 'image/webp';
+          } else if (nomeLower.endsWith('.svg')) {
+            mime = 'image/svg+xml';
           }
         }
         const finalBlob = mime && mime !== blob.type ? new Blob([blob], { type: mime }) : blob;

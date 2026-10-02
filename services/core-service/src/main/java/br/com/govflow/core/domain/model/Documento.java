@@ -377,13 +377,35 @@ public class Documento {
                 || this.status == StatusDocumento.EXCLUIDO;
     }
 
+    public void marcarEmTriagem(String motivo) {
+        this.status = StatusDocumento.EM_TRIAGEM;
+        this.pastaVirtual = "/triagem";
+        this.motivoRejeicao = motivo;
+        this.updatedAt = Instant.now();
+    }
+
+    public void enviarParaConferencia() {
+        this.status = StatusDocumento.EM_CONFERENCIA;
+        this.updatedAt = Instant.now();
+    }
+
     public void registrarExtracaoIA(ExtracaoSugerida extracao, BoundingBoxesData boundingBoxes) {
         if (this.status == StatusDocumento.PRONTO_PARA_TRANSFEREGOV || this.status == StatusDocumento.REJEITADO || this.status == StatusDocumento.EXCLUIDO) {
             throw new DocumentoEstadoInvalidoException(this.status, "Registrar Extração da IA");
         }
         this.extracaoSugerida = extracao;
         this.boundingBoxes = boundingBoxes != null ? boundingBoxes : BoundingBoxesData.empty();
-        this.status = StatusDocumento.EM_CONFERENCIA;
+        
+        boolean baixaConfianca = extracao == null 
+                || extracao.confidenceScoreGeral() < 0.70 
+                || extracao.tipoDocumento() == null;
+
+        if (baixaConfianca) {
+            this.status = StatusDocumento.EM_TRIAGEM;
+            this.pastaVirtual = "/triagem";
+        } else {
+            this.status = StatusDocumento.EM_CONFERENCIA;
+        }
         this.updatedAt = Instant.now();
     }
 

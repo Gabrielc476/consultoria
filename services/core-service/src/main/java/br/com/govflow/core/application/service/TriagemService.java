@@ -183,6 +183,7 @@ public class TriagemService implements TriagemUseCase {
                 doc.setPrefeituraId(convEleito.getPrefeituraId());
                 doc.setFaseCicloVida(fase);
                 doc.setPastaVirtual("/" + fase.getNomePasta());
+                doc.enviarParaConferencia();
                 documentoRepository.salvar(doc);
 
                 DocumentoAuditoria auditoria = DocumentoAuditoria.registrar(
@@ -252,6 +253,7 @@ public class TriagemService implements TriagemUseCase {
                 doc.setPrefeituraId(convenio.getPrefeituraId());
                 doc.setFaseCicloVida(fase);
                 doc.setPastaVirtual("/" + fase.getNomePasta());
+                doc.enviarParaConferencia();
                 documentoRepository.salvar(doc);
 
                 DocumentoAuditoria auditoria = DocumentoAuditoria.registrar(

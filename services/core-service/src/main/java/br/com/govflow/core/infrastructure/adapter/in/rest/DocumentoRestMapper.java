@@ -20,6 +20,20 @@ public class DocumentoRestMapper {
         Map<String, BoundingBoxResponse> boxesResponse = toBoxesResponse(domain.getBoundingBoxes());
         DadosRevisaoResponse revisaoResponse = toRevisaoResponse(domain.getDadosRevisao());
 
+        String effectiveContentType = domain.getContentType();
+        String nome = domain.getNomeArquivoOriginal() != null ? domain.getNomeArquivoOriginal().toLowerCase() : "";
+        if (nome.endsWith(".jpg") || nome.endsWith(".jpeg")) {
+            effectiveContentType = "image/jpeg";
+        } else if (nome.endsWith(".png")) {
+            effectiveContentType = "image/png";
+        } else if (nome.endsWith(".webp")) {
+            effectiveContentType = "image/webp";
+        } else if (nome.endsWith(".html") || nome.endsWith(".htm")) {
+            effectiveContentType = "text/html";
+        } else if (effectiveContentType == null || effectiveContentType.isBlank()) {
+            effectiveContentType = nome.endsWith(".pdf") ? "application/pdf" : "application/octet-stream";
+        }
+
         return new DocumentoResponse(
                 domain.getId(),
                 domain.getTenantId(),
@@ -28,7 +42,7 @@ public class DocumentoRestMapper {
                 domain.getS3Bucket(),
                 domain.getS3Key(),
                 domain.getNomeArquivoOriginal(),
-                domain.getContentType(),
+                effectiveContentType,
                 domain.getTamanhoBytes(),
                 domain.getStatus().name(),
                 domain.getFaseCicloVida() != null ? domain.getFaseCicloVida().name() : null,

@@ -32,19 +32,29 @@ import { AuthService } from '../../../../core/auth/auth.service';
           <p class="text-xs text-gov-slate-400 mt-0.5">Documentos fiscais e medições de obras recebidos via WhatsApp e processados pelo motor de IA multimodal</p>
         </div>
 
-        <button
-          type="button"
-          (click)="carregar()"
-          class="px-3.5 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-semibold text-white border border-white/10 transition-colors inline-flex items-center gap-2"
-        >
-          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-            <path d="M3 3v5h5"/>
-            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-            <path d="M16 21h5v-5"/>
-          </svg>
-          <span>Atualizar Lista</span>
-        </button>
+        <div class="flex items-center gap-2">
+          <a
+            routerLink="/triagem"
+            class="px-3.5 py-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-xs font-semibold text-amber-300 border border-amber-500/30 transition-colors inline-flex items-center gap-1.5 shadow-sm"
+          >
+            <span>📥</span>
+            <span>Caixa de Triagem</span>
+          </a>
+
+          <button
+            type="button"
+            (click)="carregar()"
+            class="px-3.5 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-semibold text-white border border-white/10 transition-colors inline-flex items-center gap-2"
+          >
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+              <path d="M16 21h5v-5"/>
+            </svg>
+            <span>Atualizar Lista</span>
+          </button>
+        </div>
       </div>
 
       <!-- Tabela -->
@@ -110,13 +120,23 @@ import { AuthService } from '../../../../core/auth/auth.service';
                     <app-status-pill [status]="doc.status"></app-status-pill>
                   </td>
                   <td class="py-3.5 px-4 text-right">
-                    <a
-                      [routerLink]="['/documentos', doc.id, 'revisar']"
-                      class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-gov-cobalt-600 hover:bg-gov-cobalt-500 text-white font-semibold transition-colors shadow-sm"
-                    >
-                      <span>Auditar Lado a Lado</span>
-                      <span>→</span>
-                    </a>
+                    <div class="flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        (click)="enviarParaTriagem(doc)"
+                        class="p-1.5 rounded-md bg-white/5 hover:bg-amber-500/15 text-gov-slate-400 hover:text-amber-300 border border-white/5 hover:border-amber-500/30 text-xs transition-colors cursor-pointer"
+                        title="Encaminhar para Caixa de Triagem"
+                      >
+                        📥
+                      </button>
+                      <a
+                        [routerLink]="['/documentos', doc.id, 'revisar']"
+                        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-gov-cobalt-600 hover:bg-gov-cobalt-500 text-white font-semibold transition-colors shadow-sm"
+                      >
+                        <span>Auditar Lado a Lado</span>
+                        <span>→</span>
+                      </a>
+                    </div>
                   </td>
                 </tr>
               }
@@ -124,7 +144,7 @@ import { AuthService } from '../../../../core/auth/auth.service';
               @if (documentos().length === 0 && !carregando()) {
                 <tr>
                   <td colspan="6" class="py-12 text-center text-gov-slate-500">
-                    Nenhum documento encontrado no momento.
+                    Nenhum documento aguardando conferência no momento.
                   </td>
                 </tr>
               }
@@ -164,8 +184,12 @@ export class DocumentosListPageComponent implements OnInit, OnDestroy {
     this.api.listarDocumentos(undefined, 0, 50).subscribe({
       next: (page) => {
         const lista = page.items || page.content || [];
-        // Filtra documentos que ainda estão em análise preliminar pela IA
-        const concluidos = lista.filter(d => d.status !== 'EM_ANALISE_IA' && d.status !== 'RECEBIDO');
+        // Filtra documentos que ainda estão em análise preliminar pela IA ou em Triagem
+        const concluidos = lista.filter(d =>
+          d.status !== 'EM_ANALISE_IA' &&
+          d.status !== 'RECEBIDO' &&
+          d.status !== 'EM_TRIAGEM'
+        );
         this.documentos.set(concluidos);
         if (exibirSpinner) {
           this.carregando.set(false);
@@ -175,6 +199,20 @@ export class DocumentosListPageComponent implements OnInit, OnDestroy {
         if (exibirSpinner) {
           this.carregando.set(false);
         }
+      }
+    });
+  }
+
+  public enviarParaTriagem(doc: Documento): void {
+    const confirmou = confirm(`Deseja transferir "${doc.nomeArquivoOriginal}" da Esteira para a Caixa de Triagem?`);
+    if (!confirmou) return;
+
+    this.api.enviarParaTriagem(doc.id, 'Transferido manualmente pelo auditor na Esteira').subscribe({
+      next: () => {
+        this.carregar(false);
+      },
+      error: (err) => {
+        console.error('Erro ao transferir para triagem:', err);
       }
     });
   }

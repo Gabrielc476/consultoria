@@ -40,17 +40,23 @@ public class DocumentoController {
     private final RejeitarDocumentoUseCase rejeitarUseCase;
     private final ObterArquivoDocumentoUseCase obterArquivoUseCase;
     private final DocumentoRestMapper mapper;
+    private final br.com.govflow.core.application.port.out.DocumentoRepositoryPort documentoRepository;
+    private final br.com.govflow.core.infrastructure.adapter.out.persistence.repository.SpringDataTriagemInboxRepository triagemInboxRepository;
 
     public DocumentoController(ConsultarDocumentoUseCase consultarUseCase,
                                AprovarDocumentoUseCase aprovarUseCase,
                                RejeitarDocumentoUseCase rejeitarUseCase,
                                ObterArquivoDocumentoUseCase obterArquivoUseCase,
-                               DocumentoRestMapper mapper) {
+                               DocumentoRestMapper mapper,
+                               br.com.govflow.core.application.port.out.DocumentoRepositoryPort documentoRepository,
+                               br.com.govflow.core.infrastructure.adapter.out.persistence.repository.SpringDataTriagemInboxRepository triagemInboxRepository) {
         this.consultarUseCase = consultarUseCase;
         this.aprovarUseCase = aprovarUseCase;
         this.rejeitarUseCase = rejeitarUseCase;
         this.obterArquivoUseCase = obterArquivoUseCase;
         this.mapper = mapper;
+        this.documentoRepository = documentoRepository;
+        this.triagemInboxRepository = triagemInboxRepository;
     }
 
     @GetMapping("/{id}")
@@ -191,5 +197,35 @@ public class DocumentoController {
                 .map(mapper::toAuditoriaResponse)
                 .toList();
         return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{id}/enviar-triagem")
+    @Operation(summary = "Encaminhar documento para Caixa de Triagem", description = "Transiciona status para EM_TRIAGEM e cria item na Caixa de Triagem para conferência manual do agente")
+    public ResponseEntity<DocumentoResponse> enviarParaTriagem(
+            @PathVariable UUID id,
+            @RequestParam(required = false) String motivo) {
+
+        Documento doc = consultarUseCase.buscarPorId(id)
+                .orElseThrow(() -> new DocumentoNaoEncontradoException(id));
+
+        doc.marcarEmTriagem(motivo != null ? motivo : "Encaminhado manualmente pelo auditor para a Caixa de Triagem.");
+        Documento salvo = documentoRepository.salvar(doc);
+
+        if (triagemInboxRepository != null && !triagemInboxRepository.existsByDocumentoId(id)) {
+            br.com.govflow.core.infrastructure.adapter.out.persistence.entity.TriagemInboxJpaEntity inbox =
+                    new br.com.govflow.core.infrastructure.adapter.out.persistence.entity.TriagemInboxJpaEntity();
+            inbox.setId(UUID.randomUUID());
+            inbox.setTenantId(salvo.getTenantId());
+            inbox.setDocumentoId(salvo.getId());
+            inbox.setConvenioSugeridoId(salvo.getConvenioId());
+            inbox.setConfidenceScore(salvo.getExtracaoSugerida() != null
+                    ? java.math.BigDecimal.valueOf(salvo.getExtracaoSugerida().confidenceScoreGeral())
+                    : java.math.BigDecimal.ZERO);
+            inbox.setMotivoAmbiguidade(motivo != null ? motivo : "Encaminhado manualmente para triagem pelo analista/auditor.");
+            inbox.setStatus("PENDENTE");
+            triagemInboxRepository.save(inbox);
+        }
+
+        return ResponseEntity.ok(mapper.toResponse(salvo));
     }
 }

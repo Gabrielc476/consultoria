@@ -218,8 +218,12 @@ Processo não bloqueante de exportação em lote (dossiê completo ou pasta de f
 _Avoid_: Download de zip em memória, Compactação estática em disco temporário.
 
 **StatusDocumento**:  
-O estado do ciclo de vida documental na esteira e no Ficheiro Digital (`RECEBIDO`, `EM_ANALISE_IA`, `CLASSIFICADO`, `ARQUIVADO`, `REJEITADO`). Indica aos agentes e consultores o nível de processamento e prontidão do arquivo.  
+O estado do ciclo de vida documental na esteira e no Ficheiro Digital (`RECEBIDO`, `EM_ANALISE_IA`, `EM_TRIAGEM`, `EM_CONFERENCIA`, `PRONTO_PARA_TRANSFEREGOV`, `APROVADO`, `REJEITADO`, `EXCLUIDO`). Indica aos agentes e consultores o nível de processamento e prontidão do arquivo. Documentos com score inferior a 70% ou tipo desconhecido vão compulsoriamente para `EM_TRIAGEM`.  
 _Avoid_: Estado solto, Flag de arquivo.
+
+**VisualizadorImagem**:  
+Mecanismo interativo de visualização de fotografias e digitalizações de celular (JPEG, PNG, WEBP) recebidas via WhatsApp ou upload. Inclui rotação 90° horário/anti-horário para fotos tombadas, zoom responsivo (20% a 400%), arraste manual com cursor grab/grabbing (pan), e filtros visuais de legibilidade (Papel Suave, Alto Contraste, P&B e Invertido) para recibos desbotados ou de baixa qualidade.  
+_Avoid_: Iframe genérico de PDF para fotos, Visualizador estático sem rotação.
 
 **EmAnaliseIA**:  
 O estado transitório ativo no qual o motor de inteligência artificial multimodal (OCR + LLM) está identificando metadados, fase e campos fiscais de um arquivo recém-recebido, permitindo auditoria humana concorrente e exibindo o nome original do arquivo com badge indicador visual.  

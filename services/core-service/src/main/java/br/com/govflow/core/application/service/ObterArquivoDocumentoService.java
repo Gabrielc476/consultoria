@@ -38,14 +38,32 @@ public class ObterArquivoDocumentoService implements ObterArquivoDocumentoUseCas
 
         String bucket = doc.getS3Bucket();
         String s3Key = doc.getS3Key();
-        String contentType = (doc.getContentType() != null && !doc.getContentType().isBlank())
-                ? doc.getContentType()
-                : (doc.getNomeArquivoOriginal() != null && (doc.getNomeArquivoOriginal().endsWith(".html") || doc.getNomeArquivoOriginal().endsWith(".htm"))
-                    ? "text/html"
-                    : "application/pdf");
         String nomeOriginal = (doc.getNomeArquivoOriginal() != null && !doc.getNomeArquivoOriginal().isBlank())
                 ? doc.getNomeArquivoOriginal()
                 : "documento.pdf";
+        String nomeLower = nomeOriginal.toLowerCase();
+
+        String contentType;
+        if (nomeLower.endsWith(".jpg") || nomeLower.endsWith(".jpeg") || (doc.getContentType() != null && doc.getContentType().contains("jpeg"))) {
+            contentType = "image/jpeg";
+        } else if (nomeLower.endsWith(".png") || (doc.getContentType() != null && doc.getContentType().contains("png"))) {
+            contentType = "image/png";
+        } else if (nomeLower.endsWith(".webp") || (doc.getContentType() != null && doc.getContentType().contains("webp"))) {
+            contentType = "image/webp";
+        } else if (nomeLower.endsWith(".gif")) {
+            contentType = "image/gif";
+        } else if (nomeLower.endsWith(".html") || nomeLower.endsWith(".htm") || (doc.getContentType() != null && doc.getContentType().contains("html"))) {
+            contentType = "text/html";
+        } else if (nomeLower.endsWith(".xlsx")) {
+            contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        } else if (nomeLower.endsWith(".pdf") || (doc.getContentType() != null && doc.getContentType().contains("pdf"))) {
+            contentType = "application/pdf";
+        } else if (doc.getContentType() != null && !doc.getContentType().isBlank()) {
+            contentType = doc.getContentType();
+        } else {
+            contentType = "application/octet-stream";
+        }
+
         long tamanho = doc.getTamanhoBytes() != null ? doc.getTamanhoBytes() : 0L;
 
         if (bucket != null && s3Key != null) {
@@ -58,13 +76,28 @@ public class ObterArquivoDocumentoService implements ObterArquivoDocumentoUseCas
         log.warn("Arquivo do documento {} não localizado no bucket {} com chave {}. Gerando payload de contingência.",
                 documentoId, bucket, s3Key);
 
-        if (nomeOriginal.toLowerCase().endsWith(".html") || nomeOriginal.toLowerCase().endsWith(".htm") || "text/html".equalsIgnoreCase(contentType)) {
+        if (nomeLower.endsWith(".html") || nomeLower.endsWith(".htm") || "text/html".equalsIgnoreCase(contentType)) {
             byte[] fallbackHtml = gerarHtmlPlaceholder(doc);
             return new ArquivoConteudo(
                     new ByteArrayInputStream(fallbackHtml),
                     "text/html;charset=UTF-8",
                     nomeOriginal,
                     fallbackHtml.length
+            );
+        }
+
+        if (contentType.startsWith("image/") || nomeLower.endsWith(".jpg") || nomeLower.endsWith(".jpeg") || nomeLower.endsWith(".png") || nomeLower.endsWith(".webp")) {
+            byte[] placeholderSvg = ("<svg xmlns='http://www.w3.org/2000/svg' width='800' height='600' viewBox='0 0 800 600'>" +
+                    "<rect width='800' height='600' fill='#0B132B'/>" +
+                    "<text x='400' y='270' fill='#E0E6ED' font-family='sans-serif' font-size='22' font-weight='bold' text-anchor='middle'>Visualizador de Imagem GovFlow</text>" +
+                    "<text x='400' y='310' fill='#94A3B8' font-family='sans-serif' font-size='14' text-anchor='middle'>" + nomeOriginal + "</text>" +
+                    "<text x='400' y='350' fill='#38BDF8' font-family='sans-serif' font-size='12' text-anchor='middle'>Arquivo recebido via canal digital WhatsApp</text>" +
+                    "</svg>").getBytes(StandardCharsets.UTF_8);
+            return new ArquivoConteudo(
+                    new ByteArrayInputStream(placeholderSvg),
+                    "image/svg+xml",
+                    nomeOriginal,
+                    placeholderSvg.length
             );
         }
 

@@ -139,6 +139,14 @@ public class DocumentoClassificadoListener {
                 );
             }
 
+            if (!altaConfianca) {
+                documento.marcarEmTriagem(event.getEfetivoMotivoAmbiguidade() != null
+                        ? event.getEfetivoMotivoAmbiguidade()
+                        : "Baixa confiança ou ambiguidade na classificação. Encaminhado para a Caixa de Triagem.");
+            } else {
+                documento.enviarParaConferencia();
+            }
+
             Documento salvo = documentoRepository.salvar(documento);
 
             String acaoAuditoria = altaConfianca ? "CLASSIFICACAO_IA" : "ENCAMINHADO_TRIAGEM";
@@ -157,22 +165,25 @@ public class DocumentoClassificadoListener {
             documentoRepository.salvarAuditoria(auditoria);
 
             if (!altaConfianca && triagemInboxRepository != null) {
-                TriagemInboxJpaEntity inbox = new TriagemInboxJpaEntity();
-                inbox.setId(UUID.randomUUID());
-                inbox.setTenantId(tenantId);
-                inbox.setDocumentoId(salvo.getId());
-                inbox.setMensagemInboundId(event.getEfetivoMensagemInboundId());
-                inbox.setConvenioSugeridoId(convenioId);
-                inbox.setFaseSugerida(fase.name());
-                inbox.setConfidenceScore(score);
-                inbox.setMotivoAmbiguidade(event.getEfetivoMotivoAmbiguidade());
-                inbox.setPhoneNumber(event.getEfetivoRemetentePhone());
-                inbox.setSenderName(event.getEfetivoSenderName());
-                inbox.setRemetenteNovo(remetenteNovo);
-                inbox.setConteudoResumo(event.getEfetivoConteudoResumo());
-                inbox.setStatus("PENDENTE");
-                triagemInboxRepository.save(inbox);
-                log.info("Item criado na Caixa de Triagem (inboxId={}, docId={}, score={})", inbox.getId(), docId, score);
+                boolean jaExiste = triagemInboxRepository.existsByDocumentoId(salvo.getId());
+                if (!jaExiste) {
+                    TriagemInboxJpaEntity inbox = new TriagemInboxJpaEntity();
+                    inbox.setId(UUID.randomUUID());
+                    inbox.setTenantId(tenantId);
+                    inbox.setDocumentoId(salvo.getId());
+                    inbox.setMensagemInboundId(event.getEfetivoMensagemInboundId());
+                    inbox.setConvenioSugeridoId(convenioId);
+                    inbox.setFaseSugerida(fase.name());
+                    inbox.setConfidenceScore(score);
+                    inbox.setMotivoAmbiguidade(event.getEfetivoMotivoAmbiguidade());
+                    inbox.setPhoneNumber(event.getEfetivoRemetentePhone());
+                    inbox.setSenderName(event.getEfetivoSenderName());
+                    inbox.setRemetenteNovo(remetenteNovo);
+                    inbox.setConteudoResumo(event.getEfetivoConteudoResumo());
+                    inbox.setStatus("PENDENTE");
+                    triagemInboxRepository.save(inbox);
+                    log.info("Item criado na Caixa de Triagem (inboxId={}, docId={}, score={})", inbox.getId(), docId, score);
+                }
             }
 
             log.info("Documento {} registrado com sucesso no Ficheiro Digital (altaConfianca={}, pasta={})",

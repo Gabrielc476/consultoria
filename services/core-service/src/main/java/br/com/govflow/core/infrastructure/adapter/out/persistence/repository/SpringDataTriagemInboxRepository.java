@@ -18,4 +18,6 @@ public interface SpringDataTriagemInboxRepository extends JpaRepository<TriagemI
     Optional<TriagemInboxJpaEntity> findByIdAndTenantId(UUID id, UUID tenantId);
 
     long countByTenantIdAndStatus(UUID tenantId, String status);
+
+    boolean existsByDocumentoId(UUID documentoId);
 }

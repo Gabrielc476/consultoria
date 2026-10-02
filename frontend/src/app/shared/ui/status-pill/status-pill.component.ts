@@ -27,6 +27,7 @@ export class StatusPillComponent {
     switch (this._status()) {
       case 'EM_ANALISE_IA':
       case 'RECEBIDO': return 'Em Análise por IA';
+      case 'EM_TRIAGEM': return 'Em Triagem';
       case 'EM_CONFERENCIA': return 'Em Conferência';
       case 'PRONTO_PARA_TRANSFEREGOV': return 'Pronto Transferegov';
       case 'APROVADO': return 'Aprovado';
@@ -41,6 +42,8 @@ export class StatusPillComponent {
       case 'EM_ANALISE_IA':
       case 'RECEBIDO':
         return 'bg-blue-950/60 text-blue-300 border-blue-500/40 shadow-sm';
+      case 'EM_TRIAGEM':
+        return 'bg-purple-950/60 text-purple-300 border-purple-500/40 shadow-sm';
       case 'EM_CONFERENCIA':
         return 'bg-amber-950/50 text-amber-300 border-amber-500/40';
       case 'PRONTO_PARA_TRANSFEREGOV':
@@ -59,6 +62,7 @@ export class StatusPillComponent {
     switch (this._status()) {
       case 'EM_ANALISE_IA':
       case 'RECEBIDO': return 'bg-blue-400 animate-pulse';
+      case 'EM_TRIAGEM': return 'bg-purple-400 animate-pulse';
       case 'EM_CONFERENCIA': return 'bg-amber-400 animate-pulse';
       case 'PRONTO_PARA_TRANSFEREGOV':
       case 'APROVADO': return 'bg-emerald-400';

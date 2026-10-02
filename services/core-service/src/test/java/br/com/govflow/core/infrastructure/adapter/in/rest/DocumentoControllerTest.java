@@ -55,6 +55,12 @@ class DocumentoControllerTest {
     @MockBean
     private br.com.govflow.core.application.port.in.ObterArquivoDocumentoUseCase obterArquivoUseCase;
 
+    @MockBean
+    private br.com.govflow.core.application.port.out.DocumentoRepositoryPort documentoRepository;
+
+    @MockBean
+    private br.com.govflow.core.infrastructure.adapter.out.persistence.repository.SpringDataTriagemInboxRepository triagemInboxRepository;
+
     private UUID tenantId;
 
     @BeforeEach
