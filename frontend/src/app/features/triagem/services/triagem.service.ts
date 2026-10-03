@@ -101,4 +101,10 @@ export class TriagemService {
       tap(() => this.toast.sucesso('Contato Cadastrado', 'Contato cadastrado com sucesso!'))
     );
   }
+
+  baixarArquivo(documentoId: string): Observable<Blob> {
+    return this.http.get(API_ENDPOINTS.DOCUMENTOS.ARQUIVO(documentoId), {
+      responseType: 'blob'
+    });
+  }
 }

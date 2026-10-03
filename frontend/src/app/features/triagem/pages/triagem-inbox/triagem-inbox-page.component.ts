@@ -366,13 +366,15 @@ import { ToastService } from '../../../../core/ui/toast.service';
                   </div>
                 }
 
-                <a
-                  [href]="obterUrlConteudo(item)"
-                  target="_blank"
-                  class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-medium border border-white/10 transition-colors"
-                >
-                  Abrir Original ↗
-                </a>
+                @if (previewBlobUrl()) {
+                  <a
+                    [href]="previewBlobUrl()"
+                    target="_blank"
+                    class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-medium border border-white/10 transition-colors"
+                  >
+                    Abrir Original ↗
+                  </a>
+                }
 
                 <button
                   type="button"
@@ -386,7 +388,20 @@ import { ToastService } from '../../../../core/ui/toast.service';
 
             <!-- Corpo do Modal -->
             <main class="flex-1 bg-[#080d1a] relative overflow-hidden flex items-center justify-center p-3">
-              @if (isImageItem(item)) {
+              @if (carregandoPreview()) {
+                <div class="flex flex-col items-center justify-center gap-3 text-gov-slate-400">
+                  <div class="w-8 h-8 border-2 border-gov-cobalt-500 border-t-transparent rounded-full animate-spin"></div>
+                  <p class="text-xs text-gov-slate-300 font-medium">Carregando visualização do arquivo...</p>
+                </div>
+              } @else if (erroPreview()) {
+                <div class="text-center p-6 max-w-md">
+                  <div class="w-12 h-12 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 mx-auto flex items-center justify-center mb-3 text-xl">
+                    ⚠️
+                  </div>
+                  <h3 class="text-sm font-semibold text-white mb-1">Visualização Indisponível</h3>
+                  <p class="text-xs text-slate-400 mb-4">{{ erroPreview() }}</p>
+                </div>
+              } @else if (isImageItem(item) && previewBlobUrl()) {
                 <div
                   class="relative w-full h-full flex items-center justify-center overflow-hidden"
                   [class.cursor-grab]="!isDraggingPreview()"
@@ -395,6 +410,8 @@ import { ToastService } from '../../../../core/ui/toast.service';
                   (mousemove)="arrastarPreview($event)"
                   (mouseup)="finalizarArrastoPreview()"
                   (mouseleave)="finalizarArrastoPreview()"
+                  (wheel)="aoRolarMousePreview($event)"
+                  (dblclick)="alternarZoomDuploPreview($event)"
                 >
                   <div
                     class="relative transition-transform duration-75 select-none inline-block shadow-2xl rounded-lg border border-white/10"
@@ -402,7 +419,7 @@ import { ToastService } from '../../../../core/ui/toast.service';
                     [style.transform-origin]="'center center'"
                   >
                     <img
-                      [src]="obterUrlConteudo(item)"
+                      [src]="previewBlobUrl()"
                       [alt]="item.documentoNomeOriginal"
                       class="max-w-none block select-none pointer-events-none rounded max-h-[75vh]"
                     />
@@ -411,12 +428,16 @@ import { ToastService } from '../../../../core/ui/toast.service';
                   <!-- Dica -->
                   <div class="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-[10px] text-slate-400 font-medium pointer-events-none flex items-center gap-2 shadow-lg z-20">
                     <span>🖱️ Arraste para mover</span>
+                    <span>•</span>
+                    <span>🔍 Roda do mouse amplia</span>
+                    <span>•</span>
+                    <span>⚡ 2x clique zoom</span>
                     <span *ngIf="rotacaoPreview() !== 0" class="text-amber-400 font-mono font-bold">• {{ rotacaoPreview() }}°</span>
                   </div>
                 </div>
-              } @else {
+              } @else if (safePreviewBlobUrl()) {
                 <iframe
-                  [src]="obterSafeUrl(item)"
+                  [src]="safePreviewBlobUrl()"
                   class="w-full h-full rounded-xl border border-white/10 bg-white"
                   title="Pré-visualização do Documento"
                 ></iframe>
@@ -450,6 +471,10 @@ export class TriagemInboxPageComponent implements OnInit, OnDestroy {
 
   // Estados de Pré-visualização Inline
   readonly itemEmPreview = signal<TriagemItem | null>(null);
+  readonly carregandoPreview = signal<boolean>(false);
+  readonly erroPreview = signal<string | null>(null);
+  readonly previewBlobUrl = signal<string | null>(null);
+  readonly safePreviewBlobUrl = signal<SafeResourceUrl | null>(null);
   readonly zoomPreview = signal<number>(1.0);
   readonly rotacaoPreview = signal<number>(0);
   readonly panPreviewX = signal<number>(0);
@@ -496,6 +521,11 @@ export class TriagemInboxPageComponent implements OnInit, OnDestroy {
     if (this.timer) {
       clearInterval(this.timer);
       this.timer = null;
+    }
+    if (this.previewBlobUrl()) {
+      URL.revokeObjectURL(this.previewBlobUrl()!);
+      this.previewBlobUrl.set(null);
+      this.safePreviewBlobUrl.set(null);
     }
   }
 
@@ -573,11 +603,54 @@ export class TriagemInboxPageComponent implements OnInit, OnDestroy {
   }
 
   abrirPreview(item: TriagemItem): void {
+    if (this.previewBlobUrl()) {
+      URL.revokeObjectURL(this.previewBlobUrl()!);
+      this.previewBlobUrl.set(null);
+      this.safePreviewBlobUrl.set(null);
+    }
+
     this.itemEmPreview.set(item);
     this.resetarVisaoPreview();
+    this.carregandoPreview.set(true);
+    this.erroPreview.set(null);
+
+    if (!item.documentoId) {
+      this.erroPreview.set('Documento associado não encontrado para visualização.');
+      this.carregandoPreview.set(false);
+      return;
+    }
+
+    this.triagemService.baixarArquivo(item.documentoId).subscribe({
+      next: (blob) => {
+        let mime = blob.type;
+        const nome = (item.documentoNomeOriginal || '').toLowerCase();
+        if (nome.endsWith('.pdf')) mime = 'application/pdf';
+        else if (nome.endsWith('.png')) mime = 'image/png';
+        else if (nome.endsWith('.jpg') || nome.endsWith('.jpeg')) mime = 'image/jpeg';
+        else if (nome.endsWith('.webp')) mime = 'image/webp';
+        else if (nome.endsWith('.svg')) mime = 'image/svg+xml';
+        else if (nome.endsWith('.html') || nome.endsWith('.htm')) mime = 'text/html';
+
+        const finalBlob = mime && mime !== blob.type ? new Blob([blob], { type: mime }) : blob;
+        const objectUrl = URL.createObjectURL(finalBlob);
+        this.previewBlobUrl.set(objectUrl);
+        this.safePreviewBlobUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(objectUrl));
+        this.carregandoPreview.set(false);
+      },
+      error: (err) => {
+        console.error('Falha ao baixar arquivo para preview na triagem:', err);
+        this.erroPreview.set('Não foi possível carregar a visualização deste arquivo.');
+        this.carregandoPreview.set(false);
+      }
+    });
   }
 
   fecharPreview(): void {
+    if (this.previewBlobUrl()) {
+      URL.revokeObjectURL(this.previewBlobUrl()!);
+      this.previewBlobUrl.set(null);
+      this.safePreviewBlobUrl.set(null);
+    }
     this.itemEmPreview.set(null);
   }
 
@@ -593,14 +666,6 @@ export class TriagemInboxPageComponent implements OnInit, OnDestroy {
       nome.endsWith('.svg');
   }
 
-  obterUrlConteudo(item: TriagemItem): string {
-    return `/api/v1/documentos/${item.documentoId}/conteudo`;
-  }
-
-  obterSafeUrl(item: TriagemItem): SafeResourceUrl {
-    return this.sanitizer.bypassSecurityTrustResourceUrl(this.obterUrlConteudo(item));
-  }
-
   rotacionarPreview(delta: number): void {
     this.rotacaoPreview.update(r => (r + delta + 360) % 360);
   }
@@ -614,6 +679,23 @@ export class TriagemInboxPageComponent implements OnInit, OnDestroy {
     this.rotacaoPreview.set(0);
     this.panPreviewX.set(0);
     this.panPreviewY.set(0);
+  }
+
+  aoRolarMousePreview(e: WheelEvent): void {
+    if (!this.itemEmPreview() || !this.isImageItem(this.itemEmPreview()!)) return;
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 0.15 : -0.15;
+    this.ajustarZoomPreview(delta);
+  }
+
+  alternarZoomDuploPreview(e: MouseEvent): void {
+    if (!this.itemEmPreview() || !this.isImageItem(this.itemEmPreview()!)) return;
+    e.preventDefault();
+    if (this.zoomPreview() > 1.2) {
+      this.resetarVisaoPreview();
+    } else {
+      this.zoomPreview.set(2.0);
+    }
   }
 
   iniciarArrastoPreview(e: MouseEvent): void {
@@ -640,3 +722,4 @@ export class TriagemInboxPageComponent implements OnInit, OnDestroy {
     return `translate(${this.panPreviewX()}px, ${this.panPreviewY()}px) scale(${this.zoomPreview()}) rotate(${this.rotacaoPreview()}deg)`;
   }
 }
+

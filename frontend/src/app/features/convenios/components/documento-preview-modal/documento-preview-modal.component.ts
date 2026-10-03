@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnInit, Output, inject, signal } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, OnDestroy, Output, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -505,7 +505,7 @@ import { ToastService } from '../../../../core/ui/toast.service';
     </div>
   `
 })
-export class DocumentoPreviewModalComponent implements OnInit {
+export class DocumentoPreviewModalComponent implements OnInit, OnDestroy {
   @Input({ required: true }) documento!: DocumentoFicheiro;
   @Output() fechar = new EventEmitter<void>();
   @Output() documentoMovido = new EventEmitter<DocumentoFicheiro>();
@@ -659,14 +659,46 @@ export class DocumentoPreviewModalComponent implements OnInit {
   }
 
   obterPreviewUrl(): void {
+    if (this.rawUrl() && this.rawUrl()!.startsWith('blob:')) {
+      URL.revokeObjectURL(this.rawUrl()!);
+      this.rawUrl.set(null);
+      this.safeUrl.set(null);
+    }
+
     this.carregandoPreview.set(true);
     this.erroPreview.set(null);
 
-    // O endpoint /conteudo é servido diretamente pelo core-service via Gateway com streaming limpo, sem problemas de host/CORS
-    const directUrl = `/api/v1/documentos/${this.documento.id}/conteudo`;
-    this.rawUrl.set(directUrl);
-    this.safeUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(directUrl));
-    this.carregandoPreview.set(false);
+    this.ficheiroService.baixarArquivo(this.documento.id).subscribe({
+      next: (blob) => {
+        let mime = blob.type;
+        const nome = (this.documento?.nomeArquivoOriginal || '').toLowerCase();
+        if (nome.endsWith('.pdf')) mime = 'application/pdf';
+        else if (nome.endsWith('.png')) mime = 'image/png';
+        else if (nome.endsWith('.jpg') || nome.endsWith('.jpeg')) mime = 'image/jpeg';
+        else if (nome.endsWith('.webp')) mime = 'image/webp';
+        else if (nome.endsWith('.svg')) mime = 'image/svg+xml';
+        else if (nome.endsWith('.html') || nome.endsWith('.htm')) mime = 'text/html';
+
+        const finalBlob = mime && mime !== blob.type ? new Blob([blob], { type: mime }) : blob;
+        const objectUrl = URL.createObjectURL(finalBlob);
+        this.rawUrl.set(objectUrl);
+        this.safeUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(objectUrl));
+        this.carregandoPreview.set(false);
+      },
+      error: (err) => {
+        console.error('Erro ao obter preview do documento:', err);
+        this.erroPreview.set('Não foi possível carregar a visualização do arquivo.');
+        this.carregandoPreview.set(false);
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (this.rawUrl() && this.rawUrl()!.startsWith('blob:')) {
+      URL.revokeObjectURL(this.rawUrl()!);
+      this.rawUrl.set(null);
+      this.safeUrl.set(null);
+    }
   }
 
   carregarAuditoria(): void {

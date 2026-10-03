@@ -73,4 +73,10 @@ export class FicheiroDigitalService {
   listarAuditoria(documentoId: string): Observable<any[]> {
     return this.http.get<any[]>(API_ENDPOINTS.FICHEIRO.HISTORICO_AUDITORIA(documentoId));
   }
+
+  baixarArquivo(documentoId: string): Observable<Blob> {
+    return this.http.get(API_ENDPOINTS.DOCUMENTOS.ARQUIVO(documentoId), {
+      responseType: 'blob'
+    });
+  }
 }
