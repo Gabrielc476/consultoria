@@ -169,8 +169,12 @@ CREATE INDEX IF NOT EXISTS idx_doc_auditoria_doc ON core_schema.tb_documentos_au
   - Campos: `arquivo`, `faseCicloVida`, `categoriaDocumento`, `tags`.
 - `GET /api/v1/documentos/{id}/download`:
   - Download do arquivo com Content-Disposition e streaming a partir do MinIO/S3.
+- `GET /api/v1/documentos/{id}/arquivo`:
+  - Retorno do binário original para streaming autenticado via `HttpClient` (Blob URL em memória), evitando falhas de autenticação em tags `<img [src]>` e `<iframe>`.
 - `GET /api/v1/documentos/{id}/preview`:
   - Geração de URL assinada ou stream inline para visualizador de PDF/imagem no navegador.
+- `PUT /api/v1/documentos/{id}/enviar-triagem`:
+  - Encaminha manualmente um documento para a Caixa de Triagem Omnicanal (`StatusDocumento.EM_TRIAGEM`), limpando-o da esteira de conferência.
 - `GET /api/v1/convenios/{convenioId}/ficheiro/download-zip`:
   - Compacta em ZIP pastas selecionadas ou o convênio inteiro para backup local da consultoria.
 - `PATCH /api/v1/documentos/{id}/mover`:

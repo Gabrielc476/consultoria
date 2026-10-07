@@ -249,9 +249,9 @@ _Avoid_: Polling pesado bloqueante, Alerta estático manual.
 
 ### Estado Atual dos Módulos (Milestones)
 
-- **Módulo 1: Identidade, Organização e Acesso (IAM & Onboarding)**: ✅ **100% Concluído e Validado** (Migrações Flyway, Auth JWT, isolamento Multi-Tenant e vínculos N:N).
-- **Módulo 2: GED & Ficheiro Digital do Convênio**: ✅ **100% Concluído e Validado na Interface Real** (Tickets GED-01 a GED-08, MinIO/S3, Presigned URLs, streaming de ZIP, Explorer das 10 Fases e Auditor Side-by-Side Polimórfico de Engenharia e Fiscal).
-- **Módulo 3: Comunicação Omnicanal, WhatsApp & IA de Contexto**: ✅ **100% Concluído e Validado** (Tickets WPP-01 a WPP-06, Contatos 1:N, Ingestão Agnóstica, Contexto Multimodal, Caixa de Triagem e Feedback Reativo em Tempo Real para o Agente).
-- **Módulo 4: Cockpit de Ciclo de Vida & Hub Operacional**: 🚀 **Próximo Módulo** (Esteira Kanban das 10 Fases, Alertas CAUC e Linha do Tempo).
+- **Módulo 1: Identidade, Organização e Acesso (IAM & Onboarding)**: ✅ **100% Concluído e Validado** (Migrações Flyway, Auth JWT, isolamento Multi-Tenant e vínculos N:N de Agentes e Prefeituras).
+- **Módulo 2: GED & Ficheiro Digital do Convênio**: ✅ **100% Concluído e Homologado** (Tickets GED-01 a GED-13: MinIO/S3, Presigned URLs, streaming de ZIP, Explorer das 10 Fases, Auditor Side-by-Side Polimórfico de Engenharia/Fiscal/Genérico, Visualizador Interativo de Imagens 360°, streaming autenticado via Blob e máscaras BRL).
+- **Módulo 3: Comunicação Omnicanal, WhatsApp & IA de Contexto**: ✅ **100% Concluído e Homologado** (Tickets WPP-01 a WPP-08 e CORE-01: Contatos 1:N, Filtro Estrito de Borda, Ingestão Agnóstica, Contexto Multimodal Whisper+OCR, Caixa de Triagem Omnicanal com Roteamento de Baixa Certeza < 70% e Notificações Sonoras e Visuais em Tempo Real).
+- **Módulo 4: Cockpit de Ciclo de Vida & Hub Operacional**: 🚀 **Próximo Módulo em Execução** (Dossiê Unificado por Fase, Checklist de Pendências Legais, Prazos Fatais CAUC/SELIC e Eliminação de Mocks).
 - **Módulo 5: Integração Transferegov & Inteligência**: ⏳ Na fila de execução.
 

@@ -221,6 +221,10 @@ Na Caixa de Triagem (`/triagem`) e no Hub de WhatsApp (`/whatsapp`):
     - Resolve o item da `tb_triagem_inbox`.
 - `GET /api/v1/triagem/pendentes`:
   - Retorna a lista de itens pendentes de triagem atribuídos ao agente logado (incluindo flag `remetenteNovo: true` e sugestões da IA).
+- `POST /api/v1/triagem/{inboxId}/confirmar-arquivamento`:
+  - Confirmação direta em 1 clique para arquivar o documento no convênio e fase recomendados.
+- `POST /api/v1/triagem/{inboxId}/ignorar`:
+  - Descarta a pendência de triagem da inbox do agente.
 
 ---
 

@@ -291,6 +291,76 @@ graph TD
       - Checkbox de arquivamento imediato do anexo na pasta da fase correspondente.
       - Toast de feedback e atualização reativa da lista.
 
+- **[TICKET-WPP-07] [x] Concluído: Filtro Estrito de Borda para Contatos Vinculados**
+  - **Serviço**: `whatsapp-service` / `core-service`
+  - **Status**: [x] Concluído
+  - **Entregáveis**:
+    - `ContactResolutionService`: Verificação mandante em `tb_contatos` e `tb_contato_convenios`.
+    - Descarte sumário na borda de mensagens e documentos vindos de números desconhecidos ou desvinculados de convênios.
+    - Prevenção de poluição da esteira e garantia de conformidade de segurança e LGPD.
+
+- **[TICKET-WPP-08] [x] Concluído: Roteamento Automático de Baixa Certeza (< 70%) para Caixa de Triagem**
+  - **Serviço**: `core-service` / `frontend`
+  - **Status**: [x] Concluído
+  - **Entregáveis**:
+    - Adicionado enum `StatusDocumento.EM_TRIAGEM`.
+    - `ProcessarDocumentoExtraidoService` e `DocumentoClassificadoListener`: Documentos com confiança geral < 0.70 ou tipo não identificado são transicionados para `EM_TRIAGEM` e entram como `PENDENTE` na `tb_triagem_inbox`.
+    - Endpoint `PUT /api/v1/documentos/{id}/enviar-triagem` para devolução manual.
+    - Na esteira (`/documentos`), exibição estrita de itens com alta confiança (`status !== 'EM_TRIAGEM'`).
+
+- **[TICKET-CORE-01] [x] Concluído: Feedback e Notificações em Tempo Real para o Agente**
+  - **Serviço**: `frontend`
+  - **Status**: [x] Concluído
+  - **Entregáveis**:
+    - `NotificacaoDocumentoService`: Polling leve e não-bloqueante a cada 5 segundos.
+    - Síntese de áudio imediata com Web Audio API ("chime" sutil) ao receber novos arquivos ou itens de triagem.
+    - Dropdown de notificações com sino vivo no cabeçalho e atalho direto "Auditar Lado a Lado" para abrir o visualizador no documento recém-chegado.
+    - Badges reativos na barra lateral indicando contagem em tempo real de itens na Esteira e na Triagem.
+
+- **[TICKET-GED-09] [x] Concluído: Auditor Side-by-Side Polimórfico e Extensibilidade Multidocumental**
+  - **Serviço**: `frontend` / `core-service`
+  - **Status**: [x] Concluído
+  - **Entregáveis**:
+    - Componente `/documentos/:id/revisar` com auditor dinâmico adaptado por categoria (`DOCUMENTO_HABIL`, `BOLETIM_MEDICAO`, `PROJETO_ENGENHARIA`, `LICENCA_AMBIENTAL`, `CERTIDAO_CAUC`, `GENERICO`).
+    - Coluna de campos específicos de engenharia para Boletim de Medição (Nº BM, Contrato Municipal, Período Medido, Valor Medido, % Executado, Atesto Técnico com ART).
+    - Coluna fiscal para Nota Fiscal/Documento Hábil (Chave NFe, CNPJ, Valor Bruto, Retenções Tributárias).
+    - Modo agnóstico/genérico para qualquer novo tipo documental que venha a ser submetido ao sistema.
+
+- **[TICKET-GED-10] [x] Concluído: Seletor Dropdown Dinâmico com Pré-Seleção por IA**
+  - **Serviço**: `frontend`
+  - **Status**: [x] Concluído
+  - **Entregáveis**:
+    - Substituição da seleção engessada por botões de rádio por dropdown estilizado e intuitivo com badges coloridos e metadados por categoria.
+    - Pré-seleção automática da categoria sugerida pela IA com exibição de nível de confiança.
+    - Possibilidade de troca manual imediata pelo auditor em caso de equívoco da IA.
+
+- **[TICKET-GED-11] [x] Concluído: Máscaras Monetárias BRL e Tratamento de Decimais**
+  - **Serviço**: `frontend`
+  - **Status**: [x] Concluído
+  - **Entregáveis**:
+    - Máscara monetária formatando inputs numéricos no padrão Real (`R$ #.##0,00`).
+    - Conversão bidirecional robusta garantindo que centavos e números fracionários não sejam arredondados ou truncados.
+
+- **[TICKET-GED-12] [x] Concluído: Visualizador Interativo de Imagens 360° com Zoom, Pan e Filtros**
+  - **Serviço**: `frontend`
+  - **Status**: [x] Concluído
+  - **Entregáveis**:
+    - Renderizador dedicado para imagens (`JPEG`, `PNG`, `WEBP`) integrado ao `MediaWorkspaceComponent`, `DocumentoPreviewModalComponent` e `TriagemInboxPageComponent`.
+    - Controles de rotação 90° horário e anti-horário (`↺` / `↻`) para fotos tombadas ou invertidas.
+    - Zoom de 20% a 400% via botões, roda do mouse (`wheel`) e clique duplo (`dblclick`).
+    - Arraste manual com o cursor do mouse (*pan/drag*).
+    - 5 filtros de leitura (Normal, Conforto/Papel Suave, Alto Contraste, P&B e Invertido).
+    - Sincronização em tempo real das Bounding Boxes da IA com transformações geométricas da imagem.
+
+- **[TICKET-GED-13] [x] Concluído: Streaming Binário Autenticado via Blob e Correção UTF-8**
+  - **Serviço**: `frontend` / `PostgreSQL`
+  - **Status**: [x] Concluído
+  - **Entregáveis**:
+    - Download de imagens e PDFs via `HttpClient` com `AuthInterceptor` anexando cabeçalho JWT `Bearer`.
+    - Geração de Blob URLs seguras em memória (`URL.createObjectURL`), eliminando o erro `HTTP 401 Unauthorized` causado por requisições nativas de tags `<img>` e `<iframe>`.
+    - Revogação imediata de URLs em memória (`URL.revokeObjectURL`) no fechamento de modais e destruição de componentes.
+    - Saneamento da tabela `core_schema.tb_triagem_inbox` via script UTF-8 direto no PostgreSQL, corrigindo caracteres corrompidos (`???`) em nomes e motivos de triagem.
+
 ---
 
 ### EPIC 4: Módulo 4 — Cockpit de Ciclo de Vida & Hub Operacional
