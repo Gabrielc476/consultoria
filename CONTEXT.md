@@ -79,16 +79,32 @@ _Avoid_: Prorrogação informal, Renovação, Ajuste simples.
 ### Licitação e Autorizações Federais (Fase 3)
 
 **Licitacao**:  
-O certame ou procedimento formal de contratação pública municipal (Pregão, Concorrência, Dispensa, Inexigibilidade regido pela Lei nº 14.133/2021) vinculado ao convênio federal, cujo resultado é submetido ao Concedente para homologação (VRPL) antes da emissão da AIO. Um convênio pode comportar múltiplos certames independentes (relação 1:N).  
-_Avoid_: Edital solto, Compra direta genérica, Licitação isolada sem vínculo.
+Agregado próprio do ciclo de contratação municipal (Lei nº 14.133/2021) vinculado a um Convênio federal na relação 1:N. Cada certame possui número próprio (`Concorrência 002/2024`, `Pregão 015/2024`), modalidade, critério de julgamento, regime de execução, valor estimado (lastro da SPA) e valor homologado. Não é filho embutido do Convênio: vive em `tb_licitacoes` e transita por homologação municipal, VRPL da Mandatária e emissão de AIO.  
+_Avoid_: Edital solto, Compra direta genérica, Licitação isolada sem vínculo, Lote como sinônimo de Convênio.
 
 **VRPL**:  
-Verificação do Resultado do Processo Licitatório realizada pela Caixa ou Ministério para atestar a conformidade do certame municipal com a SPA e a preservação do desconto.  
-_Avoid_: Análise de licitação, Checagem de edital.
+Verificação do Resultado do Processo Licitatório realizada pela Caixa GIGOV ou Ministério. Controla o protocolo no Transferegov (`numero_vrpl_transferegov`), a data de envio, o parecer técnico textual e o StatusVrpl. Só pode ser submetida após a Licitacao estar `HOMOLOGADA`.  
+_Avoid_: Análise de licitação, Checagem de edital, Aceite da Caixa como sinônimo de AIO.
 
 **AIO**:  
-Autorização de Início de Objeto formal expedida pelo Concedente permitindo o início da execução física da obra após aprovação da licitação.  
-_Avoid_: Liberação de obra, Autorização genérica.
+Autorização de Início de Objeto formal expedida pelo Concedente após VRPL em `ACEITO_HOMOLOGADO`. Grava `numero_aio`, `data_emissao_aio` e StatusAio `EMITIDO`. Sem AIO emitida a TravaAntigrosa impede Boletim de Medição.  
+_Avoid_: Liberação de obra, Autorização genérica, Ordem de Serviço municipal.
+
+**EconomiaLicitacao**:  
+Diferença entre o valor estimado (SPA) e o valor homologado, expressa em valor absoluto e em `percentual_desconto` = `(estimado − homologado) / estimado`. Calculada na homologação municipal.  
+_Avoid_: Desconto comercial, Abatimento informal.
+
+**StatusVrpl**:  
+Estado da análise federal do certame: `NAO_ENVIADO`, `EM_ANALISE_CAIXA`, `DILIGENCIA`, `ACEITO_HOMOLOGADO`, `REJEITADO`.  
+_Avoid_: ACEITO_CAIXA, DILIGENCIA_EMITIDA (aliases do deep research; o banco e o código usam os valores da migration V4).
+
+**StatusAio**:  
+Estado da Autorização de Início de Objeto: `NAO_EMITIDO`, `SOLICITADO`, `EMITIDO`.  
+_Avoid_: Deferida, Liberada, Aprovada como sinônimo de emitida.
+
+**TravaAntigrosa**:  
+Invariante de domínio exposta pela porta `ValidarAioParaMedicaoUseCase.garantirAioEmitida(licitacaoId)`. Lança `AioNaoEmitidaException` quando `status_aio != EMITIDO`. A TASK-15 (Boletim de Medição) deve chamar essa porta antes de persistir qualquer medição.  
+_Avoid_: Trava no frontend apenas, Flag solta na Medição, Checagem espalhada na Fase 4.
 
 ---
 

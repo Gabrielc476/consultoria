@@ -250,9 +250,9 @@ Painel dedicado ao controle e superação da Cláusula Suspensiva em contratos d
 Modelagem e endpoints para gerenciar múltiplos certames licitatórios municipais vinculados a um único convênio federal (relação 1:N). Gerencia o envio de documentação do processo para Verificação do Resultado do Processo Licitatório (VRPL) pela Caixa e registra a Autorização de Início de Objeto (AIO), bloqueando qualquer medição física antes da liberação oficial.
 
 ### Critérios de Aceite
-- [ ] Suporte à criação de múltiplas licitações vinculadas ao mesmo convênio federal.
-- [ ] Registro do protocolo e do parecer técnico de VRPL emitido pelo Concedente/Mandatária.
-- [ ] Bloqueio formal de criação de boletins de medição para obras sem registro de AIO deferida.
+- [x] Suporte à criação de múltiplas licitações vinculadas ao mesmo convênio federal.
+- [x] Registro do protocolo e do parecer técnico de VRPL emitido pelo Concedente/Mandatária.
+- [x] Bloqueio formal de criação de boletins de medição para obras sem registro de AIO deferida.
 
 ---
 

@@ -1,0 +1,93 @@
+export const API_BASE_URL = 'http://localhost:8080/api/v1';
+
+export const API_ENDPOINTS = {
+  AUTH: {
+    LOGIN: `${API_BASE_URL}/auth/login`,
+    REGISTER: `${API_BASE_URL}/auth/register`,
+    ME: `${API_BASE_URL}/auth/me`,
+  },
+  AGENTES: {
+    BASE: `${API_BASE_URL}/agentes`,
+    POR_ID: (id: string) => `${API_BASE_URL}/agentes/${id}`,
+  },
+  DOCUMENTOS: {
+    BASE: `${API_BASE_URL}/documentos`,
+    POR_ID: (id: string) => `${API_BASE_URL}/documentos/${id}`,
+    ARQUIVO: (id: string) => `${API_BASE_URL}/documentos/${id}/arquivo`,
+    APROVAR: (id: string) => `${API_BASE_URL}/documentos/${id}/aprovar`,
+    REJEITAR: (id: string) => `${API_BASE_URL}/documentos/${id}/rejeitar`,
+    AUDITORIA: (id: string) => `${API_BASE_URL}/documentos/${id}/auditoria`,
+    ENVIAR_TRIAGEM: (id: string) => `${API_BASE_URL}/documentos/${id}/enviar-triagem`,
+  },
+  PREFEITURAS: {
+    BASE: `${API_BASE_URL}/prefeituras`,
+  },
+  TRANSFEREGOV: {
+    BASE: `${API_BASE_URL}/transferegov`,
+    CONVENIOS: `${API_BASE_URL}/transferegov/convenios`,
+    RADAR_PRAZOS: `${API_BASE_URL}/transferegov/radar-prazos`,
+    AVALIAR_PRAZOS: `${API_BASE_URL}/transferegov/radar-prazos/avaliar`,
+  },
+  CAUC: {
+    BASE: `${API_BASE_URL}/cauc`,
+    RESUMO: `${API_BASE_URL}/cauc/resumo`,
+    POR_PREFEITURA: (id: string) => `${API_BASE_URL}/cauc/prefeituras/${id}`,
+    CERTIDOES: (id: string) => `${API_BASE_URL}/cauc/prefeituras/${id}/certidoes`,
+    AVALIAR: `${API_BASE_URL}/cauc/avaliar`,
+  },
+  CONVENIOS: {
+    BASE: `${API_BASE_URL}/convenios`,
+    POR_ID: (id: string) => `${API_BASE_URL}/convenios/${id}`,
+    CLAUSULA_SUSPENSIVA: (id: string) => `${API_BASE_URL}/convenios/${id}/clausula-suspensiva`,
+    SUBMETER_PILAR: (id: string, tipo: string) => `${API_BASE_URL}/convenios/${id}/clausula-suspensiva/condicionantes/${tipo}/submeter`,
+    DILIGENCIA_PILAR: (id: string, tipo: string) => `${API_BASE_URL}/convenios/${id}/clausula-suspensiva/condicionantes/${tipo}/diligencia`,
+    APROVAR_PILAR: (id: string, tipo: string) => `${API_BASE_URL}/convenios/${id}/clausula-suspensiva/condicionantes/${tipo}/aprovar`,
+    UPLOAD_DOCUMENTO: (id: string, tipo: string) => `${API_BASE_URL}/convenios/${id}/clausula-suspensiva/condicionantes/${tipo}/documentos`,
+    UPLOAD_LAUDO_PENDENCIAS: (id: string, tipo: string) => `${API_BASE_URL}/convenios/${id}/clausula-suspensiva/condicionantes/${tipo}/laudo-pendencias`,
+    PRORROGAR: (id: string) => `${API_BASE_URL}/convenios/${id}/clausula-suspensiva/prorrogacao`,
+    DEFERIR_PRORROGACAO: (id: string) => `${API_BASE_URL}/convenios/${id}/clausula-suspensiva/prorrogacao/deferir`,
+    SUPERAR: (id: string) => `${API_BASE_URL}/convenios/${id}/clausula-suspensiva/superar`,
+    UPLOAD_TERMO_RETIRADA: (id: string) => `${API_BASE_URL}/convenios/${id}/clausula-suspensiva/termo-retirada`,
+    DOWNLOAD_DOCUMENTO: (id: string, tipo: string) => `${API_BASE_URL}/convenios/${id}/clausula-suspensiva/documentos/${tipo}/download`,
+    DOWNLOAD_TERMO_RETIRADA: (id: string) => `${API_BASE_URL}/convenios/${id}/clausula-suspensiva/termo-retirada/download`,
+    LICITACOES: (convenioId: string) => `${API_BASE_URL}/convenios/${convenioId}/licitacoes`,
+    LICITACAO: (convenioId: string, licitacaoId: string) => `${API_BASE_URL}/convenios/${convenioId}/licitacoes/${licitacaoId}`,
+    LICITACAO_HOMOLOGAR: (convenioId: string, licitacaoId: string) =>
+      `${API_BASE_URL}/convenios/${convenioId}/licitacoes/${licitacaoId}/homologar`,
+    LICITACAO_VRPL_SUBMETER: (convenioId: string, licitacaoId: string) =>
+      `${API_BASE_URL}/convenios/${convenioId}/licitacoes/${licitacaoId}/vrpl/submeter`,
+    LICITACAO_VRPL_RESULTADO: (convenioId: string, licitacaoId: string) =>
+      `${API_BASE_URL}/convenios/${convenioId}/licitacoes/${licitacaoId}/vrpl/resultado`,
+    LICITACAO_AIO: (convenioId: string, licitacaoId: string) =>
+      `${API_BASE_URL}/convenios/${convenioId}/licitacoes/${licitacaoId}/aio`,
+    LICITACAO_VALIDAR_AIO_MEDICAO: (convenioId: string, licitacaoId: string) =>
+      `${API_BASE_URL}/convenios/${convenioId}/licitacoes/${licitacaoId}/validar-aio-medicao`,
+  },
+  FICHEIRO: {
+    OBTER: (convenioId: string) => `${API_BASE_URL}/convenios/${convenioId}/ficheiro`,
+    FASES_DOCUMENTOS: (convenioId: string, fase: string) => `${API_BASE_URL}/convenios/${convenioId}/ficheiro/fases/${fase}`,
+    UPLOAD: (convenioId: string) => `${API_BASE_URL}/convenios/${convenioId}/ficheiro/upload`,
+    DOWNLOAD_ZIP_CONVENIO: (convenioId: string) => `${API_BASE_URL}/convenios/${convenioId}/ficheiro/download-zip`,
+    DOWNLOAD_ZIP_FASE: (convenioId: string, fase: string) => `${API_BASE_URL}/convenios/${convenioId}/ficheiro/fases/${fase}/download-zip`,
+    PREVIEW: (documentoId: string) => `${API_BASE_URL}/documentos/${documentoId}/preview`,
+    MOVER: (documentoId: string) => `${API_BASE_URL}/documentos/${documentoId}/mover`,
+    EXCLUIR: (documentoId: string) => `${API_BASE_URL}/documentos/${documentoId}`,
+    HISTORICO_AUDITORIA: (documentoId: string) => `${API_BASE_URL}/documentos/${documentoId}/historico-auditoria`,
+  },
+  TRIAGEM: {
+    PENDENTES: `${API_BASE_URL}/triagem/pendentes`,
+    CADASTRAR_CONTATO_E_ARQUIVAR: (inboxId: string) => `${API_BASE_URL}/triagem/${inboxId}/cadastrar-contato-e-arquivar`,
+    CONFIRMAR_ARQUIVAMENTO: (inboxId: string) => `${API_BASE_URL}/triagem/${inboxId}/confirmar-arquivamento`,
+    IGNORAR: (inboxId: string) => `${API_BASE_URL}/triagem/${inboxId}/ignorar`,
+  },
+  CONTATOS: {
+    BASE: `${API_BASE_URL}/contatos`,
+  },
+  WHATSAPP: {
+    CHATS_RECENTES: `${API_BASE_URL}/whatsapp/chats-recentes`,
+    MENSAGENS: (phone: string) => `${API_BASE_URL}/whatsapp/conversas/${phone}/mensagens`,
+    SINCRONIZAR_HISTORICO: (phone: string) => `${API_BASE_URL}/whatsapp/conversas/${phone}/sincronizar-historico`,
+    ENVIAR: (phone: string) => `${API_BASE_URL}/whatsapp/conversas/${phone}/enviar`,
+  }
+};
+

@@ -185,3 +185,12 @@ C4Container
 * **Contexto:** Desenvolver localmente sem internet ou sem criar credenciais na nuvem, mas mantendo compatibilidade de API com a nuvem de produção.
 * **Decisão:** Subir um container do MinIO (S3-compatible) no Docker Compose para testes locais e apontar para o Cloudflare R2 em ambiente de homologação/produção.
 * **Consequências:** Código único de cliente S3 da AWS no Spring Boot e FastAPI, sem custo de saída de dados (zero egress fees) em produção.
+
+### ADR-010: Licitação como Agregado 1:N e TravaAntigrosa como Inbound Port
+* **Status:** Aceito.
+* **Contexto:** A Fase 3 exige múltiplos certames independentes por Convênio (obras, supervisão, equipamentos). Embutir Licitação em `Convenio` forçaria o agregado raiz a conhecer VRPL, AIO e a futura Medição. A TASK-15 (Boletins de Medição) ainda não existe; a regra legal de bloquear medição sem AIO precisa ser exercitável agora.
+* **Decisão:**
+  1. `Licitacao` é agregado próprio em `core_schema.tb_licitacoes`, relacionado 1:N com `Convenio`, com ciclo próprio de homologação, StatusVrpl e StatusAio.
+  2. A TravaAntigrosa não fica espalhada na futura Medição: vive na porta `ValidarAioParaMedicaoUseCase.garantirAioEmitida(UUID licitacaoId)` e lança `AioNaoEmitidaException` quando `status_aio != EMITIDO`.
+  3. Enums de VRPL seguem a migration V4 (`DILIGENCIA`, `ACEITO_HOMOLOGADO`), não os aliases do deep research.
+* **Consequências:** O cockpit da Fase 3 opera a lista 1:N sem inflar `Convenio`. A TASK-15 consome a porta pronta. Upload MinIO do dossiê VRPL permanece fora desta decisão (chaves `s3_key_*` já existem para leitura).
